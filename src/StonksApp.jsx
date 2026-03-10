@@ -1332,7 +1332,7 @@ export default function CorpoRotApp({ roomCode = "stonks" }) {
       const p = typeof rawPin === "string" && /^\d{6}$/.test(rawPin) ? rawPin : DEFAULT_PIN;
       const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
       const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
-      setStocks(s);
+      setStocks(sortByPrice(s));
       setHeadlines(h);
       setHistory(hist);
       setDate(d);
