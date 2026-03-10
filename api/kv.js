@@ -8,10 +8,8 @@ const redis = new Redis({
 const TTL = 60 * 60 * 24 * 30; // 30 days
 
 export default async function handler(req, res) {
-  // key arrives as array e.g. ["QDMBRQ:stocks"] — join to get full key
-  const key = Array.isArray(req.query.key)
-    ? req.query.key.join("/")
-    : req.query.key;
+  const key = req.query.k;
+  if (!key) return res.status(400).json({ error: "missing key" });
 
   if (req.method === "GET") {
     const value = await redis.get(key);
@@ -22,7 +20,6 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const { value } = req.body;
     await redis.set(key, value, { ex: TTL });
-    // Refresh room activity TTL
     const roomCode = key.split(":")[0];
     await redis.set(`${roomCode}:_active`, Date.now(), { ex: TTL });
     return res.json({ ok: true });

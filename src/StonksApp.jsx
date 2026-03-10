@@ -199,7 +199,7 @@ const makeKeys = (prefix) => ({
 
 const safeGet = async (key, fallback) => {
   try {
-    const r = await fetch(`/api/kv/${key}`);
+    const r = await fetch(`/api/kv?k=${encodeURIComponent(key)}`);
     if (!r.ok) return fallback;
     const data = await r.json();
     return data.value !== undefined ? data.value : fallback;
@@ -208,7 +208,7 @@ const safeGet = async (key, fallback) => {
 
 const safeSet = async (key, value) => {
   try {
-    await fetch(`/api/kv/${key}`, {
+    await fetch(`/api/kv?k=${encodeURIComponent(key)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ value }),
