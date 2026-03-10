@@ -266,10 +266,13 @@ function FictionDate({ date }) {
 
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneypot }) {
+function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneypot, onRefresh }) {
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
   const [showQR, setShowQR] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
 
   useEffect(() => {
     setVisible([]);
@@ -392,12 +395,27 @@ function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneyp
             <span>ALL VALUES IN CREDITS (cr)</span>
             <span>● LIVE FEED</span>
           </div>
-          <button onClick={() => setShowHistory(!showHistory)}
-            style={{ background: "none", border: `1px solid ${showHistory ? GREEN_DARK : "#2a3a2a"}`,
-              color: showHistory ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
-              fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", width: "100%" }}>
-            {showHistory ? "[ HIDE HISTORY ]" : "[ VIEW HISTORY ]"}
-          </button>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={() => setShowHistory(!showHistory)}
+              style={{ background: "none", border: `1px solid ${showHistory ? GREEN_DARK : "#2a3a2a"}`,
+                color: showHistory ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
+              {showHistory ? "[ HIDE HISTORY ]" : "[ VIEW HISTORY ]"}
+            </button>
+            {isPWA && (
+              <button onClick={async () => {
+                  if (refreshing) return;
+                  setRefreshing(true);
+                  await onRefresh();
+                  setRefreshing(false);
+                }}
+                style={{ background: "none", border: `1px solid #2a3a2a`,
+                  color: refreshing ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                  fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", minWidth: "110px" }}>
+                {refreshing ? "[ SYNCING... ]" : "[ ↺ SYNC ]"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* History log */}
@@ -1505,6 +1523,18 @@ export default function CorpoRotApp({ roomCode = "stonks" }) {
     <PlayerView
       stocks={stocks} headlines={headlines}
       history={history} date={date}
+      onRefresh={async () => {
+        const [s, h, hist, d] = await Promise.all([
+          safeGet(KEYS.stocks, INITIAL_STOCKS),
+          safeGet(KEYS.headlines, []),
+          safeGet(KEYS.history, []),
+          safeGet(KEYS.date, { year: 2122, cycle: 1 }),
+        ]);
+        setStocks(sortByPrice(s));
+        setHeadlines(h);
+        setHistory(hist);
+        setDate(d);
+      }}
       onWardenAccess={() => setView("pin")}
       onHoneypot={() => {
         fetch(`/api/honeypot?room=${encodeURIComponent(roomCode)}`).catch(() => {});
