@@ -269,6 +269,7 @@ function FictionDate({ date }) {
 function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneypot }) {
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     setVisible([]);
