@@ -7,9 +7,24 @@ const redis = new Redis({
 
 const MAX_FAILURES = 5;
 const LOCKOUT_TTL = 60 * 30; // 30 minutes
+const TTL = 60 * 60 * 24 * 30;
 
 function cleanPin(raw) {
   return String(raw || "000000").replace(/^"+|"+$/g, "").trim();
+}
+
+async function pushHoneypotHeadline(room) {
+  try {
+    const existing = await redis.get(`${room}:headlines`);
+    const headlines = Array.isArray(existing) ? existing : [];
+    const entry = {
+      headline: "UNAUTHORIZED ACCESS ATTEMPT DETECTED AND LOGGED",
+      subtext: "Security incident filed. Stellar Financial Network monitoring team has been notified. Have a nice day.",
+      date: { year: 2122, cycle: 0 },
+      id: Date.now(),
+    };
+    await redis.set(`${room}:headlines`, [entry, ...headlines], { ex: TTL });
+  } catch {}
 }
 
 export default async function handler(req, res) {
@@ -30,10 +45,13 @@ export default async function handler(req, res) {
   const storedPin = rawStored ? cleanPin(rawStored) : "000000";
 
   if (pin !== storedPin) {
-    // Record failure
+    // Record failure and push honeypot headline
     const failKey = `failures:${room}`;
     const count = await redis.incr(failKey);
     if (count === 1) await redis.expire(failKey, LOCKOUT_TTL);
+
+    await pushHoneypotHeadline(room);
+
     if (count >= MAX_FAILURES) {
       await redis.set(`lockout:${room}`, "1", { ex: LOCKOUT_TTL });
       await redis.del(failKey);
