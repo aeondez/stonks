@@ -466,11 +466,36 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
     if (!val && i > 0) refs[i - 1].current?.focus();
   };
 
-  const submit = () => {
+  const [locked, setLocked] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async () => {
     const entered = digits.join("");
-    const pin = String(storedPin || DEFAULT_PIN).trim();
-    if (entered === pin) { onSuccess(); }
-    else { setError(true); setDigits(["", "", "", "", "", ""]); refs[0].current?.focus(); }
+    if (entered.length < 6) return;
+    setSubmitting(true);
+    try {
+      const r = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room: roomCode, pin: entered }),
+      });
+      if (r.ok) {
+        onSuccess();
+      } else {
+        const data = await r.json();
+        if (data.error === "locked") {
+          setLocked(true);
+        }
+        setError(true);
+        setDigits(["", "", "", "", "", ""]);
+        refs[0].current?.focus();
+      }
+    } catch {
+      setError(true);
+      setDigits(["", "", "", "", "", ""]);
+      refs[0].current?.focus();
+    }
+    setSubmitting(false);
   };
 
   const submitRecovery = async () => {
@@ -497,8 +522,9 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
           {digits.map((d, i) => (
             <input key={i} ref={refs[i]} value={d} maxLength={1}
               inputMode="numeric" pattern="[0-9]*" autoComplete="off"
-              onChange={(e) => handleKey(i, e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") submit(); if (e.key === "Backspace" && !d && i > 0) refs[i-1].current?.focus(); }}
+              onChange={(e) => { if (!locked) handleKey(i, e.target.value); }}
+              onKeyDown={(e) => { if (!locked && e.key === "Enter") submit(); if (e.key === "Backspace" && !d && i > 0) refs[i-1].current?.focus(); }}
+              disabled={locked || submitting}
               style={{ width: "42px", height: "52px", background: "transparent",
                 border: `1px solid ${error ? RED : GREEN_DARK}`, color: HEADER_GREEN,
                 fontFamily: MONO, fontSize: "22px", textAlign: "center", outline: "none",
@@ -506,13 +532,15 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
           ))}
         </div>
         {error && <div style={{ color: RED, fontSize: "11px", letterSpacing: "0.15em", marginBottom: "16px" }}>
-          ACCESS DENIED
+          {locked ? "ERROR: LOCKED — TRY AGAIN IN 30 MIN" : "ACCESS DENIED"}
         </div>}
         <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
-          <button onClick={submit}
-            style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_DIM,
-              fontFamily: MONO, fontSize: "12px", letterSpacing: "0.15em", padding: "10px 24px", cursor: "pointer" }}>
-            AUTHENTICATE
+          <button onClick={submit} disabled={locked || submitting}
+            style={{ background: "none", border: `1px solid ${locked ? RED : GREEN_DARK}`,
+              color: locked ? RED : GREEN_DIM, fontFamily: MONO, fontSize: "12px",
+              letterSpacing: "0.15em", padding: "10px 24px",
+              cursor: locked || submitting ? "not-allowed" : "pointer", opacity: submitting ? 0.5 : 1 }}>
+            {submitting ? "VERIFYING..." : locked ? "LOCKED" : "AUTHENTICATE"}
           </button>
           <button onClick={onCancel}
             style={{ background: "none", border: "none", color: "#4a7a4a",
