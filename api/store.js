@@ -5,7 +5,7 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-const TTL = 60 * 60 * 24 * 30; // 30 days
+const TTL = 60 * 60 * 24 * 90; // 90 days
 const MAX_BODY_BYTES = 512 * 1024; // 512KB max payload
 
 // After this many wrong PINs, lock the room for LOCKOUT_TTL seconds

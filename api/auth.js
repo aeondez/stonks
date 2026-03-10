@@ -7,7 +7,7 @@ const redis = new Redis({
 
 const MAX_FAILURES = 5;
 const LOCKOUT_TTL = 60 * 30; // 30 minutes
-const TTL = 60 * 60 * 24 * 30;
+const TTL = 60 * 60 * 24 * 90;
 
 function cleanPin(raw) {
   return String(raw || "000000").replace(/^"+|"+$/g, "").trim();

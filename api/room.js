@@ -7,7 +7,7 @@ const redis = new Redis({
 
 // No confusable characters: excludes 0/O, 1/I/L
 const CHARS = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
-const TTL = 60 * 60 * 24 * 30;
+const TTL = 60 * 60 * 24 * 90;
 
 function generateCode() {
   return Array.from({ length: 6 }, () =>

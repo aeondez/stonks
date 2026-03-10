@@ -5,7 +5,7 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-const TTL = 60 * 60 * 24 * 30;
+const TTL = 60 * 60 * 24 * 90;
 
 export default async function handler(req, res) {
   const { room } = req.query;
