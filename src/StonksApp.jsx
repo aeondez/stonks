@@ -206,11 +206,13 @@ const safeGet = async (key, fallback) => {
   } catch { return fallback; }
 };
 
-const safeSet = async (key, value) => {
+const safeSet = async (key, value, pin = null) => {
   try {
+    const headers = { "Content-Type": "application/json" };
+    if (pin) headers["x-warden-pin"] = pin;
     await fetch(`/api/store?k=${encodeURIComponent(key)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ value }),
     });
   } catch {}
@@ -264,7 +266,7 @@ function FictionDate({ date }) {
 
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, onWardenAccess }) {
+function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneypot }) {
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
 
@@ -380,6 +382,14 @@ function PlayerView({ stocks, headlines, history, date, onWardenAccess }) {
             style={{ background: "none", border: "none", color: "#1a2a1a", cursor: "pointer",
               fontFamily: MONO, fontSize: "9px", letterSpacing: "0.15em" }}>
             WARDEN ACCESS
+          </button>
+        </div>
+        {/* Honeypot — looks like a system terminal to a curious hacker */}
+        <div style={{ marginTop: "4px", textAlign: "center" }}>
+          <button onClick={() => onHoneypot && onHoneypot()}
+            style={{ background: "none", border: "none", color: "#0d1a0d", cursor: "pointer",
+              fontFamily: MONO, fontSize: "8px", letterSpacing: "0.1em" }}>
+            [SYS] MARKET_DAEMON v2.1 — TERMINAL ACCESS
           </button>
         </div>
       </div>
@@ -538,7 +548,7 @@ function HistoryLog({ history, headlines }) {
 
 // ─── Headline Feed Manager (Warden) ──────────────────────────────────────────
 
-function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS }) {
+function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [editHL, setEditHL] = useState("");
   const [editSub, setEditSub] = useState("");
@@ -562,14 +572,14 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS }) {
       date: { year: parseInt(editYear,10) || h.date?.year, cycle: parseInt(editCycle,10) || h.date?.cycle },
     });
     setHeadlines(next);
-    safeSet(KEYS.headlines, next);
+    wardenSet(KEYS.headlines, next);
     setEditingIdx(null);
   };
 
   const removeHL = (i) => {
     const next = headlines.filter((_, j) => j !== i);
     setHeadlines(next);
-    safeSet(KEYS.headlines, next);
+    wardenSet(KEYS.headlines, next);
     if (editingIdx === i) setEditingIdx(null);
   };
 
@@ -654,19 +664,22 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [lastPublished, setLastPublished] = useState(null);
 
+  // Authenticated write — includes Warden PIN for server-side validation
+  const wardenSet = useCallback((key, value) => safeSet(key, value, storedPin), [storedPin]);
+
   const saveAll = useCallback(async (s, h, hist, d, m) => {
-    await safeSet(KEYS.stocks, s);
-    await safeSet(KEYS.headlines, h);
-    await safeSet(KEYS.history, hist);
-    await safeSet(KEYS.date, d);
-    if (m !== undefined) await safeSet(KEYS.mergers, m);
+    await wardenSet(KEYS.stocks, s);
+    await wardenSet(KEYS.headlines, h);
+    await wardenSet(KEYS.history, hist);
+    await wardenSet(KEYS.date, d);
+    if (m !== undefined) await wardenSet(KEYS.mergers, m);
   }, []);
 
   const pushHeadline = (h) => {
     const entry = { headline: h.headline, subtext: h.subtext || "", date: { ...date }, id: Date.now() };
     const next = [entry, ...headlines];
     setHeadlines(next);
-    safeSet(KEYS.headlines, next);
+    wardenSet(KEYS.headlines, next);
     setLastPublished(entry.headline);
     clearTimeout(window._lpTimer);
     window._lpTimer = setTimeout(() => setLastPublished(null), 3500);
@@ -747,7 +760,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     if (newPin.length !== 6 || !/^\d{6}$/.test(newPin)) { setPinMsg("PIN must be exactly 6 digits."); return; }
     if (newPin !== confirmPin) { setPinMsg("PINs do not match."); return; }
     setStoredPin(newPin);
-    safeSet(KEYS.pin, newPin);
+    wardenSet(KEYS.pin, newPin);
     setPinMsg("PIN updated.");
     setNewPin(""); setConfirmPin("");
   };
@@ -757,7 +770,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     if (isNaN(n)) return;
     setDate((d) => {
       const next = { ...d, [field]: Math.max(1, n) };
-      safeSet(KEYS.date, next);
+      wardenSet(KEYS.date, next);
       return next;
     });
   };
@@ -998,8 +1011,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     const sorted = sortByPrice(working);
                     setStocks(sorted);
                     setMergers(updatedMergers);
-                    safeSet(KEYS.stocks, sorted);
-                    safeSet(KEYS.mergers, updatedMergers);
+                    wardenSet(KEYS.stocks, sorted);
+                    wardenSet(KEYS.mergers, updatedMergers);
                     setPendingBankruptcy(null);
                     setPanel(null);
                   }}
@@ -1052,9 +1065,9 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         setStocks(merged);
                         setMergers(updatedMergers);
                         setHeadlines(newHeadlines);
-                        safeSet(KEYS.stocks, merged);
-                        safeSet(KEYS.mergers, updatedMergers);
-                        safeSet(KEYS.headlines, newHeadlines);
+                        wardenSet(KEYS.stocks, merged);
+                        wardenSet(KEYS.mergers, updatedMergers);
+                        wardenSet(KEYS.headlines, newHeadlines);
                         if (mergerHL) { setLastPublished(mergerHL.headline); clearTimeout(window._lpTimer); window._lpTimer = setTimeout(() => setLastPublished(null), 3500); }
                         setConfirmDialog(null);
                         setPanel(null);
@@ -1095,7 +1108,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             </div>
             <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>MERGER SETTINGS</div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-              <button onClick={() => { const next = !alwaysMerge; setAlwaysMerge(next); safeSet(KEYS.settings, { alwaysMerge: next }); }}
+              <button onClick={() => { const next = !alwaysMerge; setAlwaysMerge(next); wardenSet(KEYS.settings, { alwaysMerge: next }); }}
                 style={{ background: alwaysMerge ? "rgba(255,220,100,0.1)" : "none",
                   border: `1px solid ${alwaysMerge ? AMBER : "#1a2a3a"}`,
                   color: alwaysMerge ? AMBER : "#6688aa",
@@ -1114,6 +1127,14 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               <input value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} placeholder="confirm PIN" maxLength={6}
                 style={{ ...inputStyle, width: "140px" }} />
               <button onClick={handleSavePin} style={{ ...actionBtn }}>SAVE PIN</button>
+              <button onClick={() => {
+                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, exportedAt: new Date().toISOString() };
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = `stonks-backup-${Date.now()}.json`; a.click();
+                URL.revokeObjectURL(url);
+              }} style={{ ...actionBtn, borderColor: "#44ff88", color: "#44ff88" }}>⬇ EXPORT BACKUP</button>
             </div>
             {pinMsg && <div style={{ color: pinMsg.includes("updated") ? GREEN : RED, fontSize: "11px", marginTop: "8px" }}>{pinMsg}</div>}
             <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
@@ -1133,13 +1154,13 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     setStoredPin(DEFAULT_PIN);
                     setMergers(INITIAL_MERGERS);
                     setAlwaysMerge(true);
-                    await safeSet(KEYS.stocks, INITIAL_STOCKS);
-                    await safeSet(KEYS.headlines, []);
-                    await safeSet(KEYS.history, []);
-                    await safeSet(KEYS.date, defaultDate);
-                    await safeSet(KEYS.pin, DEFAULT_PIN);
-                    await safeSet(KEYS.mergers, INITIAL_MERGERS);
-                    await safeSet(KEYS.settings, { alwaysMerge: true });
+                    await wardenSet(KEYS.stocks, INITIAL_STOCKS);
+                    await wardenSet(KEYS.headlines, []);
+                    await wardenSet(KEYS.history, []);
+                    await wardenSet(KEYS.date, defaultDate);
+                    await wardenSet(KEYS.pin, DEFAULT_PIN);
+                    await wardenSet(KEYS.mergers, INITIAL_MERGERS);
+                    await wardenSet(KEYS.settings, { alwaysMerge: true });
                   }
                 })}
                 style={{ background: "none", border: `1px solid #663333`, color: "#aa4444",
@@ -1196,7 +1217,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 const adjustStock = (patch) => {
                   const next = stocks.map((x) => x.name === s.name ? { ...x, ...patch } : x);
                   setStocks(next);
-                  safeSet(KEYS.stocks, next);
+                  wardenSet(KEYS.stocks, next);
                 };
                 const adjustPrice = (delta) => {
                   const newPrice = Math.max(1, s.price + delta);
@@ -1287,7 +1308,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
         {/* Headlines Feed Manager */}
         {headlines.length > 0 && (
-          <HeadlineFeedManager headlines={headlines} setHeadlines={setHeadlines} date={date} KEYS={KEYS} />
+          <HeadlineFeedManager headlines={headlines} setHeadlines={setHeadlines} date={date} KEYS={KEYS} wardenSet={wardenSet} />
         )}
       </div>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
@@ -1354,6 +1375,37 @@ export default function CorpoRotApp({ roomCode = "stonks" }) {
     );
   }
 
+  if (view === "honeypot") {
+    return (
+      <div style={{ minHeight: "100vh", background: "#000", display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", fontFamily: MONO, padding: "32px" }}>
+        <div style={{ color: "#ff3333", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px" }}>
+          ██████████████████████████████████<br/>
+          █  SFNET SECURITY MODULE v4.7.2  █<br/>
+          ██████████████████████████████████
+        </div>
+        <div style={{ color: "#ff6666", fontSize: "10px", letterSpacing: "0.15em", lineHeight: "2", textAlign: "left", maxWidth: "320px" }}>
+          <div>{">"} INTRUSION DETECTED</div>
+          <div>{">"} SOURCE IP: LOGGED</div>
+          <div>{">"} SESSION FINGERPRINT: CAPTURED</div>
+          <div>{">"} ALERTING: OMNICORP SEC-OPS</div>
+          <div style={{ marginTop: "16px", color: "#ff3333" }}>
+            THIS TERMINAL IS PROPERTY OF<br/>
+            OMNICORP INTERSTELLAR HOLDINGS<br/>
+            UNAUTHORIZED ACCESS IS A VIOLATION<br/>
+            OF SFNET REGULATION 7-ALPHA
+          </div>
+        </div>
+        <button onClick={() => setView("player")}
+          style={{ marginTop: "32px", background: "none", border: "1px solid #ff3333",
+            color: "#ff6666", fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
+            padding: "8px 16px", cursor: "pointer" }}>
+          DISCONNECT
+        </button>
+      </div>
+    );
+  }
+
   if (view === "pin") {
     return <PinGate storedPin={storedPin} onSuccess={() => setView("warden")} onCancel={() => setView("player")} />;
   }
@@ -1379,6 +1431,10 @@ export default function CorpoRotApp({ roomCode = "stonks" }) {
       stocks={stocks} headlines={headlines}
       history={history} date={date}
       onWardenAccess={() => setView("pin")}
+      onHoneypot={() => {
+        fetch(`/api/honeypot?room=${encodeURIComponent(roomCode)}`).catch(() => {});
+        setView("honeypot");
+      }}
     />
   );
 }
