@@ -12,11 +12,13 @@ Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but u
 
 - 📈 **Live ticker** — 12 corporations with health, volatility, and price tracking
 - 📰 **News feed** — push headlines to players instantly, including auto-generated merger and acquisition announcements
-- 🏦 **Economy engine** — roll-based market advancement with bankruptcy checks, collapse cycles, and OmniCorp absorption
-- 🤝 **Merger system** — three pending mergers that trigger automatically or manually, with suppression logic for protected companies
+- 🏦 **Economy engine** — roll-based market advancement with bankruptcy checks, collapse cycles, and absorption mechanics
+- 🤝 **Merger system** — three pending mergers that trigger automatically or manually
 - 📊 **History** — players can browse the full news archive and past market snapshots
 - 🔒 **Warden dashboard** — PIN-gated, mobile-friendly, separate from the player view
-- 💾 **Persistent** — data survives page refreshes and server restarts
+- 📱 **PWA support** — installs as a fullscreen app on Android, iPhone, iPad, tablets, and foldables
+- 💾 **Persistent** — data survives page refreshes and server restarts; rooms expire after 90 days of inactivity
+- 🛡️ **Hardened** — server-side PIN auth, per-room lockout after 5 failed attempts, rate limiting, honeypot headlines
 
 ---
 
@@ -86,20 +88,42 @@ Total setup time: ~15 minutes. Total cost: $0.
 
 Once deployed, go to your Vercel URL, click **CREATE NEW GAME**, and share the room link with your players.
 
+**Required environment variables in Vercel:**
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `RECOVERY_PASSPHRASE` — your emergency override passphrase (set this before your first session)
+
+---
+
+## Installing as a PWA
+
+Players can install Stonks as a fullscreen app directly from the browser — no app store required.
+
+- **Android (Chrome):** Open the room link → tap the install banner or ⋮ → Add to Home Screen
+- **iPhone/iPad (Safari):** Open the room link → tap Share → Add to Home Screen
+- **Desktop (Chrome/Edge):** Install icon appears in the address bar
+
+> Install from the room URL directly so the app always launches back to your game.
+
 ---
 
 ## Warden Access
 
-On the player view, scroll to the very bottom and tap **WARDEN ACCESS**. Default PIN is `000000`. Change it from the Settings panel inside the dashboard.
+On the player view, scroll to the very bottom and tap **WARDEN ACCESS**. Default PIN is `000000` — change it immediately from the Settings panel inside the dashboard.
+
+**Security:** PIN verification is server-side. After 5 failed attempts the room locks for 30 minutes. Every failed attempt pushes a security alert headline to all players.
 
 **Lost your PIN (local):** Open `data.json`, find `stonks:pin`, change the value to `"000000"`.
 
-**Lost your PIN (online):** Run this with your credentials:
-```bash
-curl -X POST "https://your-app.vercel.app/api/store?k=ROOMCODE:pin" \
-  -H "Content-Type: application/json" \
-  -d '{"value":"000000"}'
-```
+**Lost your PIN (online):** Use the **EMERGENCY OVERRIDE** link on the PIN screen and enter your recovery passphrase to clear the lockout.
+
+---
+
+## Backups
+
+Use the **⬇ EXPORT BACKUP** button in Warden Settings before every session. To restore, use **⬆ IMPORT BACKUP** and select the JSON file — it will overwrite all current data and save to Redis automatically.
+
+Room data expires after **90 days of inactivity**. Keep a local backup if your campaign has long breaks between sessions.
 
 ---
 
@@ -119,7 +143,9 @@ curl -X POST "https://your-app.vercel.app/api/store?k=ROOMCODE:pin" \
 
 **App blank or crashing:** Stop the server (`Ctrl+C`) and run `stonks` again.
 
-**Online data not saving:** Check your Vercel function logs and confirm both `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set under Settings → Environment Variables.
+**Online data not saving:** Check your Vercel function logs and confirm both Upstash env vars are set under Settings → Environment Variables.
+
+**Room locked out:** Use the EMERGENCY OVERRIDE link on the PIN screen, or clear it manually via the Upstash Console (`DEL lockout:ROOMCODE`).
 
 ---
 
@@ -129,4 +155,4 @@ curl -X POST "https://your-app.vercel.app/api/store?k=ROOMCODE:pin" \
 - [Express](https://expressjs.com) — local server
 - [Vercel](https://vercel.com) — cloud hosting
 - [Upstash Redis](https://upstash.com) — cloud persistence
-- [qrcode-terminal](https://github.com/gtanner/qrcode-terminal) — QR code in the terminal, because why not
+- [qrcode-terminal](https://github.com/gtanner/qrcode-terminal) — QR code in the terminal
