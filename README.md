@@ -1,55 +1,61 @@
 # Stonks
 
-A live corporate stock ticker for your tabletop game. Players see a terminal-style market feed on their phones. You control everything from a password-protected Warden dashboard.
+> A live corporate stock market ticker for tabletop RPGs.
+
+Players connect on their phones and watch prices move in real time. The Warden controls everything from a PIN-protected dashboard — publishing headlines, advancing the economy, triggering mergers, and watching corporations collapse.
+
+Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but usable with any game that needs a living corporate economy at the table.
 
 ---
 
-## Quick Start (do this once)
+## Features
 
-**Step 1** — Open a terminal in this folder and run this to install and set up the alias:
+- 📈 **Live ticker** — 12 corporations with health, volatility, and price tracking
+- 📰 **News feed** — push headlines to players instantly, including auto-generated merger and acquisition announcements
+- 🏦 **Economy engine** — roll-based market advancement with bankruptcy checks, collapse cycles, and OmniCorp absorption
+- 🤝 **Merger system** — three pending mergers that trigger automatically or manually, with suppression logic for protected companies
+- 📊 **History** — players can browse the full news archive and past market snapshots
+- 🔒 **Warden dashboard** — PIN-gated, mobile-friendly, separate from the player view
+- 💾 **Persistent** — data survives page refreshes and server restarts
+
+---
+
+## Two Ways to Play
+
+### 🏠 Local (same Wi-Fi)
+Run the server on your PC. Players connect from their phones on the same network. Data saves to a local file. No accounts, no cloud, no internet required.
+
+### 🌐 Online (anywhere)
+Deploy to Vercel + Upstash. Each game gets a unique 6-character room code. Share the link and anyone can join from anywhere. Free to host.
+
+---
+
+## Local Setup
+
+**Requirements:** [Node.js](https://nodejs.org) LTS
+
+**First time — run this in the `stonks/` folder:**
 
 ```bash
 npm install && echo "alias stonks=\"bash $(pwd)/stonks.sh\"" >> ~/.bashrc
-```
-
-**Step 2** — Load the alias into your current session:
-
-```bash
 source ~/.bashrc
 ```
 
-> You only need Step 2 once per terminal session after setup. Next time you open a terminal, `stonks` will just work.
-> **If you use zsh instead of bash** (you'd know), replace `~/.bashrc` with `~/.zshrc` in Step 1.
+> If you use **zsh**, replace `~/.bashrc` with `~/.zshrc`.
 
-**Step 3 and every time after** — Start the server:
+**Every session:**
 
-```
+```bash
 stonks
 ```
 
----
+Or without the alias:
 
-## Requirements
-
-- [Node.js](https://nodejs.org) (LTS version) — just download and run the installer if you don't have it.
-
----
-
-## Manual Commands (if you prefer not to use the alias)
-
-First time only:
-```
-npm install
-```
-
-Every session:
-```
+```bash
 npm start
 ```
 
----
-
-## What You'll See When It's Running
+When running, you'll see your network address and a QR code players can scan:
 
 ```
   ┌─────────────────────────────────────────┐
@@ -58,51 +64,69 @@ npm start
 
   Local:    http://localhost:3000
   Network:  http://192.168.1.42:3000
-  Data:     /home/you/stonks/data.json
 
   ── Player QR Code ──────────────────────────
 
   [QR code]
-
-  Send players to: http://192.168.1.42:3000
 ```
 
-- **Your PC:** open `http://localhost:3000` in your browser
-- **Players:** connect to the Network address, or scan the QR code — everyone needs to be on the same Wi-Fi
-- **Stop the server:** press `Ctrl+C` in the terminal
+Players open the Network address on their phones. You open `localhost:3000` on your PC. Stop the server with `Ctrl+C`.
+
+---
+
+## Online Deployment
+
+See **[DEPLOY.md](DEPLOY.md)** for the full walkthrough. Short version:
+
+1. Push this repo to GitHub
+2. Create a free [Upstash](https://upstash.com) Redis database — copy the REST URL and token
+3. Import the repo into [Vercel](https://vercel.com), add the two Upstash env vars, deploy
+
+Total setup time: ~15 minutes. Total cost: $0.
+
+Once deployed, go to your Vercel URL, click **CREATE NEW GAME**, and share the room link with your players.
 
 ---
 
 ## Warden Access
 
-On the player view, scroll to the very bottom and tap **WARDEN ACCESS**. Enter the PIN (default: `000000`). You can change the PIN from the Settings panel inside the Warden dashboard.
+On the player view, scroll to the very bottom and tap **WARDEN ACCESS**. Default PIN is `000000`. Change it from the Settings panel inside the dashboard.
+
+**Lost your PIN (local):** Open `data.json`, find `stonks:pin`, change the value to `"000000"`.
+
+**Lost your PIN (online):** Run this with your credentials:
+```bash
+curl -X POST "https://your-app.vercel.app/api/store?k=ROOMCODE:pin" \
+  -H "Content-Type: application/json" \
+  -d '{"value":"000000"}'
+```
 
 ---
 
-## Your Data
+## Fresh Campaign
 
-Everything is saved automatically to `data.json` in this folder the moment you make any change. It survives restarts, reboots, and closing the browser. To wipe and start a fresh campaign, delete `data.json` and restart the server.
+**Local:** Delete `data.json` and restart the server.
 
----
-
-## Migrating Existing Save Data
-
-If you already have a `data.json` from a previous version, run this once to update the key names:
-
-```
-node migrate.js
-```
-
-Then start the server as normal. Your campaign data will be intact.
+**Online:** Flush your Upstash database from the Upstash Console (CLI tab → `FLUSHDB`), then create a new room.
 
 ---
 
 ## Troubleshooting
 
-**Players can't connect:** Make sure everyone is on the same Wi-Fi. Use the Network address (the `192.168.x.x` one), not `localhost`.
+**Players can't connect (local):** Everyone must be on the same Wi-Fi. Use the `192.168.x.x` address, not `localhost`.
 
-**Port already in use:** Something else is using port 3000. Either stop that thing, or open `server.js` and change `const PORT = 3000` to another number like `3001`.
+**Port already in use:** Open `server.js` and change `const PORT = 3000` to something else like `3001`.
 
-**Page is blank or erroring:** Stop the server (`Ctrl+C`) and run `stonks` again.
+**App blank or crashing:** Stop the server (`Ctrl+C`) and run `stonks` again.
 
-**Lost your PIN:** Open `data.json` in a text editor, find the line with `stonks:pin`, and change the value to `"000000"`. Save and restart.
+**Online data not saving:** Check your Vercel function logs and confirm both `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set under Settings → Environment Variables.
+
+---
+
+## Stack
+
+- [React](https://react.dev) + [Vite](https://vitejs.dev) — frontend
+- [Express](https://expressjs.com) — local server
+- [Vercel](https://vercel.com) — cloud hosting
+- [Upstash Redis](https://upstash.com) — cloud persistence
+- [qrcode-terminal](https://github.com/gtanner/qrcode-terminal) — QR code in the terminal, because why not
