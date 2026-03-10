@@ -1329,7 +1329,9 @@ export default function CorpoRotApp({ roomCode = "stonks" }) {
       const hist = await safeGet(KEYS.history, []);
       const d = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
       const rawPin = await safeGet(KEYS.pin, DEFAULT_PIN);
-      const p = typeof rawPin === "string" && /^\d{6}$/.test(rawPin) ? rawPin : DEFAULT_PIN;
+      // Strip any surrounding quotes Upstash may add to string values
+      const cleanedPin = String(rawPin).replace(/^"+|"+$/g, "").trim();
+      const p = /^\d{6}$/.test(cleanedPin) ? cleanedPin : DEFAULT_PIN;
       const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
       const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
       setStocks(sortByPrice(s));
