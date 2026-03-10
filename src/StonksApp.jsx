@@ -538,7 +538,7 @@ function HistoryLog({ history, headlines }) {
 
 // ─── Headline Feed Manager (Warden) ──────────────────────────────────────────
 
-function HeadlineFeedManager({ headlines, setHeadlines, date }) {
+function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [editHL, setEditHL] = useState("");
   const [editSub, setEditSub] = useState("");
@@ -640,7 +640,7 @@ function HeadlineFeedManager({ headlines, setHeadlines, date }) {
 // ─── Warden View ──────────────────────────────────────────────────────────────
 
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
-  storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, onLogout }) {
+  storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, onLogout, KEYS }) {
 
   const [panel, setPanel] = useState(null); // "headline" | "advance" | "bankruptcy" | "mergers" | "settings"
   const [pendingAdvance, setPendingAdvance] = useState(null);
@@ -1287,7 +1287,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
         {/* Headlines Feed Manager */}
         {headlines.length > 0 && (
-          <HeadlineFeedManager headlines={headlines} setHeadlines={setHeadlines} date={date} />
+          <HeadlineFeedManager headlines={headlines} setHeadlines={setHeadlines} date={date} KEYS={KEYS} />
         )}
       </div>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
@@ -1366,6 +1366,7 @@ export default function CorpoRotApp({ roomCode = "stonks" }) {
         mergers={mergers} setMergers={setMergers}
         alwaysMerge={alwaysMerge} setAlwaysMerge={setAlwaysMerge}
         onLogout={() => setView("player")}
+        KEYS={KEYS}
       />
     );
   }
