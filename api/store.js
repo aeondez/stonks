@@ -29,7 +29,7 @@ async function pushHoneypotHeadline(roomCode) {
     const headlines = Array.isArray(existing) ? existing : [];
     const entry = {
       headline: "UNAUTHORIZED ACCESS ATTEMPT DETECTED AND LOGGED",
-      subtext: "Security incident filed. OmniCorp monitoring team has been notified. Have a nice day.",
+      subtext: "Security incident filed. Stellar Financial Network monitoring team has been notified. Have a nice day.",
       date: { year: 2122, cycle: 0 },
       id: Date.now(),
     };

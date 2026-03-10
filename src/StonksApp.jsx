@@ -1391,7 +1391,7 @@ export default function CorpoRotApp({ roomCode = "stonks" }) {
           <div>{">"} ALERTING: OMNICORP SEC-OPS</div>
           <div style={{ marginTop: "16px", color: "#ff3333" }}>
             THIS TERMINAL IS PROPERTY OF<br/>
-            OMNICORP INTERSTELLAR HOLDINGS<br/>
+            STELLAR FINANCIAL NETWORK<br/>
             UNAUTHORIZED ACCESS IS A VIOLATION<br/>
             OF SFNET REGULATION 7-ALPHA
           </div>
