@@ -408,7 +408,7 @@ function PinGate({ onSuccess, onCancel, storedPin }) {
 
   const submit = () => {
     const entered = digits.join("");
-    const pin = storedPin || DEFAULT_PIN;
+    const pin = String(storedPin || DEFAULT_PIN).trim();
     if (entered === pin) { onSuccess(); }
     else { setError(true); setDigits(["", "", "", "", "", ""]); refs[0].current?.focus(); }
   };
@@ -1328,7 +1328,8 @@ export default function CorpoRotApp({ roomCode = "stonks" }) {
       const h = await safeGet(KEYS.headlines, []);
       const hist = await safeGet(KEYS.history, []);
       const d = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
-      const p = await safeGet(KEYS.pin, DEFAULT_PIN);
+      const rawPin = await safeGet(KEYS.pin, DEFAULT_PIN);
+      const p = typeof rawPin === "string" && /^\d{6}$/.test(rawPin) ? rawPin : DEFAULT_PIN;
       const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
       const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
       setStocks(s);
