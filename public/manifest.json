@@ -2,7 +2,6 @@
   "name": "Stonks — SFN Market Feed",
   "short_name": "Stonks",
   "description": "Stellar Financial Network corporate market ticker",
-  "start_url": "/",
   "display": "standalone",
   "background_color": "#060807",
   "theme_color": "#060807",
