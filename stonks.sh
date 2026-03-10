@@ -1,5 +1,5 @@
 #!/bin/bash
-# stonks — install and launch the Corpo-Rot Ticker server
+# stonks — install and launch the Stonks server
 # Usage:
 #   First time:   stonks install
 #   Every time:   stonks
@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 case "$1" in
   install)
-    echo "Installing Corpo-Rot dependencies..."
+    echo "Installing dependencies..."
     cd "$SCRIPT_DIR" && npm install
     echo ""
     echo "Done. Run 'stonks' to start the server."

@@ -1,4 +1,4 @@
-// One-time migration: renames corpo-rot: keys to stonks: in data.json
+// One-time migration: renames stonks: keys to stonks: in data.json
 import fs from "fs";
 const file = "./data.json";
 if (!fs.existsSync(file)) { console.log("No data.json found — nothing to migrate."); process.exit(0); }
@@ -6,7 +6,7 @@ const data = JSON.parse(fs.readFileSync(file, "utf8"));
 let changed = 0;
 const migrated = {};
 for (const [k, v] of Object.entries(data)) {
-  const newKey = k.startsWith("corpo-rot:") ? k.replace("corpo-rot:", "stonks:") : k;
+  const newKey = k.startsWith("stonks:") ? k.replace("stonks:", "stonks:") : k;
   if (newKey !== k) changed++;
   migrated[newKey] = v;
 }

@@ -1424,7 +1424,7 @@ const actionBtn = {
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 
-export default function CorpoRotApp({ roomCode = "stonks" }) {
+export default function StonksApp({ roomCode = "stonks" }) {
   const KEYS = makeKeys(roomCode);
   const [view, setView] = useState("player"); // "player" | "pin" | "warden"
   const [stocks, setStocks] = useState(INITIAL_STOCKS);

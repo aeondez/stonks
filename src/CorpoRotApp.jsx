@@ -199,7 +199,7 @@ const makeKeys = (prefix) => ({
 
 const safeGet = async (key, fallback) => {
   try {
-    const r = await fetch(`/api/kv/${encodeURIComponent(key)}`);
+    const r = await fetch(`/api/store?k=${encodeURIComponent(key)}`);
     if (!r.ok) return fallback;
     const data = await r.json();
     return data.value !== undefined ? data.value : fallback;
@@ -208,7 +208,7 @@ const safeGet = async (key, fallback) => {
 
 const safeSet = async (key, value) => {
   try {
-    await fetch(`/api/kv/${encodeURIComponent(key)}`, {
+    await fetch(`/api/store?k=${encodeURIComponent(key)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ value }),
@@ -1310,7 +1310,7 @@ const actionBtn = {
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 
-export default function CorpoRotApp({ roomCode = "stonks" }) {
+export default function StonksApp({ roomCode = "stonks" }) {
   const KEYS = makeKeys(roomCode);
   const [view, setView] = useState("player"); // "player" | "pin" | "warden"
   const [stocks, setStocks] = useState(INITIAL_STOCKS);
