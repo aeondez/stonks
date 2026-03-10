@@ -299,9 +299,37 @@ function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneyp
           </div>
           <div style={{ textAlign: "right", lineHeight: 1.8 }}>
             <FictionDate date={date} />
-            <div style={{ color: "#6aaa6a", fontSize: "11px", letterSpacing: "0.2em", marginTop: "4px" }}>● LIVE</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
+              <div style={{ color: "#6aaa6a", fontSize: "11px", letterSpacing: "0.2em" }}>● LIVE</div>
+              <button onClick={() => setShowQR(q => !q)}
+                style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: "#6aaa6a",
+                  fontFamily: MONO, fontSize: "9px", letterSpacing: "0.15em",
+                  padding: "3px 8px", cursor: "pointer" }}>
+                {showQR ? "CLOSE" : "⬛ SHARE"}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* QR Code share modal */}
+        {showQR && (
+          <div style={{ marginBottom: "24px", padding: "20px", border: `1px solid ${GREEN_DARK}`,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: "12px",
+            background: "rgba(0,20,0,0.6)" }}>
+            <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.2em" }}>SCAN TO JOIN</div>
+            <div style={{ background: "#fff", padding: "10px", lineHeight: 0 }}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(window.location.href)}`}
+                alt="QR code"
+                width={180} height={180}
+              />
+            </div>
+            <div style={{ color: "#3a6a3a", fontSize: "9px", letterSpacing: "0.1em", textAlign: "center",
+              maxWidth: "200px", wordBreak: "break-all" }}>
+              {window.location.href}
+            </div>
+          </div>
+        )}
 
         {/* Headlines */}
         {recentHeadlines.length > 0 && (
@@ -1135,6 +1163,52 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 a.href = url; a.download = `stonks-backup-${Date.now()}.json`; a.click();
                 URL.revokeObjectURL(url);
               }} style={{ ...actionBtn, borderColor: "#44ff88", color: "#44ff88" }}>⬇ EXPORT BACKUP</button>
+              <label style={{ ...actionBtn, borderColor: "#44aaff", color: "#88ccff", cursor: "pointer",
+                display: "inline-block" }}>
+                ⬆ IMPORT BACKUP
+                <input type="file" accept=".json" style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      try {
+                        const data = JSON.parse(ev.target.result);
+                        if (!data.stocks || !Array.isArray(data.stocks)) {
+                          alert("Invalid backup file.");
+                          return;
+                        }
+                        const confirmed = window.confirm(
+                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, and merger state. This cannot be undone."
+                        );
+                        if (!confirmed) return;
+                        const s = data.stocks;
+                        const h = data.headlines || [];
+                        const hist = data.history || [];
+                        const d = data.date || { year: 2122, cycle: 1 };
+                        const m = data.mergers || INITIAL_MERGERS;
+                        const am = data.alwaysMerge ?? true;
+                        setStocks(sortByPrice(s));
+                        setHeadlines(h);
+                        setHistory(hist);
+                        setDate(d);
+                        setMergers(m);
+                        setAlwaysMerge(am);
+                        await wardenSet(KEYS.stocks, s);
+                        await wardenSet(KEYS.headlines, h);
+                        await wardenSet(KEYS.history, hist);
+                        await wardenSet(KEYS.date, d);
+                        await wardenSet(KEYS.mergers, m);
+                        await wardenSet(KEYS.settings, { alwaysMerge: am });
+                        e.target.value = "";
+                        alert("Backup restored successfully.");
+                      } catch {
+                        alert("Failed to parse backup file.");
+                      }
+                    };
+                    reader.readAsText(file);
+                  }} />
+              </label>
             </div>
             {pinMsg && <div style={{ color: pinMsg.includes("updated") ? GREEN : RED, fontSize: "11px", marginTop: "8px" }}>{pinMsg}</div>}
             <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
