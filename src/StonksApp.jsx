@@ -447,9 +447,12 @@ function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneyp
 
 // ─── PIN Gate ─────────────────────────────────────────────────────────────────
 
-function PinGate({ onSuccess, onCancel, storedPin }) {
+function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryInput, setRecoveryInput] = useState("");
+  const [recoveryError, setRecoveryError] = useState(false);
   const refs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
   useEffect(() => { refs[0].current?.focus(); }, []);
 
@@ -468,6 +471,15 @@ function PinGate({ onSuccess, onCancel, storedPin }) {
     const pin = String(storedPin || DEFAULT_PIN).trim();
     if (entered === pin) { onSuccess(); }
     else { setError(true); setDigits(["", "", "", "", "", ""]); refs[0].current?.focus(); }
+  };
+
+  const submitRecovery = async () => {
+    await onClearLockout(recoveryInput.trim());
+    setRecoveryInput("");
+    setShowRecovery(false);
+    setError(false);
+    setRecoveryError(false);
+    refs[0].current?.focus();
   };
 
   return (
@@ -511,6 +523,36 @@ function PinGate({ onSuccess, onCancel, storedPin }) {
         <div style={{ color: "#1e2e1e", fontSize: "10px", marginTop: "32px", letterSpacing: "0.1em" }}>
           DEFAULT PIN: {DEFAULT_PIN}
         </div>
+        {/* Recovery passphrase — invisible trigger */}
+        <div style={{ marginTop: "24px" }}>
+          <button onClick={() => { setShowRecovery(r => !r); setRecoveryError(false); }}
+            style={{ background: "none", border: "none", color: "#0a140a",
+              fontFamily: MONO, fontSize: "8px", letterSpacing: "0.1em", cursor: "pointer" }}>
+            EMERGENCY OVERRIDE
+          </button>
+        </div>
+        {showRecovery && (
+          <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+            <input
+              type="password"
+              value={recoveryInput}
+              onChange={e => { setRecoveryInput(e.target.value); setRecoveryError(false); }}
+              onKeyDown={e => { if (e.key === "Enter") submitRecovery(); }}
+              placeholder="recovery passphrase"
+              autoComplete="off"
+              style={{ background: "transparent", border: `1px solid ${recoveryError ? RED : "#1a2a1a"}`,
+                color: GREEN_DIM, fontFamily: MONO, fontSize: "11px", padding: "8px 12px",
+                outline: "none", width: "220px", textAlign: "center" }}
+            />
+            {recoveryError && <div style={{ color: RED, fontSize: "10px", letterSpacing: "0.1em" }}>INVALID PASSPHRASE</div>}
+            <button onClick={submitRecovery}
+              style={{ background: "none", border: `1px solid #1a2a1a`, color: "#4a6a4a",
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
+                padding: "6px 16px", cursor: "pointer" }}>
+              OVERRIDE
+            </button>
+          </div>
+        )}
       </div>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
     </div>
@@ -1500,7 +1542,20 @@ export default function StonksApp({ roomCode = "stonks" }) {
   }
 
   if (view === "pin") {
-    return <PinGate storedPin={storedPin} onSuccess={() => setView("warden")} onCancel={() => setView("player")} />;
+    return <PinGate
+      storedPin={storedPin}
+      roomCode={roomCode}
+      onSuccess={() => setView("warden")}
+      onCancel={() => setView("player")}
+      onClearLockout={async (passphrase) => {
+        const r = await fetch("/api/unlock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ room: roomCode, passphrase }),
+        });
+        return r.ok;
+      }}
+    />;
   }
 
   if (view === "warden") {
