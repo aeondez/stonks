@@ -1281,26 +1281,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     </button>
                   ) : (
                     <div>
-                      {/* OmniCorp toggle */}
-              <div style={{ marginBottom: "12px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <span style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.1em" }}>OMNICORP</span>
-                <select
-                  value={stocks.find(s => s.is_omnicorp)?.name ?? ""}
-                  onChange={(e) => {
-                    const chosen = e.target.value;
-                    const next = stocks.map(s => ({ ...s, is_omnicorp: s.name === chosen }));
-                    setStocks(next); wardenSet(KEYS.stocks, next);
-                  }}
-                  style={{ background: "#060a10", border: `1px solid #1a2a3a`, color: "#aabbcc",
-                    fontFamily: MONO, fontSize: "10px", padding: "3px 6px", cursor: "pointer" }}>
-                  <option value="">— none —</option>
-                  {stocks.filter(s => !s.is_collapsed).map(s => (
-                    <option key={s.name} value={s.name}>{s.name}</option>
-                  ))}
-                </select>
-                <span style={{ color: "#334455", fontSize: "10px" }}>receives collapse payouts and has special immunities</span>
-              </div>
-              <div style={{ overflowX: "auto", marginBottom: "12px" }}>
+                      <div style={{ overflowX: "auto", marginBottom: "12px" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
@@ -1707,6 +1688,25 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             {/* ── Corporation Editor ── */}
             <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
               <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>CORPORATIONS</div>
+              {/* OmniCorp toggle */}
+              <div style={{ marginBottom: "12px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <span style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.1em" }}>OMNICORP</span>
+                <select
+                  value={stocks.find(s => s.is_omnicorp)?.name ?? ""}
+                  onChange={(e) => {
+                    const chosen = e.target.value;
+                    const next = stocks.map(s => ({ ...s, is_omnicorp: s.name === chosen }));
+                    setStocks(next); wardenSet(KEYS.stocks, next);
+                  }}
+                  style={{ background: "#060a10", border: `1px solid #1a2a3a`, color: "#aabbcc",
+                    fontFamily: MONO, fontSize: "10px", padding: "3px 6px", cursor: "pointer" }}>
+                  <option value="">— none —</option>
+                  {stocks.filter(s => !s.is_collapsed).map(s => (
+                    <option key={s.name} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+                <span style={{ color: "#334455", fontSize: "10px" }}>receives collapse payouts and has special immunities</span>
+              </div>
               <div style={{ overflowX: "auto", marginBottom: "12px" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                   <thead>
