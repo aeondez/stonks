@@ -771,6 +771,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
   const [panel, setPanel] = useState(null); // "headline" | "advance" | "bankruptcy" | "mergers" | "settings"
   const [pendingAdvance, setPendingAdvance] = useState(null);
+  const [pendingVariance, setPendingVariance] = useState(null);
   const [pendingBankruptcy, setPendingBankruptcy] = useState(null);
 
   const [headlineText, setHeadlineText] = useState("");
