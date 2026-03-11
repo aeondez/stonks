@@ -88,6 +88,17 @@ const applyMerger = (stocks, merger) => {
 
 const sortByPrice = (stocks) => [...stocks].sort((a, b) => b.price - a.price);
 
+// ─── Roll Config (overridable per room) ───────────────────────────────────────
+
+const DEFAULT_ROLL_CONFIG = {
+  shiftDie:  10,  // die used for health and volatility shift rolls
+  improveOn: 1,   // roll ≤ this → shift up one step
+  worsenOn:  8,   // roll ≥ this → shift down one step
+  dieHigh:   20,  // price die for High volatility
+  dieMedium: 10,  // price die for Medium volatility
+  dieLow:    5,   // price die for Low volatility
+};
+
 // ─── Dice & Economy Logic ─────────────────────────────────────────────────────
 
 const roll = (sides) => Math.floor(Math.random() * sides) + 1;
@@ -97,16 +108,17 @@ const shiftIndex = (arr, current, delta) => {
   return arr[Math.max(0, Math.min(arr.length - 1, idx + delta))];
 };
 
-const d10ShiftDelta = (r) => r === 1 ? 1 : r >= 8 ? -1 : 0;
+const shiftDelta = (r, cfg) => r <= cfg.improveOn ? 1 : r >= cfg.worsenOn ? -1 : 0;
 
-function computeAdvance(stocks) {
+function computeAdvance(stocks, cfg = DEFAULT_ROLL_CONFIG) {
+  const priceDice = { High: cfg.dieHigh, Medium: cfg.dieMedium, Low: cfg.dieLow };
   const results = stocks.map((s) => {
     if (s.is_collapsed) return { ...s, healthRoll: null, volRoll: null, priceRoll: null, coinFlip: null };
 
-    const healthRoll = roll(10);
-    const volRoll = roll(10);
-    const healthDelta = d10ShiftDelta(healthRoll);
-    const volDelta = d10ShiftDelta(volRoll);
+    const healthRoll = roll(cfg.shiftDie);
+    const volRoll = roll(cfg.shiftDie);
+    const healthDelta = shiftDelta(healthRoll, cfg);
+    const volDelta = shiftDelta(volRoll, cfg);
 
     let newHealth = shiftIndex(HEALTH_STEPS, s.health, healthDelta);
     let newVol = shiftIndex(VOLATILITY_STEPS, s.volatility, volDelta);
@@ -118,7 +130,7 @@ function computeAdvance(stocks) {
       if (VOLATILITY_STEPS.indexOf(newVol) < VOLATILITY_STEPS.indexOf(s.volatility)) newVol = s.volatility;
     }
 
-    const die = VOLATILITY_DIE[newVol];
+    const die = priceDice[newVol];
     const priceRoll = roll(die);
     let coinFlip = null;
     let priceDelta = 0;
@@ -182,6 +194,39 @@ function computeBankruptcyCheck(stocks, mergers = [], alwaysMerge = true) {
       if (m) triggersMerger = m.name;
     }
     return { ...s, bankruptRoll, collapses, triggersMerger };
+  });
+}
+
+function computeVariance(stocks, cfg = DEFAULT_ROLL_CONFIG) {
+  const priceDice = { High: cfg.dieHigh, Medium: cfg.dieMedium, Low: cfg.dieLow };
+  return stocks.map((s) => {
+    if (s.is_collapsed) return { ...s, priceRoll: null, coinFlip: null };
+    const die = priceDice[s.volatility];
+    const priceRoll = roll(die);
+    let coinFlip = null;
+    let priceDelta = 0;
+    if (s.health === "Good") {
+      priceDelta = priceRoll;
+    } else if (s.health === "OK") {
+      coinFlip = roll(2) === 1 ? "up" : "down";
+      priceDelta = coinFlip === "up" ? priceRoll : -priceRoll;
+    } else if (s.health === "Bad" || s.health === "Bankrupt") {
+      priceDelta = -priceRoll;
+    }
+    if (s.is_omnicorp && priceDelta < 0) priceDelta = 0;
+    const newPrice = Math.max(1, s.price + priceDelta);
+    return { ...s, price: newPrice, change: newPrice - s.price, priceRoll, coinFlip };
+  });
+}
+
+function computeHealthOnly(stocks, cfg = DEFAULT_ROLL_CONFIG) {
+  return stocks.map((s) => {
+    if (s.is_collapsed) return { ...s, healthRoll: null, healthShift: 0 };
+    const healthRoll = roll(cfg.shiftDie);
+    const healthDelta = shiftDelta(healthRoll, cfg);
+    let newHealth = shiftIndex(HEALTH_STEPS, s.health, healthDelta);
+    if (s.is_omnicorp && ["Bad", "Bankrupt"].includes(newHealth)) newHealth = "OK";
+    return { ...s, health: newHealth, healthRoll, healthShift: healthDelta };
   });
 }
 
@@ -764,6 +809,158 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
   );
 }
 
+// ─── Corp Editor Helper ───────────────────────────────────────────────────────
+
+function AddCorpRow({ onAdd, inputStyle }) {
+  const [name, setName] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [price, setPrice] = useState("100");
+  const [health, setHealth] = useState("OK");
+  const [vol, setVol] = useState("Medium");
+  const submit = () => {
+    const p = parseInt(price);
+    if (!name.trim() || isNaN(p) || p < 1) return;
+    onAdd({ name: name.trim(), industry: industry.trim() || "Unknown", price: p, change: 0,
+      health, volatility: vol, is_omnicorp: false, is_collapsed: false });
+    setName(""); setIndustry(""); setPrice("100"); setHealth("OK"); setVol("Medium");
+  };
+  return (
+    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", marginTop: "8px" }}>
+      <input value={name} onChange={e => setName(e.target.value)} placeholder="Name"
+        style={{ ...inputStyle, width: "120px", fontSize: "10px", padding: "3px 6px" }} />
+      <input value={industry} onChange={e => setIndustry(e.target.value)} placeholder="Industry"
+        style={{ ...inputStyle, width: "90px", fontSize: "10px", padding: "3px 6px" }} />
+      <input value={price} onChange={e => setPrice(e.target.value)} placeholder="Price" inputMode="numeric"
+        style={{ ...inputStyle, width: "60px", fontSize: "10px", padding: "3px 6px" }} />
+      <select value={health} onChange={e => setHealth(e.target.value)}
+        style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
+        {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
+      </select>
+      <select value={vol} onChange={e => setVol(e.target.value)}
+        style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
+        {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
+      </select>
+      <button onClick={submit}
+        style={{ background: "none", border: `1px solid #336644`, color: "#66aa88",
+          fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "3px 12px", cursor: "pointer" }}>
+        + ADD
+      </button>
+    </div>
+  );
+}
+
+// ─── Custom Merger Form ───────────────────────────────────────────────────────
+
+function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
+  const active = stocks.filter(s => !s.is_collapsed);
+  const [open, setOpen] = useState(false);
+  const [p1, setP1] = useState("");
+  const [p2, setP2] = useState("");
+  const [mergedName, setMergedName] = useState("");
+  const [mergedIndustry, setMergedIndustry] = useState("");
+  const [hl, setHl] = useState("");
+  const [sub, setSub] = useState("");
+
+  if (!open) return (
+    <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "16px", marginTop: "4px" }}>
+      <button onClick={() => setOpen(true)}
+        style={{ background: "none", border: `1px solid #445566`, color: "#6688aa",
+          fontFamily: MONO, fontSize: "10px", letterSpacing: "0.12em", padding: "6px 16px", cursor: "pointer" }}>
+        + TRIGGER CUSTOM MERGER
+      </button>
+    </div>
+  );
+
+  const s1 = stocks.find(s => s.name === p1);
+  const s2 = stocks.find(s => s.name === p2);
+  const combined = (s1?.price ?? 0) + (s2?.price ?? 0);
+  const canFire = p1 && p2 && p1 !== p2 && mergedName.trim();
+
+  const fire = () => {
+    if (!canFire) return;
+    const newEntity = {
+      name: mergedName.trim(), industry: mergedIndustry.trim() || "Conglomerate",
+      price: combined, change: 0, health: "OK", volatility: "Medium",
+      is_omnicorp: false, is_collapsed: false, is_merged: true,
+    };
+    const merged = stocks.filter(s => s.name !== p1 && s.name !== p2).concat([newEntity]);
+    const headline = hl.trim() || `${p1.toUpperCase()} AND ${p2.toUpperCase()} ANNOUNCE EMERGENCY MERGER`;
+    const subtext = sub.trim() || `Combined entity to operate as ${mergedName.trim()} effective immediately.`;
+    const entry = { headline, subtext, date: { ...date }, id: Date.now() };
+    onConfirm({ merged, newHeadlines: [entry, ...headlines], headline });
+  };
+
+  return (
+    <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "16px", marginTop: "4px" }}>
+      <div style={{ color: AMBER, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>CUSTOM MERGER</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+          <div>
+            <div style={{ color: "#445566", fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>PARTNER 1</div>
+            <select value={p1} onChange={e => setP1(e.target.value)}
+              style={{ background: "#060a10", border: `1px solid #1a2a3a`, color: "#aabbcc",
+                fontFamily: MONO, fontSize: "11px", padding: "4px 6px", cursor: "pointer" }}>
+              <option value="">— select —</option>
+              {active.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+            </select>
+          </div>
+          <div style={{ color: "#334455", paddingTop: "16px" }}>+</div>
+          <div>
+            <div style={{ color: "#445566", fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>PARTNER 2</div>
+            <select value={p2} onChange={e => setP2(e.target.value)}
+              style={{ background: "#060a10", border: `1px solid #1a2a3a`, color: "#aabbcc",
+                fontFamily: MONO, fontSize: "11px", padding: "4px 6px", cursor: "pointer" }}>
+              <option value="">— select —</option>
+              {active.filter(s => s.name !== p1).map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+            </select>
+          </div>
+          {combined > 0 && <div style={{ color: AMBER, fontSize: "11px", paddingTop: "16px" }}>= {combined.toLocaleString()}cr</div>}
+        </div>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <div>
+            <div style={{ color: "#445566", fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>MERGED ENTITY NAME *</div>
+            <input value={mergedName} onChange={e => setMergedName(e.target.value)} placeholder="e.g. Apex Combined Industries"
+              style={{ background: "transparent", border: `1px solid #1a2a3a`, color: "#ccddff",
+                fontFamily: MONO, fontSize: "11px", padding: "4px 8px", width: "220px" }} />
+          </div>
+          <div>
+            <div style={{ color: "#445566", fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>INDUSTRY</div>
+            <input value={mergedIndustry} onChange={e => setMergedIndustry(e.target.value)} placeholder="e.g. Defense/Finance"
+              style={{ background: "transparent", border: `1px solid #1a2a3a`, color: "#ccddff",
+                fontFamily: MONO, fontSize: "11px", padding: "4px 8px", width: "160px" }} />
+          </div>
+        </div>
+        <div>
+          <div style={{ color: "#445566", fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>HEADLINE (optional — auto-generated if blank)</div>
+          <input value={hl} onChange={e => setHl(e.target.value)} placeholder="Leave blank for auto-generated"
+            style={{ background: "transparent", border: `1px solid #1a2a3a`, color: "#ccddff",
+              fontFamily: MONO, fontSize: "11px", padding: "4px 8px", width: "100%", boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <div style={{ color: "#445566", fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>SUBTEXT (optional)</div>
+          <input value={sub} onChange={e => setSub(e.target.value)}
+            style={{ background: "transparent", border: `1px solid #1a2a3a`, color: "#ccddff",
+              fontFamily: MONO, fontSize: "11px", padding: "4px 8px", width: "100%", boxSizing: "border-box" }} />
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={fire} disabled={!canFire}
+            style={{ background: "none", border: `1px solid ${canFire ? AMBER : "#2a2a2a"}`,
+              color: canFire ? AMBER : "#333",
+              fontFamily: MONO, fontSize: "11px", letterSpacing: "0.12em", padding: "7px 18px",
+              cursor: canFire ? "pointer" : "not-allowed" }}>
+            EXECUTE MERGER
+          </button>
+          <button onClick={() => setOpen(false)}
+            style={{ background: "none", border: `1px solid #2a2a2a`, color: "#555",
+              fontFamily: MONO, fontSize: "11px", letterSpacing: "0.12em", padding: "7px 18px", cursor: "pointer" }}>
+            CANCEL
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Warden View ──────────────────────────────────────────────────────────────
 
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
@@ -772,7 +969,9 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   const [panel, setPanel] = useState(null); // "headline" | "advance" | "bankruptcy" | "mergers" | "settings"
   const [pendingAdvance, setPendingAdvance] = useState(null);
   const [pendingVariance, setPendingVariance] = useState(null);
+  const [pendingHealthShift, setPendingHealthShift] = useState(null);
   const [pendingBankruptcy, setPendingBankruptcy] = useState(null);
+  const [rollConfig, setRollConfig] = useState(DEFAULT_ROLL_CONFIG);
 
   const [headlineText, setHeadlineText] = useState("");
   const [headlineSubtext, setHeadlineSubtext] = useState("");
@@ -784,6 +983,38 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
   // Authenticated write — includes Warden PIN for server-side validation
   const wardenSet = useCallback((key, value) => safeSet(key, value, storedPin), [storedPin]);
+
+  const saveSettings = useCallback((patch) => {
+    const next = { alwaysMerge, rollConfig, ...patch };
+    wardenSet(KEYS.settings, next);
+    return next;
+  }, [alwaysMerge, rollConfig, wardenSet, KEYS]);
+
+  const handleVarianceRoll = () => {
+    setPendingVariance(computeVariance(stocks, rollConfig));
+    setPanel("advance");
+  };
+
+  const handleVarianceConfirm = () => {
+    if (!pendingVariance) return;
+    const sorted = sortByPrice(pendingVariance.map(({ priceRoll, coinFlip, ...s }) => s));
+    setStocks(sorted);
+    wardenSet(KEYS.stocks, sorted);
+    setPendingVariance(null);
+  };
+
+  const handleHealthRoll = () => {
+    setPendingHealthShift(computeHealthOnly(stocks, rollConfig));
+    setPanel("advance");
+  };
+
+  const handleHealthConfirm = () => {
+    if (!pendingHealthShift) return;
+    const sorted = sortByPrice(pendingHealthShift.map(({ healthRoll, healthShift, ...s }) => s));
+    setStocks(sorted);
+    wardenSet(KEYS.stocks, sorted);
+    setPendingHealthShift(null);
+  };
 
   const saveAll = useCallback(async (s, h, hist, d, m) => {
     await wardenSet(KEYS.stocks, s);
@@ -810,21 +1041,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     setHeadlineSubtext("");
   };
 
-  const handleVarianceRoll = () => {
-    setPendingVariance(computeVariance(stocks));
-    setPanel("advance");
-  };
-
-  const handleVarianceConfirm = () => {
-    if (!pendingVariance) return;
-    const sorted = sortByPrice(pendingVariance.map(({ priceRoll, coinFlip, ...s }) => s));
-    setStocks(sorted);
-    wardenSet(KEYS.stocks, sorted);
-    setPendingVariance(null);
-  };
-
   const handleAdvanceRoll = () => {
-    const advanceResult = computeAdvance(stocks);
+    const advanceResult = computeAdvance(stocks, rollConfig);
     const bankruptcyResult = computeBankruptcyCheck(advanceResult, mergers, alwaysMerge);
     setPendingAdvance({ advance: advanceResult, bankruptcy: bankruptcyResult });
     setPanel("advance");
@@ -1065,6 +1283,58 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     </div>
                   )}
                 </div>
+                <div>
+                  <div style={{ color: "#4a5a6a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                    HEALTH SHIFT — health movement only, no price or volatility changes
+                  </div>
+                  {!pendingHealthShift ? (
+                    <button onClick={handleHealthRoll}
+                      style={{ background: "none", border: `1px solid #334466`, color: "#6688bb",
+                        fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                      ROLL HEALTH
+                    </button>
+                  ) : (
+                    <div>
+                      <div style={{ overflowX: "auto", marginBottom: "12px" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
+                          <thead>
+                            <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
+                              {["COMPANY","OLD HEALTH","H.ROLL","SHIFT","NEW HEALTH"].map((h) => (
+                                <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: "#6688aa", fontWeight: "normal" }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pendingHealthShift.filter(s => !s.is_collapsed).map(s => {
+                              const origHealth = stocks.find(o => o.name === s.name)?.health ?? s.health;
+                              return (
+                                <tr key={s.name} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)` }}>
+                                  <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : "#aabbcc", fontSize: "10px", textTransform: "uppercase" }}>{s.name.split(" ")[0]}</td>
+                                  <td style={{ padding: "6px 8px", color: healthColor(origHealth) }}>{origHealth}</td>
+                                  <td style={{ padding: "6px 8px", color: "#ccc" }}>{s.healthRoll}</td>
+                                  <td style={{ padding: "6px 8px", color: s.healthShift > 0 ? GREEN : s.healthShift < 0 ? RED : "#555" }}>{shiftLabel(s.healthShift)}</td>
+                                  <td style={{ padding: "6px 8px", color: healthColor(s.health), fontWeight: "bold" }}>{s.health}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style={{ display: "flex", gap: "12px" }}>
+                        <button onClick={handleHealthConfirm}
+                          style={{ background: "none", border: `1px solid #44ff88`, color: GREEN,
+                            fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                          CONFIRM & PUBLISH
+                        </button>
+                        <button onClick={() => setPendingHealthShift(null)}
+                          style={{ background: "none", border: `1px solid #3a3a3a`, color: "#666",
+                            fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                          CANCEL
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <>
@@ -1266,6 +1536,18 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 </div>
               );
             })}
+            <CustomMergerForm
+              stocks={stocks} date={date} headlines={headlines}
+              onConfirm={({ merged, newHeadlines, headline }) => {
+                const next = sortByPrice(merged);
+                setStocks(next);
+                setHeadlines(newHeadlines);
+                wardenSet(KEYS.stocks, next);
+                wardenSet(KEYS.headlines, newHeadlines);
+                if (headline) { setLastPublished(headline); clearTimeout(window._lpTimer); window._lpTimer = setTimeout(() => setLastPublished(null), 3500); }
+                setPanel(null);
+              }}
+            />
           </div>
         )}
 
@@ -1291,7 +1573,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             </div>
             <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>MERGER SETTINGS</div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-              <button onClick={() => { const next = !alwaysMerge; setAlwaysMerge(next); wardenSet(KEYS.settings, { alwaysMerge: next }); }}
+              <button onClick={() => { const next = !alwaysMerge; setAlwaysMerge(next); saveSettings({ alwaysMerge: next }); }}
                 style={{ background: alwaysMerge ? "rgba(255,220,100,0.1)" : "none",
                   border: `1px solid ${alwaysMerge ? AMBER : "#1a2a3a"}`,
                   color: alwaysMerge ? AMBER : "#6688aa",
@@ -1354,7 +1636,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         await wardenSet(KEYS.history, hist);
                         await wardenSet(KEYS.date, d);
                         await wardenSet(KEYS.mergers, m);
-                        await wardenSet(KEYS.settings, { alwaysMerge: am });
+                        await wardenSet(KEYS.settings, { alwaysMerge: am, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
                         e.target.value = "";
                         alert("Backup restored successfully.");
                       } catch {
@@ -1366,6 +1648,137 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               </label>
             </div>
             {pinMsg && <div style={{ color: pinMsg.includes("updated") ? GREEN : RED, fontSize: "11px", marginTop: "8px" }}>{pinMsg}</div>}
+
+            {/* ── Corporation Editor ── */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
+              <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>CORPORATIONS</div>
+              <div style={{ overflowX: "auto", marginBottom: "12px" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
+                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL","OMNI",""].map(h => (
+                        <th key={h} style={{ padding: "4px 6px", textAlign: "left", color: "#445566", fontWeight: "normal", letterSpacing: "0.08em", fontSize: "10px" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stocks.map((s, i) => (
+                      <tr key={s.name + i} style={{ borderBottom: `1px solid rgba(26,42,58,0.3)` }}>
+                        <td style={{ padding: "3px 4px" }}>
+                          <input defaultValue={s.name}
+                            onBlur={(e) => {
+                              const val = e.target.value.trim(); if (!val) return;
+                              const next = stocks.map((x, xi) => xi === i ? { ...x, name: val } : x);
+                              setStocks(next); wardenSet(KEYS.stocks, next);
+                            }}
+                            style={{ ...inputStyle, width: "120px", fontSize: "10px", padding: "2px 5px" }} />
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <input defaultValue={s.industry}
+                            onBlur={(e) => {
+                              const val = e.target.value.trim(); if (!val) return;
+                              const next = stocks.map((x, xi) => xi === i ? { ...x, industry: val } : x);
+                              setStocks(next); wardenSet(KEYS.stocks, next);
+                            }}
+                            style={{ ...inputStyle, width: "90px", fontSize: "10px", padding: "2px 5px" }} />
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <input defaultValue={s.price} inputMode="numeric"
+                            onBlur={(e) => {
+                              const val = parseInt(e.target.value); if (isNaN(val) || val < 1) return;
+                              const next = sortByPrice(stocks.map((x, xi) => xi === i ? { ...x, price: val } : x));
+                              setStocks(next); wardenSet(KEYS.stocks, next);
+                            }}
+                            style={{ ...inputStyle, width: "60px", fontSize: "10px", padding: "2px 5px" }} />
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <select value={s.health}
+                            onChange={(e) => {
+                              const next = stocks.map((x, xi) => xi === i ? { ...x, health: e.target.value } : x);
+                              setStocks(next); wardenSet(KEYS.stocks, next);
+                            }}
+                            style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
+                            {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <select value={s.volatility}
+                            onChange={(e) => {
+                              const next = stocks.map((x, xi) => xi === i ? { ...x, volatility: e.target.value } : x);
+                              setStocks(next); wardenSet(KEYS.stocks, next);
+                            }}
+                            style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
+                            {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: "3px 4px", textAlign: "center" }}>
+                          <input type="checkbox" checked={!!s.is_omnicorp}
+                            onChange={(e) => {
+                              const next = stocks.map((x, xi) => xi === i ? { ...x, is_omnicorp: e.target.checked } : x);
+                              setStocks(next); wardenSet(KEYS.stocks, next);
+                            }} />
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <button onClick={() => {
+                            if (!window.confirm(`Remove ${s.name}?`)) return;
+                            const next = sortByPrice(stocks.filter((_, xi) => xi !== i));
+                            setStocks(next); wardenSet(KEYS.stocks, next);
+                          }}
+                            style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444",
+                              fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <AddCorpRow onAdd={(corp) => {
+                const next = sortByPrice([...stocks, corp]);
+                setStocks(next); wardenSet(KEYS.stocks, next);
+              }} inputStyle={inputStyle} />
+            </div>
+
+            {/* ── Dice Settings ── */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
+              <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "4px" }}>ADVANCED DICE SETTINGS</div>
+              <div style={{ color: "#334455", fontSize: "10px", marginBottom: "14px", letterSpacing: "0.08em" }}>
+                Controls the probability of health/volatility shifts and price movement magnitude. Defaults: d10, improve on 1, worsen on 8+.
+              </div>
+              {[
+                { key: "shiftDie",  label: "SHIFT DIE SIDES", hint: "Die used for health & vol rolls (default 10)" },
+                { key: "improveOn", label: "IMPROVE ON ≤",    hint: "Roll ≤ this → shift up one step" },
+                { key: "worsenOn",  label: "WORSEN ON ≥",     hint: "Roll ≥ this → shift down one step" },
+                { key: "dieHigh",   label: "PRICE DIE (HIGH VOL)",   hint: "Sides on price roll for High volatility (default 20)" },
+                { key: "dieMedium", label: "PRICE DIE (MED VOL)",    hint: "Sides on price roll for Medium volatility (default 10)" },
+                { key: "dieLow",    label: "PRICE DIE (LOW VOL)",    hint: "Sides on price roll for Low volatility (default 5)" },
+              ].map(({ key, label, hint }) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+                  <span style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.1em", width: "180px", flexShrink: 0 }}>{label}</span>
+                  <input
+                    value={rollConfig[key]}
+                    inputMode="numeric"
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (isNaN(val) || val < 1) return;
+                      const next = { ...rollConfig, [key]: val };
+                      setRollConfig(next);
+                      saveSettings({ rollConfig: next });
+                    }}
+                    style={{ ...inputStyle, width: "60px", textAlign: "center" }}
+                  />
+                  <span style={{ color: "#334455", fontSize: "10px" }}>{hint}</span>
+                </div>
+              ))}
+              <button onClick={() => {
+                setRollConfig(DEFAULT_ROLL_CONFIG);
+                saveSettings({ rollConfig: DEFAULT_ROLL_CONFIG });
+              }}
+                style={{ background: "none", border: `1px solid #1a2a3a`, color: "#445566",
+                  fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer", marginTop: "4px" }}>
+                RESET DICE TO DEFAULTS
+              </button>
+            </div>
+
             <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
               <div style={{ color: "#664444", fontSize: "11px", marginBottom: "12px", letterSpacing: "0.15em" }}>DANGER ZONE</div>
               <button onClick={() => setConfirmDialog({
@@ -1383,13 +1796,14 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     setStoredPin(DEFAULT_PIN);
                     setMergers(INITIAL_MERGERS);
                     setAlwaysMerge(true);
+                    setRollConfig(DEFAULT_ROLL_CONFIG);
                     await wardenSet(KEYS.stocks, INITIAL_STOCKS);
                     await wardenSet(KEYS.headlines, []);
                     await wardenSet(KEYS.history, []);
                     await wardenSet(KEYS.date, defaultDate);
                     await wardenSet(KEYS.pin, DEFAULT_PIN);
                     await wardenSet(KEYS.mergers, INITIAL_MERGERS);
-                    await wardenSet(KEYS.settings, { alwaysMerge: true });
+                    await wardenSet(KEYS.settings, { alwaysMerge: true, rollConfig: DEFAULT_ROLL_CONFIG });
                   }
                 })}
                 style={{ background: "none", border: `1px solid #663333`, color: "#aa4444",
@@ -1591,6 +2005,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       setStoredPin(p);
       setMergers(m);
       setAlwaysMerge(sett.alwaysMerge ?? true);
+      setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
       setLoaded(true);
     })();
   }, []);
