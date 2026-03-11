@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import crypto from "crypto";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -9,14 +10,32 @@ const redis = new Redis({
 const CHARS = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const TTL = 60 * 60 * 24 * 90;
 
+// Room creation key — set ROOM_CREATION_KEY in Vercel env vars.
+// Default is "stonks". Change it to prevent players from spinning up rooms.
+const CREATION_KEY = process.env.ROOM_CREATION_KEY || "stonks";
+
 function generateCode() {
   return Array.from({ length: 6 }, () =>
     CHARS[Math.floor(Math.random() * CHARS.length)]
   ).join("");
 }
 
+function safeEqual(a, b) {
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+
+  const { creationKey } = req.body || {};
+
+  if (!safeEqual(String(creationKey || ""), CREATION_KEY)) {
+    return res.status(403).json({ error: "invalid_key" });
+  }
 
   let code;
   for (let attempts = 0; attempts < 10; attempts++) {

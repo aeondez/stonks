@@ -1,5 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+// ─── Toast Notification ──────────────────────────────────────────────────────
+function useToast() {
+  const [toast, setToast] = useState(null);
+  const show = (msg, color = "#44ff88") => {
+    setToast({ msg, color });
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => setToast(null), 2800);
+  };
+  const Toast = toast ? (
+    <div style={{ position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)",
+      background: "#0a1a0a", border: `1px solid ${toast.color}`, color: toast.color,
+      fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.15em",
+      padding: "10px 20px", zIndex: 200, whiteSpace: "nowrap",
+      boxShadow: `0 0 20px ${toast.color}22` }}>
+      ✓ {toast.msg}
+    </div>
+  ) : null;
+  return { show, Toast };
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_PIN = "000000";
@@ -311,13 +331,96 @@ function FictionDate({ date, yearLabel = "YEAR", cycleLabel = "CYC" }) {
   );
 }
 
+// ─── StockRows (player view with expandable history) ────────────────────────
+
+function StockRows({ stocks, history, visible, expandedStock, setExpandedStock }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+      {stocks.map((s, i) => {
+        const isUp = s.change > 0;
+        const isDown = s.change < 0;
+        const changeColor = s.is_omnicorp ? AMBER : isUp ? GREEN : isDown ? RED : "#888";
+        const rowBg = s.is_omnicorp ? "rgba(80,60,0,0.15)" : i % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent";
+        const isVis = visible.includes(i);
+        const isExpanded = expandedStock === s.name;
+
+        // Build price history for this stock from history snapshots
+        const priceHistory = history
+          .filter(h => h.stocks)
+          .map(h => {
+            const snap = h.stocks.find(x => x.name === s.name);
+            return snap ? { price: snap.price, date: h.date } : null;
+          })
+          .filter(Boolean)
+          .slice(-10); // last 10 entries
+
+        return (
+          <div key={s.name} style={{
+            opacity: isVis ? (s.is_collapsed ? 0.3 : 1) : 0,
+            transform: isVis ? "translateX(0)" : "translateX(-8px)",
+            transition: "opacity 0.3s ease, transform 0.3s ease",
+            border: isExpanded ? `1px solid ${s.is_omnicorp ? "rgba(255,200,0,0.3)" : "rgba(68,200,68,0.15)"}` : "1px solid transparent",
+            background: isExpanded ? "rgba(0,15,0,0.4)" : rowBg,
+          }}>
+            {/* Main row */}
+            <div
+              onClick={() => setExpandedStock(isExpanded ? null : s.name)}
+              style={{ display: "flex", alignItems: "center", padding: "10px 14px", cursor: "pointer" }}>
+              <div style={{ flex: 1, color: s.is_omnicorp ? AMBER : s.is_collapsed ? "#444" : GREEN_DIM,
+                fontSize: "13px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {s.name}
+                {s.is_collapsed && <span style={{ color: "#444", marginLeft: "8px" }}>— DELISTED</span>}
+                {s.is_frozen && !s.is_collapsed && <span style={{ color: "#4488cc", marginLeft: "8px", fontSize: "10px" }}>❄</span>}
+                <span style={{ color: "#2a4a2a", fontSize: "10px", marginLeft: "8px" }}>{isExpanded ? "▲" : "▼"}</span>
+              </div>
+              <div style={{ color: s.is_omnicorp ? AMBER : s.is_collapsed ? "#444" : HEADER_GREEN,
+                fontSize: "14px", minWidth: "80px", textAlign: "right", fontWeight: "bold" }}>
+                {s.price.toLocaleString()}cr
+              </div>
+              <div style={{ minWidth: "70px", textAlign: "right", fontSize: "13px",
+                color: changeColor, paddingLeft: "16px" }}>
+                {isUp ? "▲" : isDown ? "▼" : "—"} {Math.abs(s.change)}
+              </div>
+            </div>
+            {/* Expanded history */}
+            {isExpanded && (
+              <div style={{ padding: "8px 14px 14px", borderTop: `1px solid rgba(68,120,68,0.2)` }}>
+                <div style={{ color: "#3a6a3a", fontSize: "9px", letterSpacing: "0.2em", marginBottom: "8px" }}>
+                  PRICE HISTORY (LAST {priceHistory.length} CYCLES)
+                </div>
+                {priceHistory.length === 0 ? (
+                  <div style={{ color: "#2a4a2a", fontSize: "10px" }}>No history recorded yet.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                    {[...priceHistory].reverse().map((h, idx) => (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between",
+                        fontSize: "10px", color: "#4a7a4a", padding: "1px 0" }}>
+                        <span style={{ color: "#2a4a2a" }}>CYC {String(h.date?.cycle ?? "?").padStart(2,"0")}</span>
+                        <span style={{ color: HEADER_GREEN }}>{h.price.toLocaleString()}cr</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ color: "#2a4a2a", fontSize: "9px", marginTop: "8px", letterSpacing: "0.08em" }}>
+                  {s.industry}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, onWardenAccess, onHoneypot, onRefresh }) {
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
   const [showQR, setShowQR] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedStock, setExpandedStock] = useState(null);
   const isPWA = window.matchMedia('(display-mode: standalone)').matches
     || window.navigator.standalone === true;
 
@@ -405,34 +508,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, o
 
         {/* Stock rows */}
         <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "24px" }}>
-          {stocks.map((s, i) => {
-            const isUp = s.change > 0;
-            const isDown = s.change < 0;
-            const changeColor = s.is_omnicorp ? AMBER : isUp ? GREEN : isDown ? RED : "#888";
-            const rowBg = s.is_omnicorp ? "rgba(80,60,0,0.15)" : i % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent";
-            const isVis = visible.includes(i);
-
-            return (
-              <div key={s.name} style={{ display: "flex", alignItems: "center", padding: "10px 14px",
-                background: rowBg, border: s.is_omnicorp ? `1px solid rgba(255,200,0,0.15)` : "1px solid transparent",
-                opacity: isVis ? (s.is_collapsed ? 0.3 : 1) : 0,
-                transform: isVis ? "translateX(0)" : "translateX(-8px)",
-                transition: "opacity 0.3s ease, transform 0.3s ease" }}>
-                <div style={{ flex: 1, color: s.is_omnicorp ? AMBER : s.is_collapsed ? "#444" : GREEN_DIM,
-                  fontSize: "13px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                  {s.name}{s.is_collapsed && <span style={{ color: "#444", marginLeft: "8px" }}>— DELISTED</span>}
-                </div>
-                <div style={{ color: s.is_omnicorp ? AMBER : s.is_collapsed ? "#444" : HEADER_GREEN,
-                  fontSize: "14px", minWidth: "80px", textAlign: "right", fontWeight: "bold" }}>
-                  {s.price.toLocaleString()}cr
-                </div>
-                <div style={{ minWidth: "70px", textAlign: "right", fontSize: "13px",
-                  color: changeColor, paddingLeft: "16px" }}>
-                  {isUp ? "▲" : isDown ? "▼" : "—"} {Math.abs(s.change)}
-                </div>
-              </div>
-            );
-          })}
+          <StockRows stocks={stocks} history={history} visible={visible} expandedStock={expandedStock} setExpandedStock={setExpandedStock} />
         </div>
 
         {/* Footer */}
@@ -449,19 +525,12 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, o
                 fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
               {showHistory ? "[ HIDE HISTORY ]" : "[ VIEW HISTORY ]"}
             </button>
-            {isPWA && (
-              <button onClick={async () => {
-                  if (refreshing) return;
-                  setRefreshing(true);
-                  await onRefresh();
-                  setRefreshing(false);
-                }}
-                style={{ background: "none", border: `1px solid #2a3a2a`,
-                  color: refreshing ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
-                  fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", minWidth: "110px" }}>
-                {refreshing ? "[ SYNCING... ]" : "[ ↺ SYNC ]"}
-              </button>
-            )}
+            <button onClick={onSwitchGame}
+              style={{ background: "none", border: `1px solid #2a3a2a`,
+                color: "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", minWidth: "110px" }}>
+              [ SWITCH GAME ]
+            </button>
           </div>
         </div>
 
@@ -1040,6 +1109,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     }));
     setStocks(next);
     wardenSet(KEYS.stocks, next);
+    showToast(`MARKET ${marketEventDir.toUpperCase()} APPLIED — ${marketEventPct}%`, marketEventDir === "crash" ? "#ff4455" : "#44ff88");
   };
 
   const handleVarianceRoll = () => {
@@ -1053,6 +1123,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     setStocks(sorted);
     wardenSet(KEYS.stocks, sorted);
     setPendingVariance(null);
+    showToast("VARIANCE APPLIED");
   };
 
   const handleHealthRoll = () => {
@@ -1066,6 +1137,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     setStocks(sorted);
     wardenSet(KEYS.stocks, sorted);
     setPendingHealthShift(null);
+    showToast("HEALTH SHIFTS APPLIED");
   };
 
   const saveAll = useCallback(async (s, h, hist, d, m) => {
@@ -1280,11 +1352,16 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             </div>
             {!pendingAdvance ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <button onClick={handleAdvanceRoll}
-                  style={{ background: "none", border: `1px solid #4488ff`, color: "#88bbff",
-                    fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
-                  ROLL ECONOMY
-                </button>
+                <div>
+                  <div style={{ color: "#4a5a6a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                    FULL ADVANCE — advances the date, rolls health + volatility + price for all corps, triggers bankruptcy checks
+                  </div>
+                  <button onClick={handleAdvanceRoll}
+                    style={{ background: "none", border: `1px solid #4488ff`, color: "#88bbff",
+                      fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                    ROLL ECONOMY
+                  </button>
+                </div>
                 <div>
                   <div style={{ color: "#4a6a4a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
                     PRICE VARIANCE — price movement only, no health or volatility changes
@@ -1334,33 +1411,6 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                       </div>
                     </div>
                   )}
-                </div>
-                <div>
-                  <div style={{ color: "#5a4a3a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
-                    MARKET EVENT — apply a percentage shift to all active, unfrozen stocks at once
-                  </div>
-                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-                    <select value={marketEventDir} onChange={e => setMarketEventDir(e.target.value)}
-                      style={{ background: "#060a10", border: `1px solid #3a2a1a`, color: marketEventDir === "crash" ? RED : GREEN,
-                        fontFamily: MONO, fontSize: "11px", padding: "5px 8px", cursor: "pointer" }}>
-                      <option value="crash">CRASH</option>
-                      <option value="boom">BOOM</option>
-                    </select>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <input value={marketEventPct} inputMode="numeric"
-                        onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 99) setMarketEventPct(v); }}
-                        style={{ background: "transparent", border: `1px solid #2a2a2a`, color: "#ccc",
-                          fontFamily: MONO, fontSize: "11px", width: "50px", padding: "4px 6px", textAlign: "center" }} />
-                      <span style={{ color: "#445566", fontSize: "10px" }}>%</span>
-                    </div>
-                    <button onClick={handleMarketEvent}
-                      style={{ background: "none",
-                        border: `1px solid ${marketEventDir === "crash" ? "#663333" : "#336633"}`,
-                        color: marketEventDir === "crash" ? RED : GREEN,
-                        fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
-                      APPLY {marketEventDir.toUpperCase()}
-                    </button>
-                  </div>
                 </div>
                 <div>
                   <div style={{ color: "#4a5a6a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
@@ -1413,7 +1463,38 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                       </div>
                     </div>
                   )}
+                </div>                <div>
+                  <div style={{ color: "#5a4a3a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                    MARKET EVENT — apply a percentage shift to all active, unfrozen stocks at once
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <select value={marketEventDir} onChange={e => setMarketEventDir(e.target.value)}
+                      style={{ background: "#060a10", border: `1px solid #3a2a1a`, color: marketEventDir === "crash" ? RED : GREEN,
+                        fontFamily: MONO, fontSize: "11px", padding: "5px 8px", cursor: "pointer" }}>
+                      <option value="crash">CRASH</option>
+                      <option value="boom">BOOM</option>
+                    </select>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <input value={marketEventPct} inputMode="numeric"
+                        onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 99) setMarketEventPct(v); }}
+                        style={{ background: "transparent", border: `1px solid #2a2a2a`, color: "#ccc",
+                          fontFamily: MONO, fontSize: "11px", width: "50px", padding: "4px 6px", textAlign: "center" }} />
+                      <span style={{ color: "#445566", fontSize: "10px" }}>%</span>
+                    </div>
+                    <button onClick={() => setConfirmDialog({
+                        msg: `APPLY ${marketEventDir.toUpperCase()} — ${marketEventPct}%?`,
+                        submsg: `All active, unfrozen stocks will ${marketEventDir === "crash" ? "decrease" : "increase"} by ${marketEventPct}%. This cannot be undone.`,
+                        onConfirm: () => { handleMarketEvent(); setConfirmDialog(null); }
+                      })}
+                      style={{ background: "none",
+                        border: `1px solid ${marketEventDir === "crash" ? "#663333" : "#336633"}`,
+                        color: marketEventDir === "crash" ? RED : GREEN,
+                        fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                      APPLY {marketEventDir.toUpperCase()}
+                    </button>
+                  </div>
                 </div>
+
               </div>
             ) : (
               <>
@@ -1997,7 +2078,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
             <thead>
               <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
-                {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","VOLATILITY","HEALTH","❄"].map((h) => (
+                {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","HEALTH","VOL","FREEZE",""].map((h) => (
                   <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#6688aa",
                     fontSize: "10px", letterSpacing: "0.12em", fontWeight: "normal" }}>{h}</th>
                 ))}
@@ -2065,12 +2146,13 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <button onClick={() => {
                           const next = stocks.map(x => x.name === s.name ? { ...x, is_frozen: !s.is_frozen } : x);
                           setStocks(next); wardenSet(KEYS.stocks, next);
+                          showToast(s.is_frozen ? `${s.name.split(" ")[0]} UNFROZEN` : `${s.name.split(" ")[0]} FROZEN`, "#88ccff");
                         }}
                           style={{ background: s.is_frozen ? "rgba(100,180,255,0.1)" : "none",
                             border: `1px solid ${s.is_frozen ? "#4488cc" : "#1a2a3a"}`,
                             color: s.is_frozen ? "#88ccff" : "#2a3a4a",
                             fontFamily: MONO, fontSize: "10px", padding: "2px 8px", cursor: "pointer" }}>
-                          {s.is_frozen ? "ON" : "OFF"}
+                          {s.is_frozen ? "FROZEN" : "—"}
                         </button>
                       )}
                     </td>
@@ -2116,6 +2198,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           <HeadlineFeedManager headlines={headlines} setHeadlines={setHeadlines} date={date} KEYS={KEYS} wardenSet={wardenSet} />
         )}
       </div>
+      {Toast}
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
     </div>
   );
@@ -2252,6 +2335,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       stocks={stocks} headlines={headlines}
       history={history} date={date}
       yearLabel={rollConfig.yearLabel ?? "Year"} cycleLabel={rollConfig.cycleLabel ?? "Cycle"}
+      onSwitchGame={() => { window.location.href = "/"; }}
       onRefresh={async () => {
         const [s, h, hist, d] = await Promise.all([
           safeGet(KEYS.stocks, INITIAL_STOCKS),
