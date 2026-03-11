@@ -809,6 +809,19 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     setHeadlineSubtext("");
   };
 
+  const handleVarianceRoll = () => {
+    setPendingVariance(computeVariance(stocks));
+    setPanel("advance");
+  };
+
+  const handleVarianceConfirm = () => {
+    if (!pendingVariance) return;
+    const sorted = sortByPrice(pendingVariance.map(({ priceRoll, coinFlip, ...s }) => s));
+    setStocks(sorted);
+    wardenSet(KEYS.stocks, sorted);
+    setPendingVariance(null);
+  };
+
   const handleAdvanceRoll = () => {
     const advanceResult = computeAdvance(stocks);
     const bankruptcyResult = computeBankruptcyCheck(advanceResult, mergers, alwaysMerge);
@@ -995,11 +1008,63 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               ADVANCE TO NEXT SCENARIO
             </div>
             {!pendingAdvance ? (
-              <button onClick={handleAdvanceRoll}
-                style={{ background: "none", border: `1px solid #4488ff`, color: "#88bbff",
-                  fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
-                ROLL ECONOMY
-              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <button onClick={handleAdvanceRoll}
+                  style={{ background: "none", border: `1px solid #4488ff`, color: "#88bbff",
+                    fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                  ROLL ECONOMY
+                </button>
+                <div>
+                  <div style={{ color: "#4a6a4a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                    PRICE VARIANCE — price movement only, no health or volatility changes
+                  </div>
+                  {!pendingVariance ? (
+                    <button onClick={handleVarianceRoll}
+                      style={{ background: "none", border: `1px solid #336644`, color: "#66aa88",
+                        fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                      ROLL VARIANCE
+                    </button>
+                  ) : (
+                    <div>
+                      <div style={{ overflowX: "auto", marginBottom: "12px" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
+                          <thead>
+                            <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
+                              {["COMPANY","VOL","DIE ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
+                                <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: "#6688aa", fontWeight: "normal" }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pendingVariance.filter(s => !s.is_collapsed).map(s => (
+                              <tr key={s.name} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)` }}>
+                                <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : "#aabbcc", fontSize: "10px", textTransform: "uppercase" }}>{s.name.split(" ")[0]}</td>
+                                <td style={{ padding: "6px 8px", color: volColor(s.volatility) }}>{s.volatility}</td>
+                                <td style={{ padding: "6px 8px", color: "#ccc" }}>{s.priceRoll}</td>
+                                <td style={{ padding: "6px 8px", color: s.coinFlip === "up" ? GREEN : s.coinFlip === "down" ? RED : "#333" }}>{s.coinFlip ?? "—"}</td>
+                                <td style={{ padding: "6px 8px", color: s.change > 0 ? GREEN : s.change < 0 ? RED : "#555", fontWeight: "bold" }}>{s.change > 0 ? "+" : ""}{s.change}</td>
+                                <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : HEADER_GREEN, fontWeight: "bold" }}>{s.price.toLocaleString()}cr</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style={{ display: "flex", gap: "12px" }}>
+                        <button onClick={handleVarianceConfirm}
+                          style={{ background: "none", border: `1px solid #44ff88`, color: GREEN,
+                            fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                          CONFIRM & PUBLISH
+                        </button>
+                        <button onClick={() => setPendingVariance(null)}
+                          style={{ background: "none", border: `1px solid #3a3a3a`, color: "#666",
+                            fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                          CANCEL
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
               <>
                 <div style={{ overflowX: "auto" }}>
