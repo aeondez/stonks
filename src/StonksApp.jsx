@@ -817,34 +817,72 @@ function AddCorpRow({ onAdd, inputStyle }) {
   const [price, setPrice] = useState("100");
   const [health, setHealth] = useState("OK");
   const [vol, setVol] = useState("Medium");
+  const [open, setOpen] = useState(false);
   const submit = () => {
     const p = parseInt(price);
     if (!name.trim() || isNaN(p) || p < 1) return;
     onAdd({ name: name.trim(), industry: industry.trim() || "Unknown", price: p, change: 0,
       health, volatility: vol, is_omnicorp: false, is_collapsed: false });
     setName(""); setIndustry(""); setPrice("100"); setHealth("OK"); setVol("Medium");
+    setOpen(false);
   };
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      style={{ background: "none", border: `1px solid #336644`, color: "#66aa88",
+        fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer", marginTop: "10px" }}>
+      + ADD CORPORATION
+    </button>
+  );
+  const lbl = { color: "#445566", fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" };
+  const field = { display: "flex", flexDirection: "column" };
   return (
-    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", marginTop: "8px" }}>
-      <input value={name} onChange={e => setName(e.target.value)} placeholder="Name"
-        style={{ ...inputStyle, width: "120px", fontSize: "10px", padding: "3px 6px" }} />
-      <input value={industry} onChange={e => setIndustry(e.target.value)} placeholder="Industry"
-        style={{ ...inputStyle, width: "90px", fontSize: "10px", padding: "3px 6px" }} />
-      <input value={price} onChange={e => setPrice(e.target.value)} placeholder="Price" inputMode="numeric"
-        style={{ ...inputStyle, width: "60px", fontSize: "10px", padding: "3px 6px" }} />
-      <select value={health} onChange={e => setHealth(e.target.value)}
-        style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
-        {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
-      </select>
-      <select value={vol} onChange={e => setVol(e.target.value)}
-        style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
-        {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
-      </select>
-      <button onClick={submit}
-        style={{ background: "none", border: `1px solid #336644`, color: "#66aa88",
-          fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "3px 12px", cursor: "pointer" }}>
-        + ADD
-      </button>
+    <div style={{ marginTop: "12px", padding: "12px", border: `1px solid #1a2a3a`, background: "rgba(0,10,20,0.4)" }}>
+      <div style={{ color: "#66aa88", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>NEW CORPORATION</div>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "10px" }}>
+        <div style={field}>
+          <div style={lbl}>NAME *</div>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Apex Industries"
+            style={{ ...inputStyle, width: "150px", fontSize: "10px", padding: "3px 6px" }} />
+        </div>
+        <div style={field}>
+          <div style={lbl}>INDUSTRY</div>
+          <input value={industry} onChange={e => setIndustry(e.target.value)} placeholder="e.g. Mining"
+            style={{ ...inputStyle, width: "110px", fontSize: "10px", padding: "3px 6px" }} />
+        </div>
+        <div style={field}>
+          <div style={lbl}>PRICE</div>
+          <input value={price} onChange={e => setPrice(e.target.value)} inputMode="numeric"
+            style={{ ...inputStyle, width: "70px", fontSize: "10px", padding: "3px 6px" }} />
+        </div>
+        <div style={field}>
+          <div style={lbl}>HEALTH</div>
+          <select value={health} onChange={e => setHealth(e.target.value)}
+            style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
+            {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
+          </select>
+        </div>
+        <div style={field}>
+          <div style={lbl}>VOLATILITY</div>
+          <select value={vol} onChange={e => setVol(e.target.value)}
+            style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
+            {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: "10px" }}>
+        <button onClick={submit} disabled={!name.trim()}
+          style={{ background: "none", border: `1px solid ${name.trim() ? "#336644" : "#1a2a1a"}`,
+            color: name.trim() ? "#66aa88" : "#334433",
+            fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px",
+            cursor: name.trim() ? "pointer" : "not-allowed" }}>
+          CONFIRM
+        </button>
+        <button onClick={() => setOpen(false)}
+          style={{ background: "none", border: `1px solid #2a2a2a`, color: "#555",
+            fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
+          CANCEL
+        </button>
+      </div>
     </div>
   );
 }
@@ -1243,7 +1281,26 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     </button>
                   ) : (
                     <div>
-                      <div style={{ overflowX: "auto", marginBottom: "12px" }}>
+                      {/* OmniCorp toggle */}
+              <div style={{ marginBottom: "12px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <span style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.1em" }}>OMNICORP</span>
+                <select
+                  value={stocks.find(s => s.is_omnicorp)?.name ?? ""}
+                  onChange={(e) => {
+                    const chosen = e.target.value;
+                    const next = stocks.map(s => ({ ...s, is_omnicorp: s.name === chosen }));
+                    setStocks(next); wardenSet(KEYS.stocks, next);
+                  }}
+                  style={{ background: "#060a10", border: `1px solid #1a2a3a`, color: "#aabbcc",
+                    fontFamily: MONO, fontSize: "10px", padding: "3px 6px", cursor: "pointer" }}>
+                  <option value="">— none —</option>
+                  {stocks.filter(s => !s.is_collapsed).map(s => (
+                    <option key={s.name} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+                <span style={{ color: "#334455", fontSize: "10px" }}>receives collapse payouts and has special immunities</span>
+              </div>
+              <div style={{ overflowX: "auto", marginBottom: "12px" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
@@ -1654,7 +1711,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
-                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL","OMNI",""].map(h => (
+                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL",""].map(h => (
                         <th key={h} style={{ padding: "4px 6px", textAlign: "left", color: "#445566", fontWeight: "normal", letterSpacing: "0.08em", fontSize: "10px" }}>{h}</th>
                       ))}
                     </tr>
@@ -1708,13 +1765,6 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                             style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
                             {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
                           </select>
-                        </td>
-                        <td style={{ padding: "3px 4px", textAlign: "center" }}>
-                          <input type="checkbox" checked={!!s.is_omnicorp}
-                            onChange={(e) => {
-                              const next = stocks.map((x, xi) => xi === i ? { ...x, is_omnicorp: e.target.checked } : x);
-                              setStocks(next); wardenSet(KEYS.stocks, next);
-                            }} />
                         </td>
                         <td style={{ padding: "3px 4px" }}>
                           <button onClick={() => {
