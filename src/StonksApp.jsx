@@ -1,25 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-// ─── Toast Notification ──────────────────────────────────────────────────────
-function useToast() {
-  const [toast, setToast] = useState(null);
-  const show = (msg, color = "#44ff88") => {
-    setToast({ msg, color });
-    clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(() => setToast(null), 2800);
-  };
-  const Toast = toast ? (
-    <div style={{ position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)",
-      background: "#0a1a0a", border: `1px solid ${toast.color}`, color: toast.color,
-      fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.15em",
-      padding: "10px 20px", zIndex: 200, whiteSpace: "nowrap",
-      boxShadow: `0 0 20px ${toast.color}22` }}>
-      ✓ {toast.msg}
-    </div>
-  ) : null;
-  return { show, Toast };
-}
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_PIN = "000000";
@@ -1097,6 +1077,12 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     return next;
   }, [alwaysMerge, rollConfig, wardenSet, KEYS]);
 
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, color = "#44ff88") => {
+    setToast({ msg, color });
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => setToast(null), 2800);
+  };
   const [marketEventPct, setMarketEventPct] = useState(10);
   const [marketEventDir, setMarketEventDir] = useState("crash");
 
@@ -2198,7 +2184,15 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           <HeadlineFeedManager headlines={headlines} setHeadlines={setHeadlines} date={date} KEYS={KEYS} wardenSet={wardenSet} />
         )}
       </div>
-      {Toast}
+      {toast && (
+        <div style={{ position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)",
+          background: "#0a1a0a", border: `1px solid ${toast.color}`, color: toast.color,
+          fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em",
+          padding: "10px 20px", zIndex: 200, whiteSpace: "nowrap",
+          boxShadow: `0 0 20px ${toast.color}22` }}>
+          ✓ {toast.msg}
+        </div>
+      )}
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
     </div>
   );
