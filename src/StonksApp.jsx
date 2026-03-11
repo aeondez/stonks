@@ -265,24 +265,73 @@ const safeSet = async (key, value, pin = null) => {
   } catch {}
 };
 
+// ─── Themes ───────────────────────────────────────────────────────────────────
+
+const THEMES = {
+  green: {
+    label: "GREEN",
+    bg: "#060807",
+    primary: "#44ff88",
+    primaryDim: "#b8ddb8",
+    primaryDark: "#4a7a4a",
+    primaryMid: "#5a9a5a",
+    primaryHeader: "#e8ffe8",
+    scanline: "rgba(180,255,180,0.04)",
+    accent: "#ffdd77",
+  },
+  amber: {
+    label: "AMBER",
+    bg: "#080701",
+    primary: "#ffcc44",
+    primaryDim: "#ddbb88",
+    primaryDark: "#7a6a2a",
+    primaryMid: "#9a8a3a",
+    primaryHeader: "#fff8e0",
+    scanline: "rgba(255,220,100,0.04)",
+    accent: "#ff8844",
+  },
+  mono: {
+    label: "MONO",
+    bg: "#080808",
+    primary: "#dddddd",
+    primaryDim: "#aaaaaa",
+    primaryDark: "#555555",
+    primaryMid: "#888888",
+    primaryHeader: "#ffffff",
+    scanline: "rgba(255,255,255,0.03)",
+    accent: "#ffffff",
+  },
+  hivisibility: {
+    label: "HI-VIS",
+    bg: "#000000",
+    primary: "#00ff00",
+    primaryDim: "#ccffcc",
+    primaryDark: "#007700",
+    primaryMid: "#00aa00",
+    primaryHeader: "#ffffff",
+    scanline: "rgba(0,255,0,0.02)",
+    accent: "#ffff00",
+  },
+};
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const BG = "#060807";
-const GREEN = "#44ff88";
-const GREEN_DIM = "#b8ddb8";
-const GREEN_DARK = "#4a7a4a";
-const GREEN_MID = "#5a9a5a";
+const BG = "var(--c-bg, #060807)";
+const GREEN = "var(--c-primary, #44ff88)";
+const GREEN_DIM = "var(--c-primary-dim, #b8ddb8)";
+const GREEN_DARK = "var(--c-primary-dark, #4a7a4a)";
+const GREEN_MID = "var(--c-primary-mid, #5a9a5a)";
 const AMBER = "#ffdd77";
 const RED = "#ff4455";
-const HEADER_GREEN = "#e8ffe8";
+const HEADER_GREEN = "var(--c-header, #e8ffe8)";
 const MONO = "'Share Tech Mono', 'Courier New', monospace";
 
 const healthColor = (h) => ({
-  Good: "#44ff88", OK: "#aaffcc", Bad: "#ff8844", Bankrupt: "#ff4455"
+  Good: "var(--c-primary, #44ff88)", OK: "var(--c-primary-dim, #aaffcc)", Bad: "#ff8844", Bankrupt: "#ff4455"
 }[h] || "#888");
 
 const volColor = (v) => ({
-  High: "#ff8844", Medium: "#aaffcc", Low: "#44ff88"
+  High: "#ff8844", Medium: "var(--c-primary-dim, #aaffcc)", Low: "var(--c-primary, #44ff88)"
 }[v] || "#888");
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -298,7 +347,7 @@ function Scanlines() {
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 10,
         background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)" }} />
       <div style={{ position: "fixed", top: `${pos}%`, left: 0, right: 0, height: "2px",
-        background: "rgba(180,255,180,0.04)", pointerEvents: "none", zIndex: 11 }} />
+        background: "var(--c-scanline, rgba(180,255,180,0.04))", pointerEvents: "none", zIndex: 11 }} />
     </>
   );
 }
@@ -395,7 +444,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock }
 
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
   const [showQR, setShowQR] = useState(false);
@@ -519,8 +568,22 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, o
           <HistoryLog history={history} headlines={headlines} />
         )}
 
+        {/* Theme switcher */}
+        <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px" }}>
+          {Object.entries(THEMES).map(([key, t]) => (
+            <button key={key} onClick={() => setTheme(key)}
+              style={{ background: theme === key ? "rgba(255,255,255,0.08)" : "none",
+                border: `1px solid ${theme === key ? GREEN_MID : GREEN_DARK}`,
+                color: theme === key ? GREEN_DIM : GREEN_DARK,
+                fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
+                padding: "3px 8px", cursor: "pointer" }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         {/* Hidden warden link */}
-        <div style={{ marginTop: "32px", textAlign: "center" }}>
+        <div style={{ marginTop: "16px", textAlign: "center" }}>
           <button onClick={onWardenAccess}
             style={{ background: "none", border: "none", color: "#1a2a1a", cursor: "pointer",
               fontFamily: MONO, fontSize: "9px", letterSpacing: "0.15em" }}>
@@ -1053,7 +1116,7 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
 // ─── Warden View ──────────────────────────────────────────────────────────────
 
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
-  storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig, onLogout, KEYS }) {
+  storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig, theme, setTheme, onLogout, KEYS }) {
 
   const [panel, setPanel] = useState(null); // "headline" | "advance" | "bankruptcy" | "mergers" | "settings"
   const [pendingAdvance, setPendingAdvance] = useState(null);
@@ -1685,35 +1748,56 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             {/* Predefined merger management */}
             <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "16px", marginTop: "4px", marginBottom: "4px" }}>
               <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>PREDEFINED MERGERS</div>
-              {mergers.map((m, i) => (
-                <div key={m.name + i} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap" }}>
-                  <input defaultValue={m.name} onBlur={e => {
-                    const val = e.target.value.trim(); if (!val) return;
-                    const next = mergers.map((x, xi) => xi === i ? { ...x, name: val } : x);
-                    setMergers(next); wardenSet(KEYS.mergers, next);
-                  }} style={{ background: "transparent", border: `1px solid #1a2a3a`, color: AMBER,
-                    fontFamily: MONO, fontSize: "10px", padding: "2px 6px", width: "160px" }} />
-                  <input defaultValue={m.partner1} onBlur={e => {
-                    const val = e.target.value.trim(); if (!val) return;
-                    const next = mergers.map((x, xi) => xi === i ? { ...x, partner1: val } : x);
-                    setMergers(next); wardenSet(KEYS.mergers, next);
-                  }} style={{ background: "transparent", border: `1px solid #1a2a3a`, color: "#aabbcc",
-                    fontFamily: MONO, fontSize: "10px", padding: "2px 6px", width: "160px" }} />
-                  <span style={{ color: "#334455", fontSize: "10px" }}>+</span>
-                  <input defaultValue={m.partner2} onBlur={e => {
-                    const val = e.target.value.trim(); if (!val) return;
-                    const next = mergers.map((x, xi) => xi === i ? { ...x, partner2: val } : x);
-                    setMergers(next); wardenSet(KEYS.mergers, next);
-                  }} style={{ background: "transparent", border: `1px solid #1a2a3a`, color: "#aabbcc",
-                    fontFamily: MONO, fontSize: "10px", padding: "2px 6px", width: "160px" }} />
-                  <button onClick={() => {
-                    if (!window.confirm(`Remove merger "${m.name}"?`)) return;
-                    const next = mergers.filter((_, xi) => xi !== i);
-                    setMergers(next); wardenSet(KEYS.mergers, next);
-                  }} style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444",
-                    fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
-                </div>
-              ))}
+              {mergers.map((m, i) => {
+                const selectStyle = { background: "#060a10", border: `1px solid #1a2a3a`, color: "#aabbcc",
+                  fontFamily: MONO, fontSize: "10px", padding: "2px 5px", cursor: "pointer" };
+                return (
+                  <div key={m.name + i} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "10px", flexWrap: "wrap" }}>
+                    <input defaultValue={m.name} onBlur={e => {
+                      const val = e.target.value.trim(); if (!val) return;
+                      const next = mergers.map((x, xi) => xi === i ? { ...x, name: val } : x);
+                      setMergers(next); wardenSet(KEYS.mergers, next);
+                    }} style={{ background: "transparent", border: `1px solid #1a2a3a`, color: AMBER,
+                      fontFamily: MONO, fontSize: "10px", padding: "2px 6px", width: "150px" }}
+                    placeholder="Merger name" />
+                    <select value={m.partner1}
+                      onChange={e => {
+                        const next = mergers.map((x, xi) => xi === i ? { ...x, partner1: e.target.value } : x);
+                        setMergers(next); wardenSet(KEYS.mergers, next);
+                      }} style={selectStyle}>
+                      <option value="">— partner 1 —</option>
+                      {stocks.map(s => (
+                        <option key={s.name} value={s.name}
+                          disabled={s.is_collapsed || s.is_merged}
+                          style={{ color: (s.is_collapsed || s.is_merged) ? "#444" : "#aabbcc" }}>
+                          {s.name}{(s.is_collapsed || s.is_merged) ? " (inactive)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <span style={{ color: "#334455", fontSize: "10px" }}>+</span>
+                    <select value={m.partner2}
+                      onChange={e => {
+                        const next = mergers.map((x, xi) => xi === i ? { ...x, partner2: e.target.value } : x);
+                        setMergers(next); wardenSet(KEYS.mergers, next);
+                      }} style={selectStyle}>
+                      <option value="">— partner 2 —</option>
+                      {stocks.map(s => (
+                        <option key={s.name} value={s.name}
+                          disabled={s.is_collapsed || s.is_merged}
+                          style={{ color: (s.is_collapsed || s.is_merged) ? "#444" : "#aabbcc" }}>
+                          {s.name}{(s.is_collapsed || s.is_merged) ? " (inactive)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <button onClick={() => {
+                      if (!window.confirm(`Remove merger "${m.name}"?`)) return;
+                      const next = mergers.filter((_, xi) => xi !== i);
+                      setMergers(next); wardenSet(KEYS.mergers, next);
+                    }} style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444",
+                      fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
+                  </div>
+                );
+              })}
               <button onClick={() => {
                 const next = [...mergers, { name: "New Merger", partner1: "Company A", partner2: "Company B", industry: "Combined", triggered: false }];
                 setMergers(next); wardenSet(KEYS.mergers, next);
@@ -1773,6 +1857,22 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 </div>
               ))}
               <span style={{ color: "#2a4a6a", fontSize: "10px" }}>renames the date labels on the player ticker</span>
+            </div>
+            {/* Theme */}
+            <div style={{ marginBottom: "20px" }}>
+              <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "10px" }}>DISPLAY THEME</div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {Object.entries(THEMES).map(([key, t]) => (
+                  <button key={key} onClick={() => setTheme(key)}
+                    style={{ background: theme === key ? "rgba(255,255,255,0.08)" : "none",
+                      border: `1px solid ${theme === key ? "#6688aa" : "#1a2a3a"}`,
+                      color: theme === key ? "#aabbcc" : "#445566",
+                      fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                      padding: "5px 14px", cursor: "pointer" }}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>MERGER SETTINGS</div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
@@ -2214,6 +2314,26 @@ const actionBtn = {
 // ─── Root App ─────────────────────────────────────────────────────────────────
 
 export default function StonksApp({ roomCode = "stonks" }) {
+  // Theme is a local display preference — stored in localStorage, not Redis
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("stonks_theme") || "green"; } catch { return "green"; }
+  });
+
+  const T = THEMES[theme] || THEMES.green;
+
+  // Inject CSS vars on root
+  useEffect(() => {
+    const r = document.documentElement;
+    r.style.setProperty("--c-bg",          T.bg);
+    r.style.setProperty("--c-primary",     T.primary);
+    r.style.setProperty("--c-primary-dim", T.primaryDim);
+    r.style.setProperty("--c-primary-dark",T.primaryDark);
+    r.style.setProperty("--c-primary-mid", T.primaryMid);
+    r.style.setProperty("--c-header",      T.primaryHeader);
+    r.style.setProperty("--c-accent",      T.accent);
+    r.style.setProperty("--c-scanline",    T.scanline);
+    try { localStorage.setItem("stonks_theme", theme); } catch {}
+  }, [theme, T]);
   const KEYS = makeKeys(roomCode);
   const [view, setView] = useState("player"); // "player" | "pin" | "warden"
   const [stocks, setStocks] = useState(INITIAL_STOCKS);
@@ -2318,6 +2438,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
         mergers={mergers} setMergers={setMergers}
         alwaysMerge={alwaysMerge} setAlwaysMerge={setAlwaysMerge}
         rollConfig={rollConfig} setRollConfig={setRollConfig}
+        theme={theme} setTheme={setTheme}
         onLogout={() => setView("player")}
         KEYS={KEYS}
       />
@@ -2330,6 +2451,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       history={history} date={date}
       yearLabel={rollConfig.yearLabel ?? "Year"} cycleLabel={rollConfig.cycleLabel ?? "Cycle"}
       onSwitchGame={() => { window.location.href = "/"; }}
+      theme={theme} setTheme={setTheme}
       onRefresh={async () => {
         const [s, h, hist, d] = await Promise.all([
           safeGet(KEYS.stocks, INITIAL_STOCKS),
