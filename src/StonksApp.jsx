@@ -964,15 +964,13 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
 // ─── Warden View ──────────────────────────────────────────────────────────────
 
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
-  storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, onLogout, KEYS }) {
+  storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig, onLogout, KEYS }) {
 
   const [panel, setPanel] = useState(null); // "headline" | "advance" | "bankruptcy" | "mergers" | "settings"
   const [pendingAdvance, setPendingAdvance] = useState(null);
   const [pendingVariance, setPendingVariance] = useState(null);
   const [pendingHealthShift, setPendingHealthShift] = useState(null);
   const [pendingBankruptcy, setPendingBankruptcy] = useState(null);
-  const [rollConfig, setRollConfig] = useState(DEFAULT_ROLL_CONFIG);
-
   const [headlineText, setHeadlineText] = useState("");
   const [headlineSubtext, setHeadlineSubtext] = useState("");
   const [newPin, setNewPin] = useState("");
@@ -1984,6 +1982,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
   const [storedPin, setStoredPin] = useState(null);
   const [mergers, setMergers] = useState(INITIAL_MERGERS);
   const [alwaysMerge, setAlwaysMerge] = useState(true);
+  const [rollConfig, setRollConfig] = useState(DEFAULT_ROLL_CONFIG);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -2077,6 +2076,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
         storedPin={storedPin} setStoredPin={setStoredPin}
         mergers={mergers} setMergers={setMergers}
         alwaysMerge={alwaysMerge} setAlwaysMerge={setAlwaysMerge}
+        rollConfig={rollConfig} setRollConfig={setRollConfig}
         onLogout={() => setView("player")}
         KEYS={KEYS}
       />
