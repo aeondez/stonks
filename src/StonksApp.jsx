@@ -91,12 +91,14 @@ const sortByPrice = (stocks) => [...stocks].sort((a, b) => b.price - a.price);
 // ─── Roll Config (overridable per room) ───────────────────────────────────────
 
 const DEFAULT_ROLL_CONFIG = {
-  shiftDie:  10,  // die used for health and volatility shift rolls
-  improveOn: 1,   // roll ≤ this → shift up one step
-  worsenOn:  8,   // roll ≥ this → shift down one step
-  dieHigh:   20,  // price die for High volatility
-  dieMedium: 10,  // price die for Medium volatility
-  dieLow:    5,   // price die for Low volatility
+  shiftDie:   10,  // die used for health and volatility shift rolls
+  improveOn:  1,   // roll ≤ this → shift up one step
+  worsenOn:   8,   // roll ≥ this → shift down one step
+  dieHigh:    20,  // price die for High volatility
+  dieMedium:  10,  // price die for Medium volatility
+  dieLow:     5,   // price die for Low volatility
+  yearLabel:  "Year",
+  cycleLabel: "Cycle",
 };
 
 // ─── Dice & Economy Logic ─────────────────────────────────────────────────────
@@ -113,7 +115,7 @@ const shiftDelta = (r, cfg) => r <= cfg.improveOn ? 1 : r >= cfg.worsenOn ? -1 :
 function computeAdvance(stocks, cfg = DEFAULT_ROLL_CONFIG) {
   const priceDice = { High: cfg.dieHigh, Medium: cfg.dieMedium, Low: cfg.dieLow };
   const results = stocks.map((s) => {
-    if (s.is_collapsed) return { ...s, healthRoll: null, volRoll: null, priceRoll: null, coinFlip: null };
+    if (s.is_collapsed || s.is_frozen) return { ...s, healthRoll: null, volRoll: null, priceRoll: null, coinFlip: null };
 
     const healthRoll = roll(cfg.shiftDie);
     const volRoll = roll(cfg.shiftDie);
@@ -182,7 +184,7 @@ function bumpHealth(stock) {
 
 function computeBankruptcyCheck(stocks, mergers = [], alwaysMerge = true) {
   return stocks.map((s) => {
-    if (s.is_collapsed || s.is_omnicorp) return { ...s, bankruptRoll: null, collapses: false, triggersMerger: null };
+    if (s.is_collapsed || s.is_omnicorp || s.is_frozen) return { ...s, bankruptRoll: null, collapses: false, triggersMerger: null };
     if (s.health !== "Bankrupt") return { ...s, bankruptRoll: null, collapses: false, triggersMerger: null };
     const bankruptRoll = roll(10);
     const collapses = bankruptRoll >= 7;
@@ -200,7 +202,7 @@ function computeBankruptcyCheck(stocks, mergers = [], alwaysMerge = true) {
 function computeVariance(stocks, cfg = DEFAULT_ROLL_CONFIG) {
   const priceDice = { High: cfg.dieHigh, Medium: cfg.dieMedium, Low: cfg.dieLow };
   return stocks.map((s) => {
-    if (s.is_collapsed) return { ...s, priceRoll: null, coinFlip: null };
+    if (s.is_collapsed || s.is_frozen) return { ...s, priceRoll: null, coinFlip: null };
     const die = priceDice[s.volatility];
     const priceRoll = roll(die);
     let coinFlip = null;
@@ -221,7 +223,7 @@ function computeVariance(stocks, cfg = DEFAULT_ROLL_CONFIG) {
 
 function computeHealthOnly(stocks, cfg = DEFAULT_ROLL_CONFIG) {
   return stocks.map((s) => {
-    if (s.is_collapsed) return { ...s, healthRoll: null, healthShift: 0 };
+    if (s.is_collapsed || s.is_frozen) return { ...s, healthRoll: null, healthShift: 0 };
     const healthRoll = roll(cfg.shiftDie);
     const healthDelta = shiftDelta(healthRoll, cfg);
     let newHealth = shiftIndex(HEALTH_STEPS, s.health, healthDelta);
@@ -301,17 +303,17 @@ function Scanlines() {
   );
 }
 
-function FictionDate({ date }) {
+function FictionDate({ date, yearLabel = "YEAR", cycleLabel = "CYC" }) {
   return (
     <span style={{ color: GREEN_MID, fontSize: "11px", letterSpacing: "0.15em" }}>
-      YEAR {date.year} · CYC {String(date.cycle).padStart(2, "0")}
+      {yearLabel.toUpperCase()} {date.year} · {cycleLabel.toUpperCase()} {String(date.cycle).padStart(2, "0")}
     </span>
   );
 }
 
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneypot, onRefresh }) {
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, onWardenAccess, onHoneypot, onRefresh }) {
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
   const [showQR, setShowQR] = useState(false);
@@ -347,7 +349,7 @@ function PlayerView({ stocks, headlines, history, date, onWardenAccess, onHoneyp
             </div>
           </div>
           <div style={{ textAlign: "right", lineHeight: 1.8 }}>
-            <FictionDate date={date} />
+            <FictionDate date={date} yearLabel={yearLabel} cycleLabel={cycleLabel} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
               <div style={{ color: "#6aaa6a", fontSize: "11px", letterSpacing: "0.2em" }}>● LIVE</div>
               <button onClick={() => setShowQR(q => !q)}
@@ -1026,6 +1028,20 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     return next;
   }, [alwaysMerge, rollConfig, wardenSet, KEYS]);
 
+  const [marketEventPct, setMarketEventPct] = useState(10);
+  const [marketEventDir, setMarketEventDir] = useState("crash");
+
+  const handleMarketEvent = () => {
+    const multiplier = marketEventDir === "crash" ? (1 - marketEventPct / 100) : (1 + marketEventPct / 100);
+    const next = sortByPrice(stocks.map(s => {
+      if (s.is_collapsed || s.is_frozen) return s;
+      const newPrice = Math.max(1, Math.round(s.price * multiplier));
+      return { ...s, price: newPrice, change: newPrice - s.price };
+    }));
+    setStocks(next);
+    wardenSet(KEYS.stocks, next);
+  };
+
   const handleVarianceRoll = () => {
     setPendingVariance(computeVariance(stocks, rollConfig));
     setPanel("advance");
@@ -1320,6 +1336,33 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   )}
                 </div>
                 <div>
+                  <div style={{ color: "#5a4a3a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                    MARKET EVENT — apply a percentage shift to all active, unfrozen stocks at once
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <select value={marketEventDir} onChange={e => setMarketEventDir(e.target.value)}
+                      style={{ background: "#060a10", border: `1px solid #3a2a1a`, color: marketEventDir === "crash" ? RED : GREEN,
+                        fontFamily: MONO, fontSize: "11px", padding: "5px 8px", cursor: "pointer" }}>
+                      <option value="crash">CRASH</option>
+                      <option value="boom">BOOM</option>
+                    </select>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <input value={marketEventPct} inputMode="numeric"
+                        onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 99) setMarketEventPct(v); }}
+                        style={{ background: "transparent", border: `1px solid #2a2a2a`, color: "#ccc",
+                          fontFamily: MONO, fontSize: "11px", width: "50px", padding: "4px 6px", textAlign: "center" }} />
+                      <span style={{ color: "#445566", fontSize: "10px" }}>%</span>
+                    </div>
+                    <button onClick={handleMarketEvent}
+                      style={{ background: "none",
+                        border: `1px solid ${marketEventDir === "crash" ? "#663333" : "#336633"}`,
+                        color: marketEventDir === "crash" ? RED : GREEN,
+                        fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
+                      APPLY {marketEventDir.toUpperCase()}
+                    </button>
+                  </div>
+                </div>
+                <div>
                   <div style={{ color: "#4a5a6a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
                     HEALTH SHIFT — health movement only, no price or volatility changes
                   </div>
@@ -1572,6 +1615,46 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 </div>
               );
             })}
+            {/* Predefined merger management */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "16px", marginTop: "4px", marginBottom: "4px" }}>
+              <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>PREDEFINED MERGERS</div>
+              {mergers.map((m, i) => (
+                <div key={m.name + i} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap" }}>
+                  <input defaultValue={m.name} onBlur={e => {
+                    const val = e.target.value.trim(); if (!val) return;
+                    const next = mergers.map((x, xi) => xi === i ? { ...x, name: val } : x);
+                    setMergers(next); wardenSet(KEYS.mergers, next);
+                  }} style={{ background: "transparent", border: `1px solid #1a2a3a`, color: AMBER,
+                    fontFamily: MONO, fontSize: "10px", padding: "2px 6px", width: "160px" }} />
+                  <input defaultValue={m.partner1} onBlur={e => {
+                    const val = e.target.value.trim(); if (!val) return;
+                    const next = mergers.map((x, xi) => xi === i ? { ...x, partner1: val } : x);
+                    setMergers(next); wardenSet(KEYS.mergers, next);
+                  }} style={{ background: "transparent", border: `1px solid #1a2a3a`, color: "#aabbcc",
+                    fontFamily: MONO, fontSize: "10px", padding: "2px 6px", width: "160px" }} />
+                  <span style={{ color: "#334455", fontSize: "10px" }}>+</span>
+                  <input defaultValue={m.partner2} onBlur={e => {
+                    const val = e.target.value.trim(); if (!val) return;
+                    const next = mergers.map((x, xi) => xi === i ? { ...x, partner2: val } : x);
+                    setMergers(next); wardenSet(KEYS.mergers, next);
+                  }} style={{ background: "transparent", border: `1px solid #1a2a3a`, color: "#aabbcc",
+                    fontFamily: MONO, fontSize: "10px", padding: "2px 6px", width: "160px" }} />
+                  <button onClick={() => {
+                    if (!window.confirm(`Remove merger "${m.name}"?`)) return;
+                    const next = mergers.filter((_, xi) => xi !== i);
+                    setMergers(next); wardenSet(KEYS.mergers, next);
+                  }} style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444",
+                    fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
+                </div>
+              ))}
+              <button onClick={() => {
+                const next = [...mergers, { name: "New Merger", partner1: "Company A", partner2: "Company B", industry: "Combined", triggered: false }];
+                setMergers(next); wardenSet(KEYS.mergers, next);
+              }} style={{ background: "none", border: `1px solid #2a3a2a`, color: "#4a6a4a",
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "4px 12px", cursor: "pointer", marginTop: "4px" }}>
+                + ADD MERGER
+              </button>
+            </div>
             <CustomMergerForm
               stocks={stocks} date={date} headlines={headlines}
               onConfirm={({ merged, newHeadlines, headline }) => {
@@ -1592,7 +1675,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
             <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>SETTINGS</div>
             <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>FICTIONAL DATE</div>
-            <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "20px" }}>
+            <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap" }}>
               {["year","cycle"].map((f) => (
                 <div key={f} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.1em" }}>{f.toUpperCase()}</span>
@@ -1606,6 +1689,23 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               <span style={{ color: "#2a4a6a", fontSize: "10px", letterSpacing: "0.1em" }}>
                 (cycle auto-increments on each economy roll)
               </span>
+            </div>
+            <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "20px", flexWrap: "wrap" }}>
+              <span style={{ color: "#445566", fontSize: "10px", letterSpacing: "0.08em" }}>LABEL NAMES</span>
+              {[["yearLabel","Year label","80px"],["cycleLabel","Cycle label","80px"]].map(([key, ph, w]) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <input
+                    value={rollConfig[key] ?? (key === "yearLabel" ? "Year" : "Cycle")}
+                    onChange={(e) => {
+                      const next = { ...rollConfig, [key]: e.target.value };
+                      setRollConfig(next); saveSettings({ rollConfig: next });
+                    }}
+                    placeholder={ph}
+                    style={{ ...inputStyle, width: w, fontSize: "10px" }}
+                  />
+                </div>
+              ))}
+              <span style={{ color: "#2a4a6a", fontSize: "10px" }}>renames the date labels on the player ticker</span>
             </div>
             <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>MERGER SETTINGS</div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
@@ -1897,7 +1997,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
             <thead>
               <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
-                {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","VOLATILITY","HEALTH"].map((h) => (
+                {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","VOLATILITY","HEALTH","❄"].map((h) => (
                   <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#6688aa",
                     fontSize: "10px", letterSpacing: "0.12em", fontWeight: "normal" }}>{h}</th>
                 ))}
@@ -1932,7 +2032,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     opacity: s.is_collapsed ? 0.35 : 1 }}>
                     <td style={{ padding: "9px 10px", color: s.is_omnicorp ? AMBER : "#aabbcc",
                       textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.06em" }}>
-                      {s.name}{s.is_collapsed && <span style={{ color: "#333", marginLeft: "6px" }}>DELISTED</span>}
+                      {s.name}{s.is_collapsed && <span style={{ color: "#333", marginLeft: "6px" }}>DELISTED</span>}{s.is_frozen && !s.is_collapsed && <span style={{ color: "#4488cc", marginLeft: "6px", fontSize: "10px" }}>❄</span>}
                     </td>
                     <td style={{ padding: "9px 10px", color: "#6688aa", fontSize: "10px" }}>{s.industry}</td>
                     <td style={{ padding: "9px 10px" }}>
@@ -1960,7 +2060,21 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                       {s.change > 0 ? "+" : ""}{s.change}
                     </td>
                     <td style={{ padding: "4px 10px" }}>
-                      {!s.is_collapsed && !s.is_omnicorp && (
+                      <td style={{ padding: "4px 10px", textAlign: "center" }}>
+                      {!s.is_collapsed && (
+                        <button onClick={() => {
+                          const next = stocks.map(x => x.name === s.name ? { ...x, is_frozen: !s.is_frozen } : x);
+                          setStocks(next); wardenSet(KEYS.stocks, next);
+                        }}
+                          style={{ background: s.is_frozen ? "rgba(100,180,255,0.1)" : "none",
+                            border: `1px solid ${s.is_frozen ? "#4488cc" : "#1a2a3a"}`,
+                            color: s.is_frozen ? "#88ccff" : "#2a3a4a",
+                            fontFamily: MONO, fontSize: "10px", padding: "2px 8px", cursor: "pointer" }}>
+                          {s.is_frozen ? "ON" : "OFF"}
+                        </button>
+                      )}
+                    </td>
+                    {!s.is_collapsed && !s.is_omnicorp && (
                         <button onClick={() => handleBumpHealth()}
                           disabled={["OK","Good"].includes(s.health)}
                           style={{ background: "none", border: `1px solid ${["OK","Good"].includes(s.health) ? "#1a2a1a" : "#1a3a2a"}`,
@@ -2137,6 +2251,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
     <PlayerView
       stocks={stocks} headlines={headlines}
       history={history} date={date}
+      yearLabel={rollConfig.yearLabel ?? "Year"} cycleLabel={rollConfig.cycleLabel ?? "Cycle"}
       onRefresh={async () => {
         const [s, h, hist, d] = await Promise.all([
           safeGet(KEYS.stocks, INITIAL_STOCKS),
