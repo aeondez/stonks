@@ -8,7 +8,7 @@ const VOLATILITY_STEPS = ["Low", "Medium", "High"];
 const VOLATILITY_DIE = { High: 20, Medium: 10, Low: 5 };
 
 const INITIAL_STOCKS = [
-  { name: "Koo Mediatek",            industry: "Data/News",   price: 1100, change: 0, health: "OK", volatility: "Medium", is_omnicorp: false, is_collapsed: false },
+  { name: "Koo-Ya Interactive",       industry: "Data/News",   price: 1100, change: 0, health: "OK", volatility: "Medium", is_omnicorp: false, is_collapsed: false },
   { name: "Rhodes Driveyards",       industry: "Shipyards",   price: 900,  change: 0, health: "OK", volatility: "Medium", is_omnicorp: false, is_collapsed: false },
   { name: "Hayden Enterprises",      industry: "Fuel",        price: 800,  change: 0, health: "OK", volatility: "Medium", is_omnicorp: false, is_collapsed: false },
   { name: "Koga Cybersystems",       industry: "Cyber/Tech",  price: 700,  change: 0, health: "OK", volatility: "Medium", is_omnicorp: false, is_collapsed: false },
@@ -23,7 +23,7 @@ const INITIAL_STOCKS = [
 ];
 
 const OMNICORP_HEADLINES = [
-  { company: "Koo Mediatek",             headline: "OMNICORP MEDIA DIVISION PULLS KOO MEDIATEK BROADCAST LICENSE AFTER MERGER", subtext: "Company representatives have no comment at this time, says company representative." },
+  { company: "Koo-Ya Interactive",        headline: "OMNICORP MEDIA DIVISION PULLS KOO-YA INTERACTIVE BROADCAST LICENSE AFTER MERGER", subtext: "Company representatives have no comment at this time, says company representative." },
   { company: "Rhodes Driveyards",        headline: "OMNICORP SHIPYARD DIVISION DECOMMISSIONS PLANNED GENERATION SHIP AFTER MERGER", subtext: "Company representatives shift focus to more immediate concerns, says company representative." },
   { company: "Hayden Enterprises",       headline: "OMNICORP ENERGY DIVISION REFINES HAYDEN ENTERPRISES OPERATIONS AFTER MERGER", subtext: "Fuel prices expected to stabilize, says company representative." },
   { company: "Koga Cybersystems",        headline: "OMNICORP TECHNOLOGY DIVISION ISSUES UPDATE ON KOGA CYBERSYSTEMS LEADERSHIP AFTER MERGER", subtext: "Cyberware firmware update cadence not impacted, says company representative." },
