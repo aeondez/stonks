@@ -1667,7 +1667,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig,
   jobs, setJobs, theme, setTheme, onLogout, KEYS }) {
 
-  const [panel, setPanel] = useState(null); // "headline" | "advance" | "bankruptcy" | "mergers" | "settings"
+  const [panel, setPanel] = useState("corps"); // "headline" | "jobs" | "economy" | "corps" | "settings"
   const [pendingAdvance, setPendingAdvance] = useState(null);
   const [pendingVariance, setPendingVariance] = useState(null);
   const [pendingHealthShift, setPendingHealthShift] = useState(null);
