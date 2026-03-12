@@ -100,6 +100,7 @@ const DEFAULT_ROLL_CONFIG = {
   yearLabel:  "Year",
   cycleLabel: "Cycle",
   drawMode: "random",
+  bumpOnComplete: false,
 };
 
 // ─── Dice & Economy Logic ─────────────────────────────────────────────────────
@@ -601,7 +602,7 @@ function JobEditor({ job, stocks, onSave, onCancel }) {
 
 // ─── Warden Job Board Panel ────────────────────────────────────────────────────
 
-function JobBoardPanel({ jobs, setJobs, stocks, date, rollConfig, setRollConfig, alwaysMerge, KEYS, wardenSet, showToast }) {
+function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, setRollConfig, alwaysMerge, KEYS, wardenSet, showToast }) {
   const [editingId, setEditingId] = useState(null); // job id being edited, or "new"
   const [editTarget, setEditTarget] = useState("pool"); // where to put new job: "pool" | "active"
   const [subPanel, setSubPanel] = useState("active"); // "active" | "pool" | "completed"
@@ -615,13 +616,25 @@ function JobBoardPanel({ jobs, setJobs, stocks, date, rollConfig, setRollConfig,
 
   const saveJobs = (next) => { setJobs(next); wardenSet(KEYS.jobs, next); };
 
-  const completeJob = (job) => {
+  const completeJob = (job, skipBump = false) => {
     const next = jobs.map(j => j.id === job.id
       ? { ...j, status: "completed", cycle_completed: date.cycle }
       : j
     );
     saveJobs(next);
-    showToast(`JOB COMPLETED — ${job.company}`);
+    // Auto-bump the posting corp if setting is on and not overridden
+    if (rollConfig.bumpOnComplete && !skipBump) {
+      const corp = stocks.find(s => s.name === job.company);
+      if (corp && !corp.is_omnicorp && !corp.is_collapsed && !["OK","Good"].includes(corp.health)) {
+        const bumped = stocks.map(s => s.name === job.company ? { ...s, ...bumpHealth(s) } : s);
+        setStocks(bumped); wardenSet(KEYS.stocks, bumped);
+        showToast(`JOB COMPLETE — ${job.company.split(" ")[0]} HEALTH ↑`, "#66aa88");
+      } else {
+        showToast(`JOB COMPLETED — ${job.company}`);
+      }
+    } else {
+      showToast(`JOB COMPLETED — ${job.company}`);
+    }
     // If unfrozen, check if random fill needed
     if (!job.frozen && (rollConfig.drawMode || "random") === "random") {
       const remaining = next.filter(j => j.status === "active").length;
@@ -735,7 +748,14 @@ function JobBoardPanel({ jobs, setJobs, stocks, date, rollConfig, setRollConfig,
               <JobCard job={job} isOmniCorp={job.company === omniName} />
               <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
                 <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#445566")}>EDIT</button>
-                <button onClick={() => completeJob(job)} style={jBtnStyle("#446644")}>COMPLETE</button>
+                <button onClick={() => completeJob(job)} style={jBtnStyle("#446644")}>
+                  COMPLETE{rollConfig.bumpOnComplete ? " + ▲" : ""}
+                </button>
+                {rollConfig.bumpOnComplete && (
+                  <button onClick={() => completeJob(job, true)} style={jBtnStyle("#2a4a3a")} title="Complete without health bump">
+                    NO BUMP
+                  </button>
+                )}
                 <button onClick={() => {
                   const next = jobs.map(j => j.id === job.id ? { ...j, frozen: !j.frozen } : j);
                   saveJobs(next);
@@ -1894,14 +1914,14 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {/* Toolbar — scrollable on mobile */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px",
           overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {["headline","advance","bankruptcy","mergers","jobs","settings"].map((p) => (
+          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["settings","SETTINGS"]].map(([p, label]) => (
             <button key={p} onClick={() => setPanel(panel === p ? null : p)}
               style={{ background: panel === p ? "rgba(68,136,255,0.1)" : "none",
                 border: `1px solid ${panel === p ? "#4488ff" : "#1a2a3a"}`,
                 color: panel === p ? "#88bbff" : "#6688aa", fontFamily: MONO,
                 fontSize: "11px", letterSpacing: "0.1em", padding: "7px 12px",
                 cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
-              {p === "headline" ? "HEADLINE" : p === "advance" ? "ADVANCE" : p === "bankruptcy" ? "BANKRUPT" : p === "mergers" ? "MERGERS" : p === "jobs" ? "JOBS" : "SETTINGS"}
+              {label}
             </button>
           ))}
           <button onClick={onLogout}
@@ -1961,15 +1981,20 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 </div>
               )}
             </div>
+            {headlines.length > 0 && (
+              <div style={{ marginTop: "20px", borderTop: `1px solid #1a2a3a`, paddingTop: "16px" }}>
+                <HeadlineFeedManager headlines={headlines} setHeadlines={setHeadlines} date={date} KEYS={KEYS} wardenSet={wardenSet} />
+              </div>
+            )}
           </div>
         )}
 
-        {/* Panel: Advance Scenario */}
-        {panel === "advance" && (
+        {/* Panel: Economy */}
+        {panel === "economy" && (
           <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
-            <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>
-              ADVANCE TO NEXT SCENARIO
-            </div>
+            <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "20px" }}>ECONOMY</div>
+            <div style={{ marginBottom: "20px" }}>
+            <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px", borderBottom: `1px solid #1a2a3a`, paddingBottom: "8px" }}>ADVANCE</div>
             {!pendingAdvance ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div>
@@ -2237,17 +2262,13 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               </>
             )}
           </div>
-        )}
+            </div>
 
-        {/* Panel: Bankruptcy Check */}
-        {panel === "bankruptcy" && (
-          <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
-            <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "8px" }}>
-              BANKRUPTCY CHECK
-            </div>
-            <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "16px" }}>
-              Rolls d10 for all companies at Bankrupt health. 7–10 = collapse. Collapsing companies are halved this cycle and delisted next.
-            </div>
+            {/* Bankruptcy Section */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "20px", marginBottom: "20px" }}>
+            <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>BANKRUPTCY CHECK</div>
+            (
+              <div style={{ color: "#334455", fontSize: "10px", marginBottom: "12px", lineHeight: 1.6 }}>Rolls d10 for all companies at Bankrupt health. 7–10 = collapse.</div>
             {!pendingBankruptcy ? (
               <button onClick={() => { setPendingBankruptcy(computeBankruptcyCheck(stocks, mergers, alwaysMerge)); }}
                 style={{ background: "none", border: `1px solid ${RED}`, color: RED,
@@ -2320,12 +2341,13 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               </>
             )}
           </div>
-        )}
+            </div>
 
-        {/* Panel: Mergers */}
-        {panel === "mergers" && (
-          <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
-            <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>MERGERS</div>
+            {/* Mergers Section */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "20px" }}>
+            <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>MERGERS</div>
+            (
+
             {mergers.map((m) => {
               const status = getMergerStatus(m, stocks);
               const p1 = stocks.find((s) => s.name === m.partner1);
@@ -2447,18 +2469,205 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 setPanel(null);
               }}
             />
-          </div>
+            </div>  {/* end mergers section */}
+          </div>  {/* end economy outer */}
         )}
 
         {/* Panel: Jobs */}
         {panel === "jobs" && (
           <JobBoardPanel
             jobs={jobs} setJobs={setJobs}
-            stocks={stocks} date={date}
+            stocks={stocks} setStocks={setStocks}
+            date={date}
             rollConfig={rollConfig} setRollConfig={setRollConfig}
             alwaysMerge={alwaysMerge}
             KEYS={KEYS} wardenSet={wardenSet} showToast={showToast}
           />
+        )}
+
+        {/* Panel: Corps */}
+        {panel === "corps" && (
+          <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
+            <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>CORPORATIONS</div>
+            {/* OmniCorp selector */}
+            <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <span style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.1em" }}>OMNICORP DESIGNATION</span>
+              <select
+                value={stocks.find(s => s.is_omnicorp)?.name ?? ""}
+                onChange={(e) => {
+                  const chosen = e.target.value;
+                  const next = stocks.map(s => ({ ...s, is_omnicorp: s.name === chosen }));
+                  setStocks(next); wardenSet(KEYS.stocks, next);
+                }}
+                style={{ background: "#060a10", border: `1px solid #1a2a3a`, color: "#aabbcc",
+                  fontFamily: MONO, fontSize: "10px", padding: "3px 6px", cursor: "pointer" }}>
+                <option value="">— none —</option>
+                {stocks.filter(s => !s.is_collapsed).map(s => (
+                  <option key={s.name} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+              <span style={{ color: "#334455", fontSize: "10px" }}>receives collapse payouts and has special immunities</span>
+            </div>
+            {/* Live corp management table */}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
+                    {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","HEALTH","VOL","FREEZE"].map((h) => (
+                      <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#6688aa",
+                        fontSize: "10px", letterSpacing: "0.12em", fontWeight: "normal" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {stocks.map((s) => {
+                    const adjustStock = (patch) => {
+                      const next = stocks.map((x) => x.name === s.name ? { ...x, ...patch } : x);
+                      setStocks(next); wardenSet(KEYS.stocks, next);
+                    };
+                    const adjustPrice = (delta) => {
+                      const newPrice = Math.max(1, s.price + delta);
+                      adjustStock({ price: newPrice, change: newPrice - s.price });
+                    };
+                    const adjustHealth = (delta) => adjustStock({ health: shiftIndex(HEALTH_STEPS, s.health, delta) });
+                    const handleBumpHealth = () => adjustStock(bumpHealth(s));
+                    const adjustVol = (delta) => adjustStock({ volatility: shiftIndex(VOLATILITY_STEPS, s.volatility, delta) });
+                    const adjBtn = (label, onClick, disabled) => (
+                      <button onClick={onClick} disabled={disabled}
+                        style={{ background: "none", border: `1px solid ${disabled ? "#1a2030" : "#1a2a3a"}`,
+                          color: disabled ? "#222" : "#6688aa", fontFamily: MONO, fontSize: "11px",
+                          width: "20px", height: "20px", padding: 0, cursor: disabled ? "default" : "pointer",
+                          lineHeight: "18px", textAlign: "center" }}>
+                        {label}
+                      </button>
+                    );
+                    return (
+                      <tr key={s.name} style={{ borderBottom: `1px solid rgba(26,42,58,0.3)`,
+                        background: s.is_omnicorp ? "rgba(80,60,0,0.1)" : "transparent",
+                        opacity: s.is_collapsed ? 0.35 : 1 }}>
+                        <td style={{ padding: "9px 10px", color: s.is_omnicorp ? AMBER : "#aabbcc",
+                          textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.06em" }}>
+                          {s.name}{s.is_collapsed && <span style={{ color: "#333", marginLeft: "6px" }}>DELISTED</span>}{s.is_frozen && !s.is_collapsed && <span style={{ color: "#4488cc", marginLeft: "6px", fontSize: "10px" }}>❄</span>}
+                        </td>
+                        <td style={{ padding: "9px 10px", color: "#6688aa", fontSize: "10px" }}>{s.industry}</td>
+                        <td style={{ padding: "9px 10px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            <input type="number" defaultValue={s.price} key={s.price} disabled={s.is_collapsed}
+                              onBlur={(e) => { const val = parseInt(e.target.value, 10); if (!isNaN(val) && val !== s.price) adjustPrice(val - s.price); }}
+                              onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
+                              style={{ width: "80px", background: "transparent", border: `1px solid #1a2a3a`,
+                                color: s.is_omnicorp ? AMBER : HEADER_GREEN, fontFamily: MONO, fontSize: "12px",
+                                fontWeight: "bold", padding: "3px 6px", outline: "none", textAlign: "right",
+                                opacity: s.is_collapsed ? 0.3 : 1 }} />
+                            <span style={{ color: "#6688aa", fontSize: "10px" }}>cr</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "9px 10px", color: s.change > 0 ? GREEN : s.change < 0 ? RED : "#555", fontSize: "11px" }}>
+                          {s.change > 0 ? "+" : ""}{s.change}
+                        </td>
+                        <td style={{ padding: "4px 10px", textAlign: "center" }}>
+                          {!s.is_collapsed && !s.is_omnicorp && (
+                            <button onClick={() => handleBumpHealth()}
+                              disabled={["OK","Good"].includes(s.health)}
+                              style={{ background: "none", border: `1px solid ${["OK","Good"].includes(s.health) ? "#1a2a1a" : "#1a3a2a"}`,
+                                color: ["OK","Good"].includes(s.health) ? "#1a3a1a" : "#4a8a5a",
+                                fontFamily: MONO, fontSize: "10px", padding: "3px 8px",
+                                cursor: ["OK","Good"].includes(s.health) ? "default" : "pointer",
+                                letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                              ▲ BUMP
+                            </button>
+                          )}
+                        </td>
+                        <td style={{ padding: "9px 10px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            {adjBtn("−", () => adjustHealth(-1), s.is_omnicorp || s.health === HEALTH_STEPS[0] || s.is_collapsed)}
+                            <span style={{ color: healthColor(s.health), fontSize: "11px", minWidth: "56px", textAlign: "center" }}>
+                              {s.health}
+                            </span>
+                            {adjBtn("+", () => adjustHealth(1), s.health === HEALTH_STEPS[HEALTH_STEPS.length - 1] || s.is_collapsed)}
+                          </div>
+                        </td>
+                        <td style={{ padding: "9px 10px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            {adjBtn("−", () => adjustVol(-1), s.volatility === VOLATILITY_STEPS[0] || s.is_collapsed)}
+                            <span style={{ color: volColor(s.volatility), fontSize: "11px", minWidth: "56px", textAlign: "center" }}>
+                              {s.volatility}
+                            </span>
+                            {adjBtn("+", () => adjustVol(1), s.volatility === VOLATILITY_STEPS[VOLATILITY_STEPS.length - 1] || s.is_collapsed)}
+                          </div>
+                        </td>
+                        <td style={{ padding: "4px 10px", textAlign: "center" }}>
+                          {!s.is_collapsed && (
+                            <button onClick={() => {
+                              const next = stocks.map(x => x.name === s.name ? { ...x, is_frozen: !s.is_frozen } : x);
+                              setStocks(next); wardenSet(KEYS.stocks, next);
+                              showToast(s.is_frozen ? `${s.name.split(" ")[0]} UNFROZEN` : `${s.name.split(" ")[0]} FROZEN`, "#88ccff");
+                            }}
+                              style={{ background: s.is_frozen ? "rgba(100,180,255,0.1)" : "none",
+                                border: `1px solid ${s.is_frozen ? "#4488cc" : "#1a2a3a"}`,
+                                color: s.is_frozen ? "#88ccff" : "#2a3a4a",
+                                fontFamily: MONO, fontSize: "10px", padding: "2px 8px", cursor: "pointer" }}>
+                              {s.is_frozen ? "FROZEN" : "—"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {/* Corp name/industry/add editor */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "20px", paddingTop: "16px" }}>
+              <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.1em", marginBottom: "10px" }}>EDIT NAMES / ADD CORPORATION</div>
+              <div style={{ overflowX: "auto", marginBottom: "12px" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
+                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL",""].map(h => (
+                        <th key={h} style={{ padding: "4px 6px", textAlign: "left", color: "#445566", fontWeight: "normal", letterSpacing: "0.08em", fontSize: "10px" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stocks.map((s, i) => (
+                      <tr key={s.name + i} style={{ borderBottom: `1px solid rgba(26,42,58,0.3)` }}>
+                        <td style={{ padding: "3px 4px" }}>
+                          <input defaultValue={s.name} onBlur={(e) => { const val = e.target.value.trim(); if (!val) return; const next = stocks.map((x, xi) => xi === i ? { ...x, name: val } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
+                            style={{ ...inputStyle, width: "120px", fontSize: "10px", padding: "2px 5px" }} />
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <input defaultValue={s.industry} onBlur={(e) => { const val = e.target.value.trim(); if (!val) return; const next = stocks.map((x, xi) => xi === i ? { ...x, industry: val } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
+                            style={{ ...inputStyle, width: "90px", fontSize: "10px", padding: "2px 5px" }} />
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <input defaultValue={s.price} inputMode="numeric" onBlur={(e) => { const val = parseInt(e.target.value); if (isNaN(val) || val < 1) return; const next = sortByPrice(stocks.map((x, xi) => xi === i ? { ...x, price: val } : x)); setStocks(next); wardenSet(KEYS.stocks, next); }}
+                            style={{ ...inputStyle, width: "60px", fontSize: "10px", padding: "2px 5px" }} />
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <select value={s.health} onChange={(e) => { const next = stocks.map((x, xi) => xi === i ? { ...x, health: e.target.value } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
+                            style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
+                            {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <select value={s.volatility} onChange={(e) => { const next = stocks.map((x, xi) => xi === i ? { ...x, volatility: e.target.value } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
+                            style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
+                            {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: "3px 4px" }}>
+                          <button onClick={() => { if (!window.confirm(`Remove ${s.name}?`)) return; const next = sortByPrice(stocks.filter((_, xi) => xi !== i)); setStocks(next); wardenSet(KEYS.stocks, next); }}
+                            style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444", fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <AddCorpRow onAdd={(corp) => { const next = sortByPrice([...stocks, corp]); setStocks(next); wardenSet(KEYS.stocks, next); }} inputStyle={inputStyle} />
+            </div>
+          </div>
         )}
 
         {/* Panel: Settings */}
@@ -2514,6 +2723,28 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 ))}
               </div>
             </div>
+            {/* ── Job Settings ── */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
+              <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>JOB BOARD</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <button onClick={() => {
+                  const next = { ...rollConfig, bumpOnComplete: !rollConfig.bumpOnComplete };
+                  setRollConfig(next); saveSettings({ rollConfig: next });
+                }}
+                  style={{ background: rollConfig.bumpOnComplete ? "rgba(68,170,100,0.1)" : "none",
+                    border: `1px solid ${rollConfig.bumpOnComplete ? "#336644" : "#1a2a3a"}`,
+                    color: rollConfig.bumpOnComplete ? "#66aa88" : "#6688aa",
+                    fontFamily: MONO, fontSize: "10px", letterSpacing: "0.12em",
+                    padding: "5px 12px", cursor: "pointer" }}>
+                  {rollConfig.bumpOnComplete ? "ON" : "OFF"}
+                </button>
+                <span style={{ color: "#6688aa", fontSize: "11px" }}>
+                  Auto-bump health on job completion {rollConfig.bumpOnComplete ? "(posting corp bumped — overrideable)" : "(disabled — manual only)"}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
             <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>MERGER SETTINGS</div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
               <button onClick={() => { const next = !alwaysMerge; setAlwaysMerge(next); saveSettings({ alwaysMerge: next }); }}
@@ -2528,6 +2759,9 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 Always merge on partner collapse {alwaysMerge ? "(early trigger active)" : "(early trigger disabled — collapses are normal delists)"}
               </span>
             </div>
+            </div>
+
+            <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
             <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>CHANGE WARDEN PIN</div>
             <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
               <input value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="new 6-digit PIN" maxLength={6}
@@ -2595,105 +2829,6 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             </div>
             {pinMsg && <div style={{ color: pinMsg.includes("updated") ? GREEN : RED, fontSize: "11px", marginTop: "8px" }}>{pinMsg}</div>}
 
-            {/* ── Corporation Editor ── */}
-            <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
-              <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>CORPORATIONS</div>
-              {/* OmniCorp toggle */}
-              <div style={{ marginBottom: "12px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <span style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.1em" }}>OMNICORP</span>
-                <select
-                  value={stocks.find(s => s.is_omnicorp)?.name ?? ""}
-                  onChange={(e) => {
-                    const chosen = e.target.value;
-                    const next = stocks.map(s => ({ ...s, is_omnicorp: s.name === chosen }));
-                    setStocks(next); wardenSet(KEYS.stocks, next);
-                  }}
-                  style={{ background: "#060a10", border: `1px solid #1a2a3a`, color: "#aabbcc",
-                    fontFamily: MONO, fontSize: "10px", padding: "3px 6px", cursor: "pointer" }}>
-                  <option value="">— none —</option>
-                  {stocks.filter(s => !s.is_collapsed).map(s => (
-                    <option key={s.name} value={s.name}>{s.name}</option>
-                  ))}
-                </select>
-                <span style={{ color: "#334455", fontSize: "10px" }}>receives collapse payouts and has special immunities</span>
-              </div>
-              <div style={{ overflowX: "auto", marginBottom: "12px" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
-                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL",""].map(h => (
-                        <th key={h} style={{ padding: "4px 6px", textAlign: "left", color: "#445566", fontWeight: "normal", letterSpacing: "0.08em", fontSize: "10px" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stocks.map((s, i) => (
-                      <tr key={s.name + i} style={{ borderBottom: `1px solid rgba(26,42,58,0.3)` }}>
-                        <td style={{ padding: "3px 4px" }}>
-                          <input defaultValue={s.name}
-                            onBlur={(e) => {
-                              const val = e.target.value.trim(); if (!val) return;
-                              const next = stocks.map((x, xi) => xi === i ? { ...x, name: val } : x);
-                              setStocks(next); wardenSet(KEYS.stocks, next);
-                            }}
-                            style={{ ...inputStyle, width: "120px", fontSize: "10px", padding: "2px 5px" }} />
-                        </td>
-                        <td style={{ padding: "3px 4px" }}>
-                          <input defaultValue={s.industry}
-                            onBlur={(e) => {
-                              const val = e.target.value.trim(); if (!val) return;
-                              const next = stocks.map((x, xi) => xi === i ? { ...x, industry: val } : x);
-                              setStocks(next); wardenSet(KEYS.stocks, next);
-                            }}
-                            style={{ ...inputStyle, width: "90px", fontSize: "10px", padding: "2px 5px" }} />
-                        </td>
-                        <td style={{ padding: "3px 4px" }}>
-                          <input defaultValue={s.price} inputMode="numeric"
-                            onBlur={(e) => {
-                              const val = parseInt(e.target.value); if (isNaN(val) || val < 1) return;
-                              const next = sortByPrice(stocks.map((x, xi) => xi === i ? { ...x, price: val } : x));
-                              setStocks(next); wardenSet(KEYS.stocks, next);
-                            }}
-                            style={{ ...inputStyle, width: "60px", fontSize: "10px", padding: "2px 5px" }} />
-                        </td>
-                        <td style={{ padding: "3px 4px" }}>
-                          <select value={s.health}
-                            onChange={(e) => {
-                              const next = stocks.map((x, xi) => xi === i ? { ...x, health: e.target.value } : x);
-                              setStocks(next); wardenSet(KEYS.stocks, next);
-                            }}
-                            style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
-                            {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
-                          </select>
-                        </td>
-                        <td style={{ padding: "3px 4px" }}>
-                          <select value={s.volatility}
-                            onChange={(e) => {
-                              const next = stocks.map((x, xi) => xi === i ? { ...x, volatility: e.target.value } : x);
-                              setStocks(next); wardenSet(KEYS.stocks, next);
-                            }}
-                            style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
-                            {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
-                          </select>
-                        </td>
-                        <td style={{ padding: "3px 4px" }}>
-                          <button onClick={() => {
-                            if (!window.confirm(`Remove ${s.name}?`)) return;
-                            const next = sortByPrice(stocks.filter((_, xi) => xi !== i));
-                            setStocks(next); wardenSet(KEYS.stocks, next);
-                          }}
-                            style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444",
-                              fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <AddCorpRow onAdd={(corp) => {
-                const next = sortByPrice([...stocks, corp]);
-                setStocks(next); wardenSet(KEYS.stocks, next);
-              }} inputStyle={inputStyle} />
             </div>
 
             {/* ── Dice Settings ── */}
@@ -2802,134 +2937,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           </div>
         )}
 
-        {/* Full Stock Table */}
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-            <thead>
-              <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
-                {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","HEALTH","VOL","FREEZE",""].map((h) => (
-                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#6688aa",
-                    fontSize: "10px", letterSpacing: "0.12em", fontWeight: "normal" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {stocks.map((s) => {
-                const adjustStock = (patch) => {
-                  const next = stocks.map((x) => x.name === s.name ? { ...x, ...patch } : x);
-                  setStocks(next);
-                  wardenSet(KEYS.stocks, next);
-                };
-                const adjustPrice = (delta) => {
-                  const newPrice = Math.max(1, s.price + delta);
-                  adjustStock({ price: newPrice, change: newPrice - s.price });
-                };
-                const adjustHealth = (delta) => adjustStock({ health: shiftIndex(HEALTH_STEPS, s.health, delta) });
-                const handleBumpHealth = () => adjustStock(bumpHealth(s));
-                const adjustVol = (delta) => adjustStock({ volatility: shiftIndex(VOLATILITY_STEPS, s.volatility, delta) });
-                const adjBtn = (label, onClick, disabled) => (
-                  <button onClick={onClick} disabled={disabled}
-                    style={{ background: "none", border: `1px solid ${disabled ? "#1a2030" : "#1a2a3a"}`,
-                      color: disabled ? "#222" : "#6688aa", fontFamily: MONO, fontSize: "11px",
-                      width: "20px", height: "20px", padding: 0, cursor: disabled ? "default" : "pointer",
-                      lineHeight: "18px", textAlign: "center" }}>
-                    {label}
-                  </button>
-                );
-                return (
-                  <tr key={s.name} style={{ borderBottom: `1px solid rgba(26,42,58,0.3)`,
-                    background: s.is_omnicorp ? "rgba(80,60,0,0.1)" : "transparent",
-                    opacity: s.is_collapsed ? 0.35 : 1 }}>
-                    <td style={{ padding: "9px 10px", color: s.is_omnicorp ? AMBER : "#aabbcc",
-                      textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.06em" }}>
-                      {s.name}{s.is_collapsed && <span style={{ color: "#333", marginLeft: "6px" }}>DELISTED</span>}{s.is_frozen && !s.is_collapsed && <span style={{ color: "#4488cc", marginLeft: "6px", fontSize: "10px" }}>❄</span>}
-                    </td>
-                    <td style={{ padding: "9px 10px", color: "#6688aa", fontSize: "10px" }}>{s.industry}</td>
-                    <td style={{ padding: "9px 10px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        <input
-                          type="number"
-                          defaultValue={s.price}
-                          key={s.price}
-                          disabled={s.is_collapsed}
-                          onBlur={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            if (!isNaN(val) && val !== s.price) adjustPrice(val - s.price);
-                          }}
-                          onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
-                          style={{ width: "80px", background: "transparent",
-                            border: `1px solid #1a2a3a`, color: s.is_omnicorp ? AMBER : HEADER_GREEN,
-                            fontFamily: MONO, fontSize: "12px", fontWeight: "bold",
-                            padding: "3px 6px", outline: "none", textAlign: "right",
-                            opacity: s.is_collapsed ? 0.3 : 1 }}
-                        />
-                        <span style={{ color: "#6688aa", fontSize: "10px" }}>cr</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: "9px 10px", color: s.change > 0 ? GREEN : s.change < 0 ? RED : "#555", fontSize: "11px" }}>
-                      {s.change > 0 ? "+" : ""}{s.change}
-                    </td>
-                    {/* BUMP */}
-                    <td style={{ padding: "4px 10px", textAlign: "center" }}>
-                      {!s.is_collapsed && !s.is_omnicorp && (
-                        <button onClick={() => handleBumpHealth()}
-                          disabled={["OK","Good"].includes(s.health)}
-                          style={{ background: "none", border: `1px solid ${["OK","Good"].includes(s.health) ? "#1a2a1a" : "#1a3a2a"}`,
-                            color: ["OK","Good"].includes(s.health) ? "#1a3a1a" : "#4a8a5a",
-                            fontFamily: MONO, fontSize: "10px", padding: "3px 8px",
-                            cursor: ["OK","Good"].includes(s.health) ? "default" : "pointer",
-                            letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
-                          ▲ BUMP
-                        </button>
-                      )}
-                    </td>
-                    {/* HEALTH */}
-                    <td style={{ padding: "9px 10px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        {adjBtn("−", () => adjustHealth(-1), s.is_omnicorp || s.health === HEALTH_STEPS[0] || s.is_collapsed)}
-                        <span style={{ color: healthColor(s.health), fontSize: "11px", minWidth: "56px", textAlign: "center" }}>
-                          {s.health}
-                        </span>
-                        {adjBtn("+", () => adjustHealth(1), s.health === HEALTH_STEPS[HEALTH_STEPS.length - 1] || s.is_collapsed)}
-                      </div>
-                    </td>
-                    {/* VOL */}
-                    <td style={{ padding: "9px 10px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        {adjBtn("−", () => adjustVol(-1), s.volatility === VOLATILITY_STEPS[0] || s.is_collapsed)}
-                        <span style={{ color: volColor(s.volatility), fontSize: "11px", minWidth: "56px", textAlign: "center" }}>
-                          {s.volatility}
-                        </span>
-                        {adjBtn("+", () => adjustVol(1), s.volatility === VOLATILITY_STEPS[VOLATILITY_STEPS.length - 1] || s.is_collapsed)}
-                      </div>
-                    </td>
-                    {/* FREEZE */}
-                    <td style={{ padding: "4px 10px", textAlign: "center" }}>
-                      {!s.is_collapsed && (
-                        <button onClick={() => {
-                          const next = stocks.map(x => x.name === s.name ? { ...x, is_frozen: !s.is_frozen } : x);
-                          setStocks(next); wardenSet(KEYS.stocks, next);
-                          showToast(s.is_frozen ? `${s.name.split(" ")[0]} UNFROZEN` : `${s.name.split(" ")[0]} FROZEN`, "#88ccff");
-                        }}
-                          style={{ background: s.is_frozen ? "rgba(100,180,255,0.1)" : "none",
-                            border: `1px solid ${s.is_frozen ? "#4488cc" : "#1a2a3a"}`,
-                            color: s.is_frozen ? "#88ccff" : "#2a3a4a",
-                            fontFamily: MONO, fontSize: "10px", padding: "2px 8px", cursor: "pointer" }}>
-                          {s.is_frozen ? "FROZEN" : "—"}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
 
-        {/* Headlines Feed Manager */}
-        {headlines.length > 0 && (
-          <HeadlineFeedManager headlines={headlines} setHeadlines={setHeadlines} date={date} KEYS={KEYS} wardenSet={wardenSet} />
-        )}
+
       </div>
       {toast && (
         <div style={{ position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)",
