@@ -1651,6 +1651,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   const [pendingAdvance, setPendingAdvance] = useState(null);
   const [pendingVariance, setPendingVariance] = useState(null);
   const [pendingHealthShift, setPendingHealthShift] = useState(null);
+  const [varianceMode, setVarianceMode] = useState("full"); // "full" | "targeted"
+  const [targetedSelection, setTargetedSelection] = useState(new Set()); // names of selected corps
   const [pendingBankruptcy, setPendingBankruptcy] = useState(null);
   const [headlineText, setHeadlineText] = useState("");
   const [headlineSubtext, setHeadlineSubtext] = useState("");
@@ -1691,17 +1693,32 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   };
 
   const handleVarianceRoll = () => {
-    setPendingVariance(computeVariance(stocks, rollConfig));
+    // In targeted mode, only roll for selected companies; others get no-op roll data
+    const result = computeVariance(stocks, rollConfig).map(s => {
+      if (varianceMode === "targeted" && !targetedSelection.has(s.name)) {
+        return { ...s, priceRoll: null, coinFlip: null, price: s.price, change: 0, _skipped: true };
+      }
+      return s;
+    });
+    setPendingVariance(result);
     setPanel("advance");
   };
 
   const handleVarianceConfirm = () => {
     if (!pendingVariance) return;
-    const sorted = sortByPrice(pendingVariance.map(({ priceRoll, coinFlip, ...s }) => s));
+    const sorted = sortByPrice(pendingVariance.map(({ priceRoll, coinFlip, _skipped, ...s }) => s));
     setStocks(sorted);
     wardenSet(KEYS.stocks, sorted);
     setPendingVariance(null);
-    showToast("VARIANCE APPLIED");
+    showToast(varianceMode === "targeted" ? `VARIANCE APPLIED — ${targetedSelection.size} CORP(S)` : "VARIANCE APPLIED");
+  };
+
+  // All active, non-collapsed corps eligible for targeting
+  const targetableCorps = stocks.filter(s => !s.is_collapsed);
+  const allTargeted = targetableCorps.length > 0 && targetableCorps.every(s => targetedSelection.has(s.name));
+  const toggleAllTargets = () => {
+    if (allTargeted) setTargetedSelection(new Set());
+    else setTargetedSelection(new Set(targetableCorps.map(s => s.name)));
   };
 
   const handleHealthRoll = () => {
@@ -1966,14 +1983,71 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   </button>
                 </div>
                 <div>
-                  <div style={{ color: "#4a6a4a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                  <div style={{ color: "#4a6a4a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "10px" }}>
                     PRICE VARIANCE — price movement only, no health or volatility changes
                   </div>
+                  {/* Mode toggle */}
+                  <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
+                    {["full","targeted"].map(m => (
+                      <button key={m} onClick={() => { setVarianceMode(m); setPendingVariance(null); }}
+                        style={{ background: varianceMode === m ? "rgba(68,170,100,0.1)" : "none",
+                          border: `1px solid ${varianceMode === m ? "#336644" : "#1a2a3a"}`,
+                          color: varianceMode === m ? "#66aa88" : "#445566",
+                          fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                          padding: "4px 12px", cursor: "pointer" }}>
+                        {m === "full" ? "ALL CORPS" : "SELECT CORPS"}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Targeted: checkbox list */}
+                  {varianceMode === "targeted" && !pendingVariance && (
+                    <div style={{ marginBottom: "12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                        <button onClick={toggleAllTargets}
+                          style={{ background: allTargeted ? "rgba(68,170,100,0.1)" : "none",
+                            border: `1px solid ${allTargeted ? "#336644" : "#2a3a2a"}`,
+                            color: allTargeted ? "#66aa88" : "#4a6a4a",
+                            fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
+                            padding: "3px 10px", cursor: "pointer" }}>
+                          {allTargeted ? "✓ DESELECT ALL" : "SELECT ALL"}
+                        </button>
+                        <span style={{ color: "#334455", fontSize: "9px" }}>
+                          {targetedSelection.size} selected
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                        {targetableCorps.map(s => {
+                          const sel = targetedSelection.has(s.name);
+                          return (
+                            <button key={s.name} onClick={() => {
+                              const next = new Set(targetedSelection);
+                              sel ? next.delete(s.name) : next.add(s.name);
+                              setTargetedSelection(next);
+                            }}
+                              style={{ background: sel ? "rgba(68,170,100,0.08)" : "none",
+                                border: `1px solid ${sel ? "#336644" : "#1a2a3a"}`,
+                                color: sel ? "#66aa88" : "#445566",
+                                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.05em",
+                                padding: "3px 10px", cursor: "pointer",
+                                textTransform: "uppercase" }}>
+                              {sel ? "✓ " : ""}{s.name.split(" ")[0]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {/* Roll / preview */}
                   {!pendingVariance ? (
-                    <button onClick={handleVarianceRoll}
-                      style={{ background: "none", border: `1px solid #336644`, color: "#66aa88",
-                        fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
-                      ROLL VARIANCE
+                    <button
+                      onClick={handleVarianceRoll}
+                      disabled={varianceMode === "targeted" && targetedSelection.size === 0}
+                      style={{ background: "none",
+                        border: `1px solid ${varianceMode === "targeted" && targetedSelection.size === 0 ? "#1a2a1a" : "#336644"}`,
+                        color: varianceMode === "targeted" && targetedSelection.size === 0 ? "#2a3a2a" : "#66aa88",
+                        fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px",
+                        cursor: varianceMode === "targeted" && targetedSelection.size === 0 ? "not-allowed" : "pointer" }}>
+                      ROLL VARIANCE{varianceMode === "targeted" && targetedSelection.size > 0 ? ` (${targetedSelection.size})` : ""}
                     </button>
                   ) : (
                     <div>
@@ -1981,19 +2055,20 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid #1a2a3a` }}>
-                              {["COMPANY","VOL","DIE ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
+                              {["COMPANY","VOL","ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
                                 <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: "#6688aa", fontWeight: "normal" }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {pendingVariance.filter(s => !s.is_collapsed).map(s => (
-                              <tr key={s.name} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)` }}>
+                              <tr key={s.name} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)`,
+                                opacity: s._skipped ? 0.3 : 1 }}>
                                 <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : "#aabbcc", fontSize: "10px", textTransform: "uppercase" }}>{s.name.split(" ")[0]}</td>
                                 <td style={{ padding: "6px 8px", color: volColor(s.volatility) }}>{s.volatility}</td>
-                                <td style={{ padding: "6px 8px", color: "#ccc" }}>{s.priceRoll}</td>
-                                <td style={{ padding: "6px 8px", color: s.coinFlip === "up" ? GREEN : s.coinFlip === "down" ? RED : "#333" }}>{s.coinFlip ?? "—"}</td>
-                                <td style={{ padding: "6px 8px", color: s.change > 0 ? GREEN : s.change < 0 ? RED : "#555", fontWeight: "bold" }}>{s.change > 0 ? "+" : ""}{s.change}</td>
+                                <td style={{ padding: "6px 8px", color: "#ccc" }}>{s._skipped ? "—" : s.priceRoll}</td>
+                                <td style={{ padding: "6px 8px", color: s.coinFlip === "up" ? GREEN : s.coinFlip === "down" ? RED : "#333" }}>{s._skipped ? "—" : (s.coinFlip ?? "—")}</td>
+                                <td style={{ padding: "6px 8px", color: s.change > 0 ? GREEN : s.change < 0 ? RED : "#555", fontWeight: "bold" }}>{s._skipped ? "—" : (s.change > 0 ? "+" : "") + s.change}</td>
                                 <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : HEADER_GREEN, fontWeight: "bold" }}>{s.price.toLocaleString()}cr</td>
                               </tr>
                             ))}
@@ -2791,8 +2866,42 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     <td style={{ padding: "9px 10px", color: s.change > 0 ? GREEN : s.change < 0 ? RED : "#555", fontSize: "11px" }}>
                       {s.change > 0 ? "+" : ""}{s.change}
                     </td>
-                    <td style={{ padding: "4px 10px" }}>
-                      <td style={{ padding: "4px 10px", textAlign: "center" }}>
+                    {/* BUMP */}
+                    <td style={{ padding: "4px 10px", textAlign: "center" }}>
+                      {!s.is_collapsed && !s.is_omnicorp && (
+                        <button onClick={() => handleBumpHealth()}
+                          disabled={["OK","Good"].includes(s.health)}
+                          style={{ background: "none", border: `1px solid ${["OK","Good"].includes(s.health) ? "#1a2a1a" : "#1a3a2a"}`,
+                            color: ["OK","Good"].includes(s.health) ? "#1a3a1a" : "#4a8a5a",
+                            fontFamily: MONO, fontSize: "10px", padding: "3px 8px",
+                            cursor: ["OK","Good"].includes(s.health) ? "default" : "pointer",
+                            letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                          ▲ BUMP
+                        </button>
+                      )}
+                    </td>
+                    {/* HEALTH */}
+                    <td style={{ padding: "9px 10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        {adjBtn("−", () => adjustHealth(-1), s.is_omnicorp || s.health === HEALTH_STEPS[0] || s.is_collapsed)}
+                        <span style={{ color: healthColor(s.health), fontSize: "11px", minWidth: "56px", textAlign: "center" }}>
+                          {s.health}
+                        </span>
+                        {adjBtn("+", () => adjustHealth(1), s.health === HEALTH_STEPS[HEALTH_STEPS.length - 1] || s.is_collapsed)}
+                      </div>
+                    </td>
+                    {/* VOL */}
+                    <td style={{ padding: "9px 10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        {adjBtn("−", () => adjustVol(-1), s.volatility === VOLATILITY_STEPS[0] || s.is_collapsed)}
+                        <span style={{ color: volColor(s.volatility), fontSize: "11px", minWidth: "56px", textAlign: "center" }}>
+                          {s.volatility}
+                        </span>
+                        {adjBtn("+", () => adjustVol(1), s.volatility === VOLATILITY_STEPS[VOLATILITY_STEPS.length - 1] || s.is_collapsed)}
+                      </div>
+                    </td>
+                    {/* FREEZE */}
+                    <td style={{ padding: "4px 10px", textAlign: "center" }}>
                       {!s.is_collapsed && (
                         <button onClick={() => {
                           const next = stocks.map(x => x.name === s.name ? { ...x, is_frozen: !s.is_frozen } : x);
@@ -2806,36 +2915,6 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           {s.is_frozen ? "FROZEN" : "—"}
                         </button>
                       )}
-                    </td>
-                    {!s.is_collapsed && !s.is_omnicorp && (
-                        <button onClick={() => handleBumpHealth()}
-                          disabled={["OK","Good"].includes(s.health)}
-                          style={{ background: "none", border: `1px solid ${["OK","Good"].includes(s.health) ? "#1a2a1a" : "#1a3a2a"}`,
-                            color: ["OK","Good"].includes(s.health) ? "#1a3a1a" : "#4a8a5a",
-                            fontFamily: MONO, fontSize: "10px", padding: "3px 8px",
-                            cursor: ["OK","Good"].includes(s.health) ? "default" : "pointer",
-                            letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
-                          ▲ BUMP
-                        </button>
-                      )}
-                    </td>
-                    <td style={{ padding: "9px 10px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        {adjBtn("−", () => adjustVol(-1), s.volatility === VOLATILITY_STEPS[0] || s.is_collapsed)}
-                        <span style={{ color: volColor(s.volatility), fontSize: "11px", minWidth: "56px", textAlign: "center" }}>
-                          {s.volatility}
-                        </span>
-                        {adjBtn("+", () => adjustVol(1), s.is_omnicorp ? s.volatility === VOLATILITY_STEPS[VOLATILITY_STEPS.length - 1] : s.volatility === VOLATILITY_STEPS[VOLATILITY_STEPS.length - 1] || s.is_collapsed)}
-                      </div>
-                    </td>
-                    <td style={{ padding: "9px 10px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        {adjBtn("−", () => adjustHealth(-1), s.is_omnicorp || s.health === HEALTH_STEPS[0] || s.is_collapsed)}
-                        <span style={{ color: healthColor(s.health), fontSize: "11px", minWidth: "56px", textAlign: "center" }}>
-                          {s.health}
-                        </span>
-                        {adjBtn("+", () => adjustHealth(1), s.health === HEALTH_STEPS[HEALTH_STEPS.length - 1] || s.is_collapsed)}
-                      </div>
                     </td>
                   </tr>
                 );
