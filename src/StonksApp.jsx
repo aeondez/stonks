@@ -2629,7 +2629,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     {stocks.map((s, i) => (
                       <tr key={s.name + i} style={{ borderBottom: `1px solid rgba(26,42,58,0.3)` }}>
                         <td style={{ padding: "3px 4px" }}>
-                          <input defaultValue={s.name} onBlur={(e) => { const val = e.target.value.trim(); if (!val) return; const next = stocks.map((x, xi) => xi === i ? { ...x, name: val } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
+                          <input defaultValue={s.name} onBlur={(e) => { const val = e.target.value.trim(); if (!val || val === s.name) return; const oldName = s.name; const next = stocks.map((x, xi) => xi === i ? { ...x, name: val } : x); setStocks(next); wardenSet(KEYS.stocks, next); const updatedHistory = history.map(entry => ({ ...entry, stocks: entry.stocks.map(hs => hs.name === oldName ? { ...hs, name: val } : hs) })); setHistory(updatedHistory); wardenSet(KEYS.history, updatedHistory); }}
                             style={{ ...inputStyle, width: "120px", fontSize: "10px", padding: "2px 5px" }} />
                         </td>
                         <td style={{ padding: "3px 4px" }}>
