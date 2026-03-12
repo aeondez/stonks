@@ -99,6 +99,7 @@ const DEFAULT_ROLL_CONFIG = {
   dieLow:     5,   // price die for Low volatility
   yearLabel:  "Year",
   cycleLabel: "Cycle",
+  drawMode: "random",
 };
 
 // ─── Dice & Economy Logic ─────────────────────────────────────────────────────
@@ -242,6 +243,7 @@ const makeKeys = (prefix) => ({
   pin:       `${prefix}:pin`,
   mergers:   `${prefix}:mergers`,
   settings:  `${prefix}:settings`,
+  jobs:      `${prefix}:jobs`,
 });
 
 const safeGet = async (key, fallback) => {
@@ -360,6 +362,510 @@ function FictionDate({ date, yearLabel = "YEAR", cycleLabel = "CYC" }) {
   );
 }
 
+
+// ─── Job Board Components ──────────────────────────────────────────────────────
+
+const HAZARD_LABELS = ["N/A", "x1 — Routine", "x2 — Low-Risk", "x3 — Moderate", "x4 — Dangerous", "x5 — Near-Suicidal"];
+
+function renderJobContent(job) {
+  if (job.mode === "freeform") {
+    return (
+      <pre style={{ fontFamily: MONO, fontSize: "11px", color: GREEN_DIM, margin: 0,
+        whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.7 }}>
+        {job.content}
+      </pre>
+    );
+  }
+  // Template render
+  const t = job.content || {};
+  const hazardLabel = HAZARD_LABELS[t.hazard ?? 0] || "N/A";
+  const yn = (v) => v === true || v === "yes" ? "YES" : v === "partial" ? "PARTIAL" : "NO";
+  return (
+    <div style={{ fontFamily: MONO, fontSize: "11px", color: GREEN_DIM, lineHeight: 1.8 }}>
+      <div style={{ color: HEADER_GREEN, fontSize: "12px", letterSpacing: "0.1em", marginBottom: "6px",
+        textTransform: "uppercase", fontWeight: "bold" }}>
+        {t.jobType || "POSITION"}
+      </div>
+      <div style={{ color: GREEN_MID, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "10px", textTransform: "uppercase" }}>
+        {job.company || "UNKNOWN CLIENT"}
+      </div>
+      {t.description && (
+        <div style={{ color: GREEN_DIM, fontSize: "10px", marginBottom: "10px", lineHeight: 1.6,
+          borderLeft: `2px solid ${GREEN_DARK}`, paddingLeft: "10px" }}>
+          {t.description}
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 16px", fontSize: "10px" }}>
+        <div><span style={{ color: "#3a5a3a" }}>PAYOUT: </span><span style={{ color: HEADER_GREEN }}>{t.payout || "NEGOTIABLE"}</span></div>
+        <div><span style={{ color: "#3a5a3a" }}>HAZARD: </span><span style={{ color: (t.hazard >= 4) ? "#ff8844" : (t.hazard >= 2) ? AMBER : GREEN_DIM }}>{hazardLabel}</span></div>
+        <div><span style={{ color: "#3a5a3a" }}>TRANSPORT: </span>{yn(t.transport)}</div>
+        <div><span style={{ color: "#3a5a3a" }}>NDA: </span>{yn(t.nda)}</div>
+        <div><span style={{ color: "#3a5a3a" }}>SALVAGE: </span>{yn(t.salvage)}</div>
+      </div>
+    </div>
+  );
+}
+
+function JobCard({ job, isOmniCorp, minimal = false }) {
+  const borderColor = isOmniCorp ? "rgba(255,200,0,0.3)" : `${GREEN_DARK}`;
+  const bgColor = isOmniCorp ? "rgba(80,60,0,0.12)" : "rgba(0,12,0,0.4)";
+  const postedLabel = job.cycle_posted != null ? `CYC ${String(job.cycle_posted).padStart(2,"0")}` : null;
+  return (
+    <div style={{ border: `1px solid ${borderColor}`, background: bgColor,
+      padding: "14px 16px", marginBottom: minimal ? 0 : "12px" }}>
+      {isOmniCorp && (
+        <div style={{ color: AMBER, fontSize: "8px", letterSpacing: "0.3em", marginBottom: "6px", opacity: 0.7 }}>
+          ▶ OMNICORP CONTRACT
+        </div>
+      )}
+      {renderJobContent(job)}
+      {postedLabel && !minimal && (
+        <div style={{ color: "#2a4a2a", fontSize: "9px", marginTop: "8px", letterSpacing: "0.1em" }}>
+          POSTED {postedLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Job Editor ────────────────────────────────────────────────────────────────
+
+function JobEditor({ job, stocks, onSave, onCancel }) {
+  const isNew = !job;
+  const [mode, setMode] = useState(job?.mode || "template");
+  const [company, setCompany] = useState(job?.company || "");
+  const [freeContent, setFreeContent] = useState(job?.mode === "freeform" ? (job?.content || "") : "");
+  const [tmpl, setTmpl] = useState(job?.mode === "template" ? (job?.content || {}) : {
+    jobType: "", payout: "", hazard: 0, transport: "no", nda: false, salvage: false, description: ""
+  });
+  const [frozen, setFrozen] = useState(job?.frozen ?? false);
+  const [preview, setPreview] = useState(false);
+
+  const omniName = stocks.find(s => s.is_omnicorp)?.name || "";
+  const activeCorps = stocks.filter(s => !s.is_collapsed && !s.is_merged);
+
+  const buildJob = () => ({
+    id: job?.id || `j_${Date.now()}`,
+    company,
+    mode,
+    content: mode === "freeform" ? freeContent : tmpl,
+    frozen: frozen || company === omniName,
+    status: job?.status || "pool",
+    cycle_posted: job?.cycle_posted ?? null,
+    cycle_completed: job?.cycle_completed ?? null,
+  });
+
+  const canSave = company && (mode === "freeform" ? freeContent.trim() : (tmpl.jobType?.trim()));
+
+  const selStyle = { background: "#060a10", border: `1px solid #1a2a3a`, color: "#ccddff",
+    fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%" };
+  const inStyle = { background: "transparent", border: `1px solid #1a2a3a`, color: "#ccddff",
+    fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%", boxSizing: "border-box", outline: "none" };
+  const labelStyle = { color: "#445566", fontSize: "9px", letterSpacing: "0.15em", marginBottom: "3px" };
+
+  return (
+    <div style={{ background: "rgba(0,5,15,0.7)", border: `1px solid #2a3a4a`, padding: "16px" }}>
+      <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.2em", marginBottom: "14px" }}>
+        {isNew ? "NEW JOB" : "EDIT JOB"}
+      </div>
+
+      {/* Mode toggle */}
+      <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
+        {["template","freeform"].map(m => (
+          <button key={m} onClick={() => setMode(m)}
+            style={{ background: mode === m ? "rgba(68,136,255,0.1)" : "none",
+              border: `1px solid ${mode === m ? "#4488ff" : "#1a2a3a"}`,
+              color: mode === m ? "#88bbff" : "#445566",
+              fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+              padding: "4px 12px", cursor: "pointer" }}>
+            {m.toUpperCase()}
+          </button>
+        ))}
+        <button onClick={() => setPreview(p => !p)}
+          style={{ background: preview ? "rgba(68,255,136,0.05)" : "none",
+            border: `1px solid ${preview ? GREEN_DARK : "#1a2a3a"}`,
+            color: preview ? GREEN_MID : "#445566",
+            fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+            padding: "4px 12px", cursor: "pointer", marginLeft: "auto" }}>
+          PREVIEW
+        </button>
+      </div>
+
+      {preview ? (
+        <div style={{ marginBottom: "12px" }}>
+          <JobCard job={buildJob()} isOmniCorp={company === omniName} />
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
+          {/* Company */}
+          <div>
+            <div style={labelStyle}>CLIENT / COMPANY *</div>
+            <select value={company} onChange={e => setCompany(e.target.value)} style={selStyle}>
+              <option value="">— select company —</option>
+              {activeCorps.map(s => (
+                <option key={s.name} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {mode === "freeform" ? (
+            <div>
+              <div style={labelStyle}>JOB POSTING (raw text, preserves formatting) *</div>
+              <textarea value={freeContent} onChange={e => setFreeContent(e.target.value)}
+                rows={8} style={{ ...inStyle, resize: "vertical", lineHeight: 1.6 }}
+                placeholder={"POSITION: Extraction Specialist\nCLIENT: Redacted\n\nDetails here..."} />
+            </div>
+          ) : (
+            <>
+              <div>
+                <div style={labelStyle}>JOB TYPE / TITLE *</div>
+                <input value={tmpl.jobType || ""} onChange={e => setTmpl(p => ({...p, jobType: e.target.value}))} style={inStyle} placeholder="e.g. Armed Escort" />
+              </div>
+              <div>
+                <div style={labelStyle}>PAYOUT</div>
+                <input value={tmpl.payout || ""} onChange={e => setTmpl(p => ({...p, payout: e.target.value}))} style={inStyle} placeholder="e.g. 3,000cr + bonus" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+                <div>
+                  <div style={labelStyle}>HAZARD PAY</div>
+                  <select value={tmpl.hazard ?? 0} onChange={e => setTmpl(p => ({...p, hazard: parseInt(e.target.value)}))} style={selStyle}>
+                    {HAZARD_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={labelStyle}>TRANSPORT</div>
+                  <select value={tmpl.transport || "no"} onChange={e => setTmpl(p => ({...p, transport: e.target.value}))} style={selStyle}>
+                    <option value="yes">YES</option>
+                    <option value="no">NO</option>
+                    <option value="partial">PARTIAL</option>
+                  </select>
+                </div>
+                <div>
+                  <div style={labelStyle}>NDA</div>
+                  <select value={tmpl.nda ? "yes" : "no"} onChange={e => setTmpl(p => ({...p, nda: e.target.value === "yes"}))} style={selStyle}>
+                    <option value="no">NO</option>
+                    <option value="yes">YES</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <div style={labelStyle}>SALVAGE RIGHTS</div>
+                <select value={tmpl.salvage ? "yes" : "no"} onChange={e => setTmpl(p => ({...p, salvage: e.target.value === "yes"}))} style={selStyle}>
+                  <option value="no">NO</option>
+                  <option value="yes">YES</option>
+                </select>
+              </div>
+              <div>
+                <div style={labelStyle}>DESCRIPTION / FLAVOR TEXT</div>
+                <textarea value={tmpl.description || ""} onChange={e => setTmpl(p => ({...p, description: e.target.value}))}
+                  rows={4} style={{ ...inStyle, resize: "vertical", lineHeight: 1.6 }}
+                  placeholder="What are they actually being hired to do..." />
+              </div>
+            </>
+          )}
+
+          {/* Frozen toggle (non-OmniCorp only) */}
+          {company !== omniName && (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <button onClick={() => setFrozen(f => !f)}
+                style={{ background: frozen ? "rgba(68,136,255,0.1)" : "none",
+                  border: `1px solid ${frozen ? "#4488cc" : "#1a2a3a"}`,
+                  color: frozen ? "#88ccff" : "#445566",
+                  fontFamily: MONO, fontSize: "10px", padding: "3px 10px", cursor: "pointer" }}>
+                {frozen ? "❄ FROZEN" : "UNFROZEN"}
+              </button>
+              <span style={{ color: "#334455", fontSize: "9px" }}>Frozen jobs stay on the board until manually completed</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button onClick={() => canSave && onSave(buildJob())} disabled={!canSave}
+          style={{ background: "none", border: `1px solid ${canSave ? "#4488ff" : "#1a2a3a"}`,
+            color: canSave ? "#88bbff" : "#334455",
+            fontFamily: MONO, fontSize: "10px", letterSpacing: "0.12em",
+            padding: "6px 16px", cursor: canSave ? "pointer" : "not-allowed" }}>
+          SAVE
+        </button>
+        <button onClick={onCancel}
+          style={{ background: "none", border: `1px solid #1a2a3a`, color: "#445566",
+            fontFamily: MONO, fontSize: "10px", letterSpacing: "0.12em",
+            padding: "6px 16px", cursor: "pointer" }}>
+          CANCEL
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Warden Job Board Panel ────────────────────────────────────────────────────
+
+function JobBoardPanel({ jobs, setJobs, stocks, date, rollConfig, setRollConfig, alwaysMerge, KEYS, wardenSet, showToast }) {
+  const [editingId, setEditingId] = useState(null); // job id being edited, or "new"
+  const [editTarget, setEditTarget] = useState("pool"); // where to put new job: "pool" | "active"
+  const [subPanel, setSubPanel] = useState("active"); // "active" | "pool" | "completed"
+
+  const omniName = stocks.find(s => s.is_omnicorp)?.name || "";
+  const activeJobs = jobs.filter(j => j.status === "active");
+  // Sort: OmniCorp first
+  const sortedActive = [...activeJobs].sort((a, b) => (b.company === omniName ? 1 : 0) - (a.company === omniName ? 1 : 0));
+  const poolJobs = jobs.filter(j => j.status === "pool");
+  const completedJobs = jobs.filter(j => j.status === "completed").reverse();
+
+  const saveJobs = (next) => { setJobs(next); wardenSet(KEYS.jobs, next); };
+
+  const completeJob = (job) => {
+    const next = jobs.map(j => j.id === job.id
+      ? { ...j, status: "completed", cycle_completed: date.cycle }
+      : j
+    );
+    saveJobs(next);
+    showToast(`JOB COMPLETED — ${job.company}`);
+    // If unfrozen, check if random fill needed
+    if (!job.frozen && (rollConfig.drawMode || "random") === "random") {
+      const remaining = next.filter(j => j.status === "active").length;
+      if (remaining < 3) {
+        const pool = next.filter(j => j.status === "pool");
+        const omniPool = pool.filter(j => j.company === omniName);
+        const stdPool = pool.filter(j => j.company !== omniName).sort(() => Math.random() - 0.5);
+        const draw = [...omniPool, ...stdPool].slice(0, 3 - remaining);
+        const drawIds = new Set(draw.map(j => j.id));
+        const filled = next.map(j => drawIds.has(j.id) ? { ...j, status: "active", cycle_posted: date.cycle } : j);
+        saveJobs(filled);
+      }
+    }
+  };
+
+  const removeJob = (id) => {
+    if (!window.confirm("Remove this job?")) return;
+    saveJobs(jobs.filter(j => j.id !== id));
+  };
+
+  const promoteToActive = (job) => {
+    if (activeJobs.length >= 3) { showToast("Board already has 3 active jobs", "#ff8844"); return; }
+    const next = jobs.map(j => j.id === job.id ? { ...j, status: "active", cycle_posted: date.cycle } : j);
+    saveJobs(next);
+    showToast("JOB PROMOTED TO BOARD");
+  };
+
+  const saveEdit = (updatedJob) => {
+    if (editingId === "new") {
+      const withStatus = { ...updatedJob, status: editTarget };
+      if (editTarget === "active") withStatus.cycle_posted = date.cycle;
+      saveJobs([...jobs, withStatus]);
+      showToast(editTarget === "active" ? "JOB ADDED TO BOARD" : "JOB ADDED TO POOL");
+    } else {
+      saveJobs(jobs.map(j => j.id === updatedJob.id ? updatedJob : j));
+      showToast("JOB UPDATED");
+    }
+    setEditingId(null);
+  };
+
+  const tabBtn = (id, label, count) => (
+    <button key={id} onClick={() => setSubPanel(id)}
+      style={{ background: subPanel === id ? "rgba(68,136,255,0.08)" : "none",
+        border: `1px solid ${subPanel === id ? "#2a3a5a" : "#1a2a3a"}`,
+        color: subPanel === id ? "#7799bb" : "#334455",
+        fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+        padding: "4px 12px", cursor: "pointer" }}>
+      {label} {count != null ? `(${count})` : ""}
+    </button>
+  );
+
+  const jBtnStyle = (col) => ({ background: "none", border: `1px solid ${col || "#1a2a3a"}`,
+    color: col || "#445566", fontFamily: MONO, fontSize: "9px", letterSpacing: "0.08em",
+    padding: "2px 8px", cursor: "pointer" });
+
+  const drawMode = rollConfig.drawMode || "random";
+
+  return (
+    <div style={{ background: "rgba(0,5,15,0.5)", border: `1px solid #1a2a3a`, padding: "16px", marginBottom: "16px" }}>
+      {/* Header row */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
+        <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.2em" }}>JOB BOARD</div>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <span style={{ color: "#334455", fontSize: "9px", letterSpacing: "0.1em" }}>ROTATION:</span>
+          {["random","bespoke"].map(m => (
+            <button key={m} onClick={() => {
+              const next = { ...rollConfig, drawMode: m };
+              setRollConfig(next);
+              wardenSet(KEYS.settings, { alwaysMerge: alwaysMerge ?? true, rollConfig: next });
+            }}
+              style={{ background: drawMode === m ? "rgba(68,136,255,0.1)" : "none",
+                border: `1px solid ${drawMode === m ? "#4488ff" : "#1a2a3a"}`,
+                color: drawMode === m ? "#88bbff" : "#445566",
+                fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
+                padding: "3px 8px", cursor: "pointer" }}>
+              {m.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sub-panel tabs */}
+      <div style={{ display: "flex", gap: "4px", marginBottom: "12px" }}>
+        {tabBtn("active", "ACTIVE BOARD", sortedActive.length)}
+        {tabBtn("pool", "POOL", poolJobs.length)}
+        {tabBtn("completed", "COMPLETED", completedJobs.length)}
+      </div>
+
+      {/* Editor overlay */}
+      {editingId && (
+        <div style={{ marginBottom: "12px" }}>
+          <JobEditor
+            job={editingId === "new" ? null : jobs.find(j => j.id === editingId)}
+            stocks={stocks}
+            onSave={saveEdit}
+            onCancel={() => setEditingId(null)}
+          />
+        </div>
+      )}
+
+      {/* ACTIVE BOARD */}
+      {!editingId && subPanel === "active" && (
+        <div>
+          {sortedActive.length === 0 && (
+            <div style={{ color: "#334455", fontSize: "10px", letterSpacing: "0.1em", padding: "8px 0", marginBottom: "8px" }}>
+              No active jobs. Add from pool or create new.
+            </div>
+          )}
+          {sortedActive.map(job => (
+            <div key={job.id} style={{ marginBottom: "10px" }}>
+              <JobCard job={job} isOmniCorp={job.company === omniName} />
+              <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
+                <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#445566")}>EDIT</button>
+                <button onClick={() => completeJob(job)} style={jBtnStyle("#446644")}>COMPLETE</button>
+                <button onClick={() => {
+                  const next = jobs.map(j => j.id === job.id ? { ...j, frozen: !j.frozen } : j);
+                  saveJobs(next);
+                  showToast(job.frozen ? "JOB UNFROZEN" : "JOB FROZEN", "#88ccff");
+                }} style={jBtnStyle(job.frozen ? "#4488cc" : "#334455")}>
+                  {job.frozen ? "❄ FROZEN" : "FREEZE"}
+                </button>
+                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
+              </div>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+            <button onClick={() => { setEditTarget("active"); setEditingId("new"); }}
+              style={{ background: "none", border: `1px solid #2a3a2a`, color: "#4a6a4a",
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
+              + NEW JOB TO BOARD
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* POOL */}
+      {!editingId && subPanel === "pool" && (
+        <div>
+          {poolJobs.length === 0 && (
+            <div style={{ color: "#334455", fontSize: "10px", letterSpacing: "0.1em", padding: "8px 0", marginBottom: "8px" }}>
+              Pool is empty. Create jobs here to queue them for future rotations.
+            </div>
+          )}
+          {poolJobs.map(job => (
+            <div key={job.id} style={{ marginBottom: "10px" }}>
+              <JobCard job={job} isOmniCorp={job.company === omniName} />
+              <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
+                <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#445566")}>EDIT</button>
+                <button onClick={() => promoteToActive(job)} style={jBtnStyle("#446644")}>▶ PROMOTE TO BOARD</button>
+                <button onClick={() => {
+                  const next = jobs.map(j => j.id === job.id ? { ...j, frozen: !j.frozen } : j);
+                  saveJobs(next);
+                }} style={jBtnStyle(job.frozen ? "#4488cc" : "#334455")}>
+                  {job.frozen ? "❄ FROZEN" : "FREEZE"}
+                </button>
+                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
+              </div>
+            </div>
+          ))}
+          <div style={{ marginTop: "8px" }}>
+            <button onClick={() => { setEditTarget("pool"); setEditingId("new"); }}
+              style={{ background: "none", border: `1px solid #2a3a2a`, color: "#4a6a4a",
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
+              + NEW JOB TO POOL
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* COMPLETED */}
+      {!editingId && subPanel === "completed" && (
+        <div>
+          {completedJobs.length === 0 && (
+            <div style={{ color: "#334455", fontSize: "10px", letterSpacing: "0.1em", padding: "8px 0" }}>
+              No completed jobs yet.
+            </div>
+          )}
+          {completedJobs.map(job => (
+            <div key={job.id} style={{ marginBottom: "12px", opacity: 0.7 }}>
+              <div style={{ color: "#334455", fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>
+                COMPLETED CYC {String(job.cycle_completed ?? "?").padStart(2,"0")} — {job.company}
+              </div>
+              <JobCard job={job} isOmniCorp={false} minimal />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Player Job Board View ──────────────────────────────────────────────────────
+
+function PlayerJobBoard({ jobs, stocks }) {
+  const omniName = stocks.find(s => s.is_omnicorp)?.name || "";
+  const activeJobs = [...jobs.filter(j => j.status === "active")]
+    .sort((a, b) => (b.company === omniName ? 1 : 0) - (a.company === omniName ? 1 : 0));
+  const completedJobs = jobs.filter(j => j.status === "completed").slice().reverse();
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  return (
+    <div>
+      <div style={{ color: GREEN_MID, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "16px",
+        borderBottom: `1px solid ${GREEN_DARK}`, paddingBottom: "8px" }}>
+        AVAILABLE CONTRACTS — {activeJobs.length} POSTED
+      </div>
+
+      {activeJobs.length === 0 && (
+        <div style={{ color: GREEN_DARK, fontSize: "11px", letterSpacing: "0.1em", padding: "20px 0", textAlign: "center" }}>
+          NO CONTRACTS CURRENTLY AVAILABLE<br/>
+          <span style={{ fontSize: "9px", opacity: 0.6 }}>CHECK BACK AFTER NEXT MARKET CYCLE</span>
+        </div>
+      )}
+
+      {activeJobs.map(job => (
+        <JobCard key={job.id} job={job} isOmniCorp={job.company === omniName} />
+      ))}
+
+      {completedJobs.length > 0 && (
+        <div style={{ marginTop: "20px" }}>
+          <button onClick={() => setShowCompleted(v => !v)}
+            style={{ background: "none", border: `1px solid ${showCompleted ? GREEN_DARK : "#2a3a2a"}`,
+              color: showCompleted ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+              fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", width: "100%" }}>
+            {showCompleted ? "[ HIDE COMPLETED ]" : `[ COMPLETED CONTRACTS (${completedJobs.length}) ]`}
+          </button>
+          {showCompleted && (
+            <div style={{ marginTop: "12px" }}>
+              {completedJobs.map(job => (
+                <div key={job.id} style={{ marginBottom: "12px", opacity: 0.55 }}>
+                  <div style={{ color: "#2a4a2a", fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>
+                    COMPLETED CYC {String(job.cycle_completed ?? "?").padStart(2,"0")} — {job.company}
+                  </div>
+                  <JobCard job={job} isOmniCorp={false} minimal />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── StockRows (player view with expandable history) ────────────────────────
 
 function StockRows({ stocks, history, visible, expandedStock, setExpandedStock }) {
@@ -444,7 +950,8 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock }
 
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
+  const [tab, setTab] = useState("ticker"); // "ticker" | "jobs"
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
   const [showQR, setShowQR] = useState(false);
@@ -514,8 +1021,22 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, t
           </div>
         )}
 
+        {/* Tab bar */}
+        <div style={{ display: "flex", gap: "4px", marginBottom: "16px" }}>
+          {[["ticker","MARKET"],["jobs","JOBS"]].map(([id, label]) => (
+            <button key={id} onClick={() => setTab(id)}
+              style={{ background: tab === id ? "rgba(68,255,136,0.06)" : "none",
+                border: `1px solid ${tab === id ? GREEN_DARK : "#2a3a2a"}`,
+                color: tab === id ? GREEN_MID : "#4a7a4a",
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.2em",
+                padding: "5px 16px", cursor: "pointer" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Headlines */}
-        {recentHeadlines.length > 0 && (
+        {tab === "ticker" && recentHeadlines.length > 0 && (
           <div style={{ marginBottom: "24px" }}>
             {recentHeadlines.map((h, i) => (
               <div key={i} style={{ borderLeft: `2px solid ${i === 0 ? GREEN : GREEN_DARK}`,
@@ -535,37 +1056,44 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, t
           </div>
         )}
 
-        {/* Stock rows */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "24px" }}>
-          <StockRows stocks={stocks} history={history} visible={visible} expandedStock={expandedStock} setExpandedStock={setExpandedStock} />
-        </div>
+        {/* Stock rows — ticker tab only */}
+        {tab === "ticker" && (
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "24px" }}>
+              <StockRows stocks={stocks} history={history} visible={visible} expandedStock={expandedStock} setExpandedStock={setExpandedStock} />
+            </div>
 
-        {/* Footer */}
-        <div style={{ borderTop: `1px solid ${GREEN_DARK}`, paddingTop: "12px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-            color: "#4a7a4a", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "8px" }}>
-            <span>ALL VALUES IN CREDITS (cr)</span>
-            <span>● LIVE FEED</span>
-          </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={() => setShowHistory(!showHistory)}
-              style={{ background: "none", border: `1px solid ${showHistory ? GREEN_DARK : "#2a3a2a"}`,
-                color: showHistory ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
-                fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
-              {showHistory ? "[ HIDE HISTORY ]" : "[ VIEW HISTORY ]"}
-            </button>
-            <button onClick={onSwitchGame}
-              style={{ background: "none", border: `1px solid #2a3a2a`,
-                color: "#4a7a4a", cursor: "pointer", fontFamily: MONO,
-                fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", minWidth: "110px" }}>
-              [ SWITCH GAME ]
-            </button>
-          </div>
-        </div>
+            <div style={{ borderTop: `1px solid ${GREEN_DARK}`, paddingTop: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+                color: "#4a7a4a", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "8px" }}>
+                <span>ALL VALUES IN CREDITS (cr)</span>
+                <span>● LIVE FEED</span>
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button onClick={() => setShowHistory(!showHistory)}
+                  style={{ background: "none", border: `1px solid ${showHistory ? GREEN_DARK : "#2a3a2a"}`,
+                    color: showHistory ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
+                  {showHistory ? "[ HIDE HISTORY ]" : "[ VIEW HISTORY ]"}
+                </button>
+                <button onClick={onSwitchGame}
+                  style={{ background: "none", border: `1px solid #2a3a2a`,
+                    color: "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", minWidth: "110px" }}>
+                  [ SWITCH GAME ]
+                </button>
+              </div>
+            </div>
 
-        {/* History log */}
-        {showHistory && (
-          <HistoryLog history={history} headlines={headlines} />
+            {showHistory && (
+              <HistoryLog history={history} headlines={headlines} />
+            )}
+          </>
+        )}
+
+        {/* Job board tab */}
+        {tab === "jobs" && (
+          <PlayerJobBoard jobs={jobs} stocks={stocks} />
         )}
 
         {/* Theme switcher */}
@@ -1116,7 +1644,8 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
 // ─── Warden View ──────────────────────────────────────────────────────────────
 
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
-  storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig, theme, setTheme, onLogout, KEYS }) {
+  storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig,
+  jobs, setJobs, theme, setTheme, onLogout, KEYS }) {
 
   const [panel, setPanel] = useState(null); // "headline" | "advance" | "bankruptcy" | "mergers" | "settings"
   const [pendingAdvance, setPendingAdvance] = useState(null);
@@ -1189,12 +1718,13 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     showToast("HEALTH SHIFTS APPLIED");
   };
 
-  const saveAll = useCallback(async (s, h, hist, d, m) => {
+  const saveAll = useCallback(async (s, h, hist, d, m, j) => {
     await wardenSet(KEYS.stocks, s);
     await wardenSet(KEYS.headlines, h);
     await wardenSet(KEYS.history, hist);
     await wardenSet(KEYS.date, d);
     if (m !== undefined) await wardenSet(KEYS.mergers, m);
+    if (j !== undefined) await wardenSet(KEYS.jobs, j);
   }, []);
 
   const pushHeadline = (h) => {
@@ -1273,7 +1803,31 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     setDate(newDate);
     setHistory(newHistory);
     setHeadlines(newHeadlines);
-    saveAll(sorted, newHeadlines, newHistory, newDate, updatedMergers);
+
+    // ── Job Board Rotation ──
+    const omniName = sorted.find(s => s.is_omnicorp)?.name || "";
+    let newJobs = jobs.map(j => {
+      // Archive unfrozen active jobs
+      if (j.status === "active" && !j.frozen) return { ...j, status: "archived" };
+      return j;
+    });
+    if ((rollConfig.drawMode || "random") === "random") {
+      const activeCount = newJobs.filter(j => j.status === "active").length;
+      const slotsNeeded = Math.max(0, 3 - activeCount);
+      if (slotsNeeded > 0) {
+        const pool = newJobs.filter(j => j.status === "pool");
+        // OmniCorp jobs get priority
+        const omniPool = pool.filter(j => j.company === omniName);
+        const stdPool = pool.filter(j => j.company !== omniName).sort(() => Math.random() - 0.5);
+        const draw = [...omniPool, ...stdPool].slice(0, slotsNeeded);
+        const drawIds = new Set(draw.map(j => j.id));
+        newJobs = newJobs.map(j =>
+          drawIds.has(j.id) ? { ...j, status: "active", cycle_posted: newDate.cycle } : j
+        );
+      }
+    }
+    setJobs(newJobs);
+    saveAll(sorted, newHeadlines, newHistory, newDate, updatedMergers, newJobs);
     setPendingAdvance(null);
     setPanel(null);
   };
@@ -1323,14 +1877,14 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {/* Toolbar — scrollable on mobile */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px",
           overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {["headline","advance","bankruptcy","mergers","settings"].map((p) => (
+          {["headline","advance","bankruptcy","mergers","jobs","settings"].map((p) => (
             <button key={p} onClick={() => setPanel(panel === p ? null : p)}
               style={{ background: panel === p ? "rgba(68,136,255,0.1)" : "none",
                 border: `1px solid ${panel === p ? "#4488ff" : "#1a2a3a"}`,
                 color: panel === p ? "#88bbff" : "#6688aa", fontFamily: MONO,
                 fontSize: "11px", letterSpacing: "0.1em", padding: "7px 12px",
                 cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
-              {p === "headline" ? "HEADLINE" : p === "advance" ? "ADVANCE" : p === "bankruptcy" ? "BANKRUPT" : p === "mergers" ? "MERGERS" : "SETTINGS"}
+              {p === "headline" ? "HEADLINE" : p === "advance" ? "ADVANCE" : p === "bankruptcy" ? "BANKRUPT" : p === "mergers" ? "MERGERS" : p === "jobs" ? "JOBS" : "SETTINGS"}
             </button>
           ))}
           <button onClick={onLogout}
@@ -1819,6 +2373,17 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               }}
             />
           </div>
+        )}
+
+        {/* Panel: Jobs */}
+        {panel === "jobs" && (
+          <JobBoardPanel
+            jobs={jobs} setJobs={setJobs}
+            stocks={stocks} date={date}
+            rollConfig={rollConfig} setRollConfig={setRollConfig}
+            alwaysMerge={alwaysMerge}
+            KEYS={KEYS} wardenSet={wardenSet} showToast={showToast}
+          />
         )}
 
         {/* Panel: Settings */}
@@ -2344,6 +2909,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
   const [mergers, setMergers] = useState(INITIAL_MERGERS);
   const [alwaysMerge, setAlwaysMerge] = useState(true);
   const [rollConfig, setRollConfig] = useState(DEFAULT_ROLL_CONFIG);
+  const [jobs, setJobs] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -2358,6 +2924,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       const p = /^\d{6}$/.test(cleanedPin) ? cleanedPin : DEFAULT_PIN;
       const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
       const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
+      const j = await safeGet(KEYS.jobs, []);
       setStocks(sortByPrice(s));
       setHeadlines(h);
       setHistory(hist);
@@ -2366,6 +2933,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       setMergers(m);
       setAlwaysMerge(sett.alwaysMerge ?? true);
       setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
+      setJobs(Array.isArray(j) ? j : []);
       setLoaded(true);
     })();
   }, []);
@@ -2438,6 +3006,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
         mergers={mergers} setMergers={setMergers}
         alwaysMerge={alwaysMerge} setAlwaysMerge={setAlwaysMerge}
         rollConfig={rollConfig} setRollConfig={setRollConfig}
+        jobs={jobs} setJobs={setJobs}
         theme={theme} setTheme={setTheme}
         onLogout={() => setView("player")}
         KEYS={KEYS}
@@ -2451,6 +3020,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       history={history} date={date}
       yearLabel={rollConfig.yearLabel ?? "Year"} cycleLabel={rollConfig.cycleLabel ?? "Cycle"}
       onSwitchGame={() => { window.location.href = "/"; }}
+      jobs={jobs}
       theme={theme} setTheme={setTheme}
       onRefresh={async () => {
         const [s, h, hist, d] = await Promise.all([
