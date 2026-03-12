@@ -2465,8 +2465,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 setPanel(null);
               }}
             />
-            </div>  {/* end mergers section */}
-          </div>  {/* end economy outer */}
+            </div>
+          </div>
         )}
 
         {/* Panel: Jobs */}
