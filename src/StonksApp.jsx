@@ -3035,16 +3035,25 @@ export default function StonksApp({ roomCode = "stonks" }) {
           █  SFNET SECURITY MODULE v4.7.2  █<br/>
           ██████████████████████████████████
         </div>
-        <div style={{ color: "#ff6666", fontSize: "10px", letterSpacing: "0.15em", lineHeight: "2", textAlign: "left", maxWidth: "320px" }}>
-          <div>{">"} INTRUSION DETECTED</div>
-          <div>{">"} SOURCE IP: LOGGED</div>
-          <div>{">"} SESSION FINGERPRINT: CAPTURED</div>
-          <div>{">"} ALERTING: OMNICORP SEC-OPS</div>
-          <div style={{ marginTop: "16px", color: "#ff3333" }}>
+        <div style={{ color: "#ff6666", fontSize: "10px", letterSpacing: "0.15em", lineHeight: "2.2", textAlign: "left", maxWidth: "420px", width: "100%" }}>
+          <div style={{ color: "#ff4444", marginBottom: "4px" }}>sfnet-sec@daemon-4:~$ <span style={{ color: "#ff6666" }}>./intrusion_scan --live</span></div>
+          <div>{">"} SCANNING SESSION CONTEXT<span style={{ color: "#ff3333" }}>...</span></div>
+          <div>{">"} INTRUSION DETECTED — UNAUTHORIZED TERMINAL ACCESS</div>
+          <div>{">"} SOURCE IP: <span style={{ color: "#ff3333" }}>LOGGED AND TRACED</span></div>
+          <div>{">"} SESSION FINGERPRINT: <span style={{ color: "#ff3333" }}>CAPTURED</span></div>
+          <div>{">"} DEVICE SIGNATURE: <span style={{ color: "#ff3333" }}>ARCHIVED</span></div>
+          <div>{">"} <span style={{ color: "#ff8888" }}>_</span></div>
+          <div style={{ color: "#ff4444" }}>sfnet-sec@daemon-4:~$ <span style={{ color: "#ff6666" }}>./alert --escalate SFNET_SEC_OPS</span></div>
+          <div>{">"} ALERTING: <span style={{ color: "#ff3333" }}>SFNET SEC-OPS</span></div>
+          <div>{">"} INCIDENT TICKET: <span style={{ color: "#ff3333" }}>SEC-{Math.floor(Math.random()*90000)+10000}</span></div>
+          <div>{">"} RESPONSE ETA: <span style={{ color: "#ff3333" }}>IMMEDIATE</span></div>
+          <div>{">"} <span style={{ color: "#ff8888" }}>_</span></div>
+          <div style={{ marginTop: "8px", color: "#ff3333", lineHeight: "1.8" }}>
             THIS TERMINAL IS PROPERTY OF<br/>
             STELLAR FINANCIAL NETWORK<br/>
             UNAUTHORIZED ACCESS IS A VIOLATION<br/>
-            OF SFNET REGULATION 7-ALPHA
+            OF SFNET REGULATION 7-ALPHA<br/>
+            <span style={{ fontSize: "9px", opacity: 0.7 }}>~ ALL ACTIVITY LOGGED AND RETAINED FOR PROSECUTION ~</span>
           </div>
         </div>
         <button onClick={() => setView("player")}
