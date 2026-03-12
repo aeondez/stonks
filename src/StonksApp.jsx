@@ -1023,7 +1023,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
 
         {/* Tab bar */}
         <div style={{ display: "flex", gap: "4px", marginBottom: "16px" }}>
-          {[["ticker","MARKET"],["jobs","JOBS"]].map(([id, label]) => (
+          {[["ticker","MARKET"],["jobs", jobs.filter(j=>j.status==="active").length > 0 ? `JOBS (${jobs.filter(j=>j.status==="active").length})` : "JOBS"]].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ background: tab === id ? "rgba(68,255,136,0.06)" : "none",
                 border: `1px solid ${tab === id ? GREEN_DARK : "#2a3a2a"}`,
@@ -1811,8 +1811,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     });
     const sorted = sortByPrice(working);
     const newDate = { ...date, cycle: date.cycle + 1 };
-    const histEntry = { date: { ...date }, stocks: stocks.map(({ healthRoll, volRoll, priceRoll, coinFlip, healthShift, volShift, ...rest }) => rest), headlines: headlines.slice(0, 5) };
-    const newHistory = [...history, histEntry];
+    const histEntry = { date: { ...date }, stocks: stocks.map(({ healthRoll, volRoll, priceRoll, coinFlip, healthShift, volShift, _skipped, ...rest }) => rest), headlines: headlines.slice(0, 5) };
+    const newHistory = [...history, histEntry].slice(-100); // cap at 100 to prevent unbounded growth
     const newHeadlines = autoHeadlines.length > 0 ? [...autoHeadlines, ...headlines] : headlines;
     if (autoHeadlines.length > 0) autoHeadlines.forEach((h) => { setLastPublished(h.headline); clearTimeout(window._lpTimer); window._lpTimer = setTimeout(() => setLastPublished(null), 3500); });
     setStocks(sorted);
@@ -2536,7 +2536,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 style={{ ...inputStyle, width: "140px" }} />
               <button onClick={handleSavePin} style={{ ...actionBtn }}>SAVE PIN</button>
               <button onClick={() => {
-                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, exportedAt: new Date().toISOString() };
+                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, jobs, exportedAt: new Date().toISOString() };
                 const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -2559,7 +2559,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           return;
                         }
                         const confirmed = window.confirm(
-                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, and merger state. This cannot be undone."
+                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, and job board. This cannot be undone."
                         );
                         if (!confirmed) return;
                         const s = data.stocks;
@@ -2568,17 +2568,20 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         const d = data.date || { year: 2122, cycle: 1 };
                         const m = data.mergers || INITIAL_MERGERS;
                         const am = data.alwaysMerge ?? true;
+                        const j = Array.isArray(data.jobs) ? data.jobs : [];
                         setStocks(sortByPrice(s));
                         setHeadlines(h);
                         setHistory(hist);
                         setDate(d);
                         setMergers(m);
                         setAlwaysMerge(am);
+                        setJobs(j);
                         await wardenSet(KEYS.stocks, s);
                         await wardenSet(KEYS.headlines, h);
                         await wardenSet(KEYS.history, hist);
                         await wardenSet(KEYS.date, d);
                         await wardenSet(KEYS.mergers, m);
+                        await wardenSet(KEYS.jobs, j);
                         await wardenSet(KEYS.settings, { alwaysMerge: am, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
                         e.target.value = "";
                         alert("Backup restored successfully.");
