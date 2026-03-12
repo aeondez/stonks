@@ -2262,12 +2262,10 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               </>
             )}
           </div>
-            </div>
 
             {/* Bankruptcy Section */}
             <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "20px", marginBottom: "20px" }}>
             <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>BANKRUPTCY CHECK</div>
-            (
               <div style={{ color: "#334455", fontSize: "10px", marginBottom: "12px", lineHeight: 1.6 }}>Rolls d10 for all companies at Bankrupt health. 7–10 = collapse.</div>
             {!pendingBankruptcy ? (
               <button onClick={() => { setPendingBankruptcy(computeBankruptcyCheck(stocks, mergers, alwaysMerge)); }}
@@ -2341,12 +2339,10 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               </>
             )}
           </div>
-            </div>
 
             {/* Mergers Section */}
             <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "20px" }}>
             <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>MERGERS</div>
-            (
 
             {mergers.map((m) => {
               const status = getMergerStatus(m, stocks);
