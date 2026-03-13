@@ -259,7 +259,7 @@ const safeGet = async (key, fallback) => {
     const r = await fetch(`/api/store?k=${encodeURIComponent(key)}`);
     if (!r.ok) return fallback;
     const data = await r.json();
-    return data.value !== undefined ? data.value : fallback;
+    return (data.value !== undefined && data.value !== null) ? data.value : fallback;
   } catch { return fallback; }
 };
 
@@ -1016,7 +1016,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
 // ─── Session Panel Sub-Components ─────────────────────────────────────────────
 
 const HAZARD_OPTS = ["N/A","x1","x2","x3","x4","x5"];
-const HAZARD_MULT = { "N/A": 1, "x1": 1, "x2": 2, "x3": 3, "x4": 4, "x5": 5 };
+const HAZARD_MULT = { "N/A": 0, "x1": 1, "x2": 2, "x3": 3, "x4": 4, "x5": 5 };
 const DISPOSITION_OPTS = ["Active","Deceased","Next of Kin","LLC","Other"];
 const CLASS_TEMPLATES = {
   Marine: { trained: 2, expert: 1, master: 0 },
@@ -1047,7 +1047,9 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 
   const calcPayout = (p) => {
     const salary = (p.trained || 0) * 500 + (p.expert || 0) * 1000 + (p.master || 0) * 2000;
-    const base = salary * months * (HAZARD_MULT[hazard]);
+    const basePay = salary * months;
+    const hazardPay = salary * months * HAZARD_MULT[hazard];
+    const base = basePay + hazardPay;
     const adjusted = base * (1 + negoFinal / 100);
     const total = Math.round(adjusted + jumps * 1000 + flatTotal);
     const equityShares = currentPrice > 0 ? Math.floor(total * 0.6 / currentPrice) : 0;
@@ -1084,7 +1086,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
       }
     }
     const card = {
-      jobName: selJob ? (selJob.content || "Contract").slice(0, 50) : "No linked job",
+      jobName: selJob ? (typeof selJob.content === "string" ? selJob.content : selJob.content?.jobType || selJob.content?.description || "Contract").slice(0, 50) : "No linked job",
       company: jobCorp || "—",
       months, jumps, hazard, negotiation: negoFinal, flatBonuses: [...flatBonuses],
       entries: profiles.map(p => {
@@ -1112,7 +1114,10 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
         <div>{lbl("LINK TO JOB")}
           <select value={selJobId} onChange={e => setSelJobId(e.target.value)} style={{ ...sI, minWidth: "200px" }}>
             <option value="">— none —</option>
-            {linkableJobs.map(j => <option key={j.id} value={String(j.id)}>{j.company} — {(j.content||"").slice(0,28)} [{j.status}]</option>)}
+            {linkableJobs.map(j => {
+              const label = typeof j.content === "string" ? j.content.slice(0,28) : (j.content?.jobType || j.content?.description || "Contract").slice(0,28);
+              return <option key={j.id} value={String(j.id)}>{j.company} — {label} [{j.status}]</option>;
+            })}
           </select>
         </div>
         <div>{lbl("MONTHS")}
@@ -1584,7 +1589,7 @@ function PlayerSessionTab({ debt, rollConfig }) {
   const toggle = (k) => setOpen(o=>({...o,[k]:!o[k]}));
 
   const salary = trained*500 + expert*1000 + master*2000;
-  const base = salary * months * (HAZARD_MULT[hazard]);
+  const base = salary * months + salary * months * HAZARD_MULT[hazard];
   const total = Math.round(base * (1 + negoPct/100) + jumps*1000);
   const timeUnit = rollConfig.trainingTimeUnit === "years" ? "years" : "months";
   const FUEL_COSTS = { I:1000, II:2000, III:5000, IV:50000, V:100000 };

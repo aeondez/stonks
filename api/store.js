@@ -73,7 +73,7 @@ export default async function handler(req, res) {
   // GET — no auth required
   if (req.method === "GET") {
     const value = await redis.get(key);
-    if (value === null) return res.status(404).json({ error: "not found" });
+    if (value === null) return res.json({ value: null });
     return res.json({ value });
   }
 
