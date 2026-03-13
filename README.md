@@ -2,7 +2,7 @@
 
 > A live corporate stock market ticker for tabletop RPGs.
 
-Players connect on their phones and watch prices move in real time. The Warden controls everything from a PIN-protected dashboard — publishing headlines, advancing the economy, triggering mergers, and watching corporations collapse.
+Players connect on their phones and watch prices move in real time. The Warden controls everything from a PIN-protected dashboard — publishing headlines, advancing the economy, triggering mergers, managing crew and contracts, and watching corporations collapse.
 
 Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but usable with any game that needs a living corporate economy at the table.
 
@@ -10,22 +10,38 @@ Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but u
 
 ## Features
 
+**Market**
 - 📈 **Live ticker** — 12 corporations with health, volatility, and price tracking
-- 📰 **News feed** — push headlines to players instantly, including auto-generated merger and acquisition announcements
-- 🏦 **Economy engine** — roll-based market advancement with bankruptcy checks, collapse cycles, and absorption mechanics
-- 🤝 **Merger system** — three pending mergers that trigger automatically or manually
+- 📰 **News feed** — push headlines to players instantly, with auto-generated merger and acquisition announcements
+- 🏦 **Economy engine** — roll-based market advancement with configurable dice, bankruptcy checks, collapse cycles, and absorption mechanics
+- 🤝 **Merger system** — configurable pending mergers that trigger automatically or manually
 - 📊 **History** — players can browse the full news archive and past market snapshots
-- 🔒 **Warden dashboard** — PIN-gated, mobile-friendly, separate from the player view
-- 📱 **PWA support** — installs as a fullscreen app on Android, iPhone, iPad, tablets, and foldables
-- 💾 **Persistent** — data survives page refreshes and server restarts; rooms expire after 90 days of inactivity
-- 🛡️ **Hardened** — server-side PIN auth, per-room lockout after 5 failed attempts, rate limiting, honeypot headlines
+
+**Session Tools (Warden)**
+- 💼 **Payout calculator** — per-crew salary based on skill tiers (Trained/Expert/Master), hazard pay, negotiation adjustments, jump bonuses, flat bonuses, and equity conversion
+- 🏢 **Catalog system** — per-corporation contractor perks and item catalogs with visibility gating (Hidden / Unlocked / Revoked / Ineligible); shown to players in the market view when unlocked
+- 📋 **Job board** — freeform and template contract postings, status tracking (Active / Completed), auto-linked to payout calculator
+- 👥 **Crew roster** — profiles with skill counts, payment types (cash or equity), disposition tracking, and beneficiary fields
+- 🏗️ **Contractors** — salary and paid-status tracking with loyalty roll reminders
+- 💳 **Debt tracker** — per-creditor entries with monthly payment and term; reflected as minimum Stress increase in the player Downtime tab
+- 📦 **Portfolio** — equity holdings with grant price, live value, G/L, and scenario-based lock/unlock
+- 🚢 **Ship account** — balance ledger with deposit/withdraw history and bankruptcy save reference table (owner-operator mode)
+
+**Session Tools (Player)**
+- 🗓️ **Downtime tab** — post-session checklist, debt obligations, payout calculator, medical treatment costs, shore leave table, skill training reference, military enlistment, ship repair costs, and fuel calculator
+
+**Infrastructure**
+- 🔒 **Warden dashboard** — PIN-gated, mobile-friendly, tabbed interface
+- 📱 **PWA support** — installs as a fullscreen app on Android, iPhone, iPad, and desktop
+- 💾 **Persistent** — data survives page refreshes; rooms expire after 90 days of inactivity
+- 🛡️ **Hardened** — server-side PIN auth, read-protected PIN key, per-room lockout after 5 failed attempts, IP rate limiting, honeypot terminal for failed access attempts
 
 ---
 
 ## Two Ways to Play
 
 ### 🏠 Local (same Wi-Fi)
-Run the server on your PC. Players connect from their phones on the same network. Data saves to a local file. No accounts, no cloud, no internet required.
+Run the server on your PC. Players connect from their phones on the same network. No accounts, no cloud, no internet required.
 
 ### 🌐 Online (anywhere)
 Deploy to Vercel + Upstash. Each game gets a unique 6-character room code. Share the link and anyone can join from anywhere. Free to host.
@@ -82,7 +98,7 @@ See **[DEPLOY.md](DEPLOY.md)** for the full walkthrough. Short version:
 
 1. Push this repo to GitHub
 2. Create a free [Upstash](https://upstash.com) Redis database — copy the REST URL and token
-3. Import the repo into [Vercel](https://vercel.com), add the two Upstash env vars, deploy
+3. Import the repo into [Vercel](https://vercel.com), add the env vars below, deploy
 
 Total setup time: ~15 minutes. Total cost: $0.
 
@@ -92,6 +108,7 @@ Once deployed, go to your Vercel URL, click **CREATE NEW GAME**, and share the r
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
 - `RECOVERY_PASSPHRASE` — your emergency override passphrase (set this before your first session)
+- `ROOM_CREATION_KEY` — a secret key required to create new rooms (set this before sharing the URL publicly)
 
 ---
 
@@ -111,7 +128,7 @@ Players can install Stonks as a fullscreen app directly from the browser — no 
 
 On the player view, scroll to the very bottom and tap **WARDEN ACCESS**. Default PIN is `000000` — change it immediately from the Settings panel inside the dashboard.
 
-**Security:** PIN verification is server-side. After 5 failed attempts the room locks for 30 minutes. Every failed attempt pushes a security alert headline to all players.
+**Security:** PIN verification is server-side only. The PIN is never readable via the API — only writable. After 5 failed attempts the room locks for 30 minutes. Every failed attempt pushes a security alert headline to all players and triggers a decoy terminal for the attacker.
 
 **Lost your PIN (local):** Open `data.json`, find `stonks:pin`, change the value to `"000000"`.
 
@@ -121,9 +138,22 @@ On the player view, scroll to the very bottom and tap **WARDEN ACCESS**. Default
 
 ## Backups
 
-Use the **⬇ EXPORT BACKUP** button in Warden Settings before every session. To restore, use **⬆ IMPORT BACKUP** and select the JSON file — it will overwrite all current data and save to Redis automatically.
+Use **⬇ EXPORT BACKUP** in Warden Settings before every session. The JSON file includes all room data: stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, and catalogs.
 
-Room data expires after **90 days of inactivity**. Keep a local backup if your campaign has long breaks between sessions.
+To restore, use **⬆ IMPORT BACKUP** and select the file — it will overwrite all current data and save to Redis automatically.
+
+Room data expires after **90 days of inactivity**. Keep a local backup if your campaign has long gaps between sessions.
+
+---
+
+## Warden Settings Reference
+
+| Setting | Options | Effect |
+|---|---|---|
+| Training time unit | Months / Years | Controls duration labels in player Downtime tab |
+| Ship ownership | Company/Military · Owner-Operator · Freelancer | Shows bankruptcy save table in Ship Account when owner-operator |
+| Crew payment mode | All Same / Per Crew | Cash/equity toggle global vs per-crew in Payout tab |
+| Bump on complete | On / Off | Auto-bumps corporation health when a job is marked complete |
 
 ---
 
@@ -131,7 +161,7 @@ Room data expires after **90 days of inactivity**. Keep a local backup if your c
 
 **Local:** Delete `data.json` and restart the server.
 
-**Online:** Flush your Upstash database from the Upstash Console (CLI tab → `FLUSHDB`), then create a new room.
+**Online:** Create a new room from the landing page, or flush your Upstash database from the Upstash Console (CLI tab → `FLUSHDB`) and recreate.
 
 ---
 
