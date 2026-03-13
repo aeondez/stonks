@@ -70,8 +70,9 @@ export default async function handler(req, res) {
   const key = req.query.k;
   if (!key) return res.status(400).json({ error: "missing key" });
 
-  // GET — no auth required
+  // GET — no auth required, except PIN key is never readable
   if (req.method === "GET") {
+    if (key.endsWith(":pin")) return res.status(403).json({ error: "forbidden" });
     const value = await redis.get(key);
     if (value === null) return res.json({ value: null });
     return res.json({ value });

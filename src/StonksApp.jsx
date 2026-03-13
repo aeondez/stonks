@@ -3727,7 +3727,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           return;
                         }
                         const confirmed = window.confirm(
-                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, and job board. This cannot be undone."
+                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, and catalogs. This cannot be undone."
                         );
                         if (!confirmed) return;
                         const s = data.stocks;
