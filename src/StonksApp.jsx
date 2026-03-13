@@ -2009,7 +2009,7 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
         body: JSON.stringify({ room: roomCode, pin: entered }),
       });
       if (r.ok) {
-        onSuccess();
+        onSuccess(entered);
       } else {
         const data = await r.json();
         if (data.error === "locked") {
@@ -3959,10 +3959,6 @@ export default function StonksApp({ roomCode = "stonks" }) {
       const h = await safeGet(KEYS.headlines, []);
       const hist = await safeGet(KEYS.history, []);
       const d = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
-      const rawPin = await safeGet(KEYS.pin, DEFAULT_PIN);
-      // Strip any surrounding quotes Upstash may add to string values
-      const cleanedPin = String(rawPin).replace(/^"+|"+$/g, "").trim();
-      const p = /^\d{6}$/.test(cleanedPin) ? cleanedPin : DEFAULT_PIN;
       const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
       const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
       const j = await safeGet(KEYS.jobs, []);
@@ -3974,7 +3970,6 @@ export default function StonksApp({ roomCode = "stonks" }) {
       setHeadlines(h);
       setHistory(hist);
       setDate(d);
-      setStoredPin(p);
       setMergers(m);
       setAlwaysMerge(sett.alwaysMerge ?? true);
       setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
@@ -4040,9 +4035,8 @@ export default function StonksApp({ roomCode = "stonks" }) {
 
   if (view === "pin") {
     return <PinGate
-      storedPin={storedPin}
       roomCode={roomCode}
-      onSuccess={() => setView("warden")}
+      onSuccess={(pin) => { setStoredPin(pin); setView("warden"); }}
       onCancel={() => setView("player")}
       onClearLockout={async (passphrase) => {
         const r = await fetch("/api/unlock", {
