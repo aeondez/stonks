@@ -101,6 +101,9 @@ const DEFAULT_ROLL_CONFIG = {
   cycleLabel: "Cycle",
   drawMode: "random",
   bumpOnComplete: false,
+  trainingTimeUnit: "months",  // "months" | "years"
+  ownershipType: "company",    // "company" | "owner" | "freelancer"
+  crewPaymentMode: "all",      // "all" | "per"
 };
 
 // ─── Dice & Economy Logic ─────────────────────────────────────────────────────
@@ -245,6 +248,10 @@ const makeKeys = (prefix) => ({
   mergers:   `${prefix}:mergers`,
   settings:  `${prefix}:settings`,
   jobs:      `${prefix}:jobs`,
+  crew:      `${prefix}:crew`,
+  debt:      `${prefix}:debt`,
+  portfolio: `${prefix}:portfolio`,
+  catalogs:  `${prefix}:catalogs`,
 });
 
 const safeGet = async (key, fallback) => {
@@ -888,7 +895,9 @@ function PlayerJobBoard({ jobs, stocks }) {
 
 // ─── StockRows (player view with expandable history) ────────────────────────
 
-function StockRows({ stocks, history, visible, expandedStock, setExpandedStock }) {
+function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, catalogs }) {
+  catalogs = catalogs || {};
+  const STATUS_COLORS = { hidden:"transparent", unlocked:"#44cc88", revoked:"#cc5555", ineligible:AMBER };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
       {stocks.map((s, i) => {
@@ -959,6 +968,42 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock }
                 <div style={{ color: "#2a4a2a", fontSize: "9px", marginTop: "8px", letterSpacing: "0.08em" }}>
                   {s.industry}
                 </div>
+                {/* Catalog & Benefits */}
+                {(() => {
+                  const cat = catalogs[s.name];
+                  if (!cat || cat.status === "hidden") return null;
+                  const color = STATUS_COLORS[cat.status] || "#334455";
+                  const isRevoked = cat.status === "revoked";
+                  const isIneligible = cat.status === "ineligible";
+                  return (
+                    <div style={{ marginTop: "12px", borderTop: `1px solid rgba(68,120,68,0.2)`, paddingTop: "10px" }}>
+                      <div style={{ color, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "6px" }}>
+                        {cat.status.toUpperCase()}{isIneligible && cat.ineligibleReason ? ` — ${cat.ineligibleReason}` : ""}
+                      </div>
+                      {!isIneligible && cat.benefits && (
+                        <div style={{ color: isRevoked ? "#555" : "#5a8a5a", fontSize: "10px", lineHeight: 1.6, marginBottom: "8px",
+                          textDecoration: isRevoked ? "line-through" : "none", opacity: isRevoked ? 0.5 : 1 }}>
+                          {cat.benefits}
+                        </div>
+                      )}
+                      {!isIneligible && cat.items && cat.items.length > 0 && (
+                        <div>
+                          <div style={{ color: "#2a5a2a", fontSize: "9px", letterSpacing: "0.15em", marginBottom: "5px" }}>CATALOG</div>
+                          {cat.items.map(it => (
+                            <div key={it.id} style={{ display: "flex", gap: "8px", padding: "3px 0", fontSize: "10px",
+                              borderBottom: `1px solid rgba(68,100,68,0.1)`,
+                              opacity: isRevoked ? 0.4 : 1,
+                              textDecoration: isRevoked ? "line-through" : "none" }}>
+                              <span style={{ flex: 2, color: isRevoked ? "#444" : GREEN_DIM }}>{it.name}</span>
+                              <span style={{ color: isRevoked ? "#444" : "#4a8aaa", whiteSpace: "nowrap" }}>{it.price}</span>
+                              {it.notes && <span style={{ flex: 2, color: "#2a5a2a" }}>{it.notes}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -968,10 +1013,727 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock }
   );
 }
 
+// ─── Session Panel Sub-Components ─────────────────────────────────────────────
+
+const HAZARD_OPTS = ["N/A","x1","x2","x3","x4","x5"];
+const HAZARD_MULT = { "N/A": 1, "x1": 1, "x2": 2, "x3": 3, "x4": 4, "x5": 5 };
+const DISPOSITION_OPTS = ["Active","Deceased","Next of Kin","LLC","Other"];
+const CLASS_TEMPLATES = {
+  Marine: { trained: 2, expert: 1, master: 0 },
+  Android: { trained: 3, expert: 1, master: 0 },
+  Scientist: { trained: 1, expert: 1, master: 1 },
+  Teamster: { trained: 3, expert: 1, master: 0 },
+};
+
+function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio, rollConfig, date, wardenSet, KEYS, showToast }) {
+  const profiles = crew.profiles || [];
+  const [selJobId, setSelJobId] = useState("");
+  const [months, setMonths] = useState(1);
+  const [jumps, setJumps] = useState(0);
+  const [hazard, setHazard] = useState("N/A");
+  const [negoPct, setNegoPct] = useState(0);
+  const [negoManual, setNegoManual] = useState("");
+  const [flatBonuses, setFlatBonuses] = useState([]);
+  const [globalPayType, setGlobalPayType] = useState("cash");
+  const [ledger, setLedger] = useState(null);
+
+  const completedJobs = jobs.filter(j => j.status === "completed");
+  const selJob = jobs.find(j => j.id === selJobId);
+  const jobCorp = selJob?.company || "";
+  const corpStock = stocks.find(s => s.name === jobCorp);
+  const currentPrice = corpStock?.price || 0;
+  const negoFinal = negoManual !== "" ? (parseFloat(negoManual) || 0) : negoPct;
+  const flatTotal = flatBonuses.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+
+  const calcPayout = (p) => {
+    const salary = (p.trained || 0) * 500 + (p.expert || 0) * 1000 + (p.master || 0) * 2000;
+    const base = salary * months * (HAZARD_MULT[hazard]);
+    const adjusted = base * (1 + negoFinal / 100);
+    const total = Math.round(adjusted + jumps * 1000 + flatTotal);
+    const equityShares = currentPrice > 0 ? Math.floor(total * 0.6 / currentPrice) : 0;
+    return { salary, total, equityCash: Math.round(total * 0.5), equityShares };
+  };
+
+  const addProfile = (template) => {
+    const t = CLASS_TEMPLATES[template] || { trained: 0, expert: 0, master: 0 };
+    const next = { ...crew, profiles: [...profiles, { id: Date.now(), name: template || "New Crew", role: template || "", trained: t.trained, expert: t.expert, master: t.master, disposition: "Active", beneficiary: "", paymentType: "cash" }] };
+    setCrew(next); wardenSet(KEYS.crew, next);
+  };
+  const updateProfile = (id, patch) => {
+    const next = { ...crew, profiles: profiles.map(p => p.id === id ? { ...p, ...patch } : p) };
+    setCrew(next); wardenSet(KEYS.crew, next);
+  };
+  const removeProfile = (id) => {
+    const next = { ...crew, profiles: profiles.filter(p => p.id !== id) };
+    setCrew(next); wardenSet(KEYS.crew, next);
+  };
+
+  const handleConfirm = () => {
+    if (profiles.length === 0) return;
+    const perCrew = rollConfig.crewPaymentMode === "per";
+    // Lock equity shares into portfolio
+    const equityProfiles = profiles.filter(p => (perCrew ? p.paymentType : globalPayType) === "equity");
+    if (equityProfiles.length > 0 && jobCorp) {
+      const newHoldings = equityProfiles.map(p => {
+        const { equityShares } = calcPayout(p);
+        return { id: Date.now() + Math.random(), company: jobCorp, shares: equityShares, grantPrice: currentPrice, lockScenarios: 1 };
+      }).filter(h => h.shares > 0);
+      if (newHoldings.length > 0) {
+        const newPortfolio = [...portfolio, ...newHoldings];
+        setPortfolio(newPortfolio); wardenSet(KEYS.portfolio, newPortfolio);
+      }
+    }
+    const card = {
+      jobName: selJob ? (selJob.content || "Contract").slice(0, 50) : "No linked job",
+      company: jobCorp || "—",
+      months, jumps, hazard, negotiation: negoFinal, flatBonuses: [...flatBonuses],
+      entries: profiles.map(p => {
+        const calc = calcPayout(p);
+        const payType = perCrew ? (p.paymentType || "cash") : globalPayType;
+        let disposition = "";
+        if (p.disposition === "Active") disposition = `Paid in Full — ${calc.total.toLocaleString()}cr`;
+        else if (p.disposition === "Deceased") disposition = `Deceased — ${p.beneficiary ? p.beneficiary : "No listed beneficiary"} — ${calc.total.toLocaleString()}cr held in escrow`;
+        else if (p.disposition === "Next of Kin") disposition = `Payment sent to next of kin — ${calc.total.toLocaleString()}cr`;
+        else if (p.disposition === "LLC") disposition = `Paid to LLC accounts per Will — ${calc.total.toLocaleString()}cr`;
+        else disposition = `${p.disposition || "Other"} — ${calc.total.toLocaleString()}cr`;
+        return { name: p.name, role: p.role, ...calc, payType, disposition };
+      }),
+    };
+    setLedger(card);
+    showToast("LEDGER GENERATED");
+  };
+
+  const sI = { background: "transparent", border: `1px solid #1a2a3a`, color: "#aabbcc", fontFamily: MONO, fontSize: "11px", padding: "4px 8px" };
+  const lbl = (t) => <div style={{ color: "#445566", fontSize: "10px", marginBottom: "3px", letterSpacing: "0.08em" }}>{t}</div>;
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "14px" }}>
+        <div>{lbl("LINK TO JOB")}
+          <select value={selJobId} onChange={e => setSelJobId(e.target.value)} style={{ ...sI, minWidth: "200px" }}>
+            <option value="">— none —</option>
+            {completedJobs.map(j => <option key={j.id} value={j.id}>{j.company} — {(j.content||"").slice(0,28)}</option>)}
+          </select>
+        </div>
+        <div>{lbl("MONTHS")}
+          <input type="number" min={1} value={months} onChange={e => setMonths(Math.max(1,parseInt(e.target.value)||1))} style={{ ...sI, width: "60px" }} />
+        </div>
+        <div>{lbl("JUMPS (×1kcr)")}
+          <input type="number" min={0} value={jumps} onChange={e => setJumps(Math.max(0,parseInt(e.target.value)||0))} style={{ ...sI, width: "60px" }} />
+        </div>
+        <div>{lbl("HAZARD")}
+          <select value={hazard} onChange={e => setHazard(e.target.value)} style={sI}>
+            {HAZARD_OPTS.map(h => <option key={h}>{h}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "14px", alignItems: "flex-end" }}>
+        <div>{lbl("NEGOTIATION (stepper)")}
+          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <button onClick={() => setNegoPct(p => Math.max(-25, p-5))} style={{ ...sI, padding: "2px 8px", cursor: "pointer" }}>−</button>
+            <span style={{ color: negoPct < 0 ? "#cc5555" : negoPct > 0 ? "#44cc88" : "#6688aa", minWidth: "36px", textAlign: "center", fontSize: "13px" }}>{negoPct > 0 ? "+" : ""}{negoPct}%</span>
+            <button onClick={() => setNegoPct(p => Math.min(25, p+5))} style={{ ...sI, padding: "2px 8px", cursor: "pointer" }}>+</button>
+          </div>
+        </div>
+        <div>{lbl("MANUAL OVERRIDE %")}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <input value={negoManual} onChange={e => setNegoManual(e.target.value)} placeholder="e.g. 12.5" style={{ ...sI, width: "80px" }} />
+            {negoManual !== "" && <span style={{ color: "#88aadd", fontSize: "10px" }}>active — overrides stepper</span>}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: "14px" }}>
+        {lbl("FLAT BONUSES")}
+        {flatBonuses.map((b, i) => (
+          <div key={b.id} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "center" }}>
+            <input value={b.label} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,label:e.target.value}:x))} placeholder="Label" style={{ ...sI, flex: 1 }} />
+            <input type="number" value={b.amount} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,amount:e.target.value}:x))} placeholder="cr" style={{ ...sI, width: "80px" }} />
+            <span style={{ color: "#445566", fontSize: "10px" }}>cr</span>
+            <button onClick={() => setFlatBonuses(f=>f.filter((_,j)=>j!==i))} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+          </div>
+        ))}
+        <button onClick={() => setFlatBonuses(f=>[...f,{id:Date.now(),label:"",amount:""}])}
+          style={{ ...sI, padding:"3px 10px", cursor:"pointer", color:"#4a6a4a", fontSize:"10px" }}>+ BONUS</button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+        {lbl("PAYMENT MODE")}
+        {["cash","equity"].map(t => (
+          <button key={t} onClick={() => setGlobalPayType(t)}
+            style={{ ...sI, padding:"3px 10px", cursor:"pointer", fontSize:"10px",
+              color: globalPayType === t ? "#88ccff" : "#445566",
+              borderColor: globalPayType === t ? "#336699" : "#1a2a3a" }}>
+            {t.toUpperCase()}
+          </button>
+        ))}
+        {rollConfig.crewPaymentMode === "per" && <span style={{ color:"#334455", fontSize:"10px" }}>per-crew override active (set per row below)</span>}
+      </div>
+
+      <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "14px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em" }}>CREW ROSTER (persists across sessions)</div>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {Object.keys(CLASS_TEMPLATES).map(cls => (
+              <button key={cls} onClick={() => addProfile(cls)}
+                style={{ ...sI, padding:"2px 8px", cursor:"pointer", fontSize:"9px", color:"#4a7a8a", letterSpacing:"0.08em" }}>
+                + {cls.toUpperCase()}
+              </button>
+            ))}
+            <button onClick={() => addProfile(null)} style={{ ...sI, padding:"2px 8px", cursor:"pointer", fontSize:"9px" }}>+ BLANK</button>
+          </div>
+        </div>
+        {profiles.length === 0 && <div style={{ color:"#334455", fontSize:"11px", padding:"10px 0" }}>No crew. Add via class template or blank above.</div>}
+        {profiles.map(p => {
+          const calc = calcPayout(p);
+          return (
+            <div key={p.id} style={{ border:`1px solid #1a2a3a`, padding:"12px", marginBottom:"8px" }}>
+              <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center" }}>
+                <input value={p.name} onChange={e=>updateProfile(p.id,{name:e.target.value})} placeholder="Name" style={{ ...sI, width:"130px" }} />
+                <input value={p.role} onChange={e=>updateProfile(p.id,{role:e.target.value})} placeholder="Class / Role" style={{ ...sI, width:"110px" }} />
+                <button onClick={()=>removeProfile(p.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+              </div>
+              <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center" }}>
+                {[["trained","T",500],["expert","E",1000],["master","M",2000]].map(([field,lbl2,rate]) => (
+                  <div key={field} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+                    <span style={{ color:"#445566", fontSize:"10px" }}>{lbl2}</span>
+                    <input type="number" min={0} max={10} value={p[field]||0}
+                      onChange={e=>updateProfile(p.id,{[field]:parseInt(e.target.value)||0})}
+                      style={{ ...sI, width:"38px", padding:"2px 4px" }} />
+                    <span style={{ color:"#334455", fontSize:"9px" }}>×{rate.toLocaleString()}</span>
+                  </div>
+                ))}
+                <span style={{ color:"#6688aa", fontSize:"11px" }}>= <span style={{ color:"#aabbcc" }}>{calc.salary.toLocaleString()}cr/mo</span></span>
+              </div>
+              <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center" }}>
+                <select value={p.disposition} onChange={e=>updateProfile(p.id,{disposition:e.target.value})} style={sI}>
+                  {DISPOSITION_OPTS.map(d=><option key={d}>{d}</option>)}
+                </select>
+                {p.disposition === "Deceased" && (
+                  <input value={p.beneficiary} onChange={e=>updateProfile(p.id,{beneficiary:e.target.value})}
+                    placeholder="Beneficiary note" style={{ ...sI, flex:1, minWidth:"120px" }} />
+                )}
+                {rollConfig.crewPaymentMode === "per" && (
+                  <select value={p.paymentType||"cash"} onChange={e=>updateProfile(p.id,{paymentType:e.target.value})} style={sI}>
+                    <option value="cash">CASH</option>
+                    <option value="equity">EQUITY</option>
+                  </select>
+                )}
+                <span style={{ color:"#88ccff", fontSize:"11px", marginLeft:"auto" }}>
+                  CASH: {calc.total.toLocaleString()}cr
+                  {currentPrice > 0 && (
+                    <span style={{ color:"#aaaaff", marginLeft:"10px" }}>
+                      EQUITY: {calc.equityCash.toLocaleString()}cr + {calc.equityShares} shares @ {currentPrice.toLocaleString()}cr
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        {profiles.length > 0 && (
+          <button onClick={handleConfirm}
+            style={{ background:"none", border:`1px solid #4488ff`, color:"#88bbff",
+              fontFamily:MONO, fontSize:"11px", letterSpacing:"0.15em", padding:"8px 20px", cursor:"pointer", marginTop:"8px" }}>
+            GENERATE LEDGER
+          </button>
+        )}
+      </div>
+
+      {ledger && (
+        <div style={{ marginTop:"20px", border:`1px solid #223344`, padding:"16px", background:"rgba(0,5,15,0.8)" }}>
+          <div style={{ color:"#445566", fontSize:"9px", letterSpacing:"0.25em", marginBottom:"4px" }}>PERSONNEL LEDGER — CONFIDENTIAL</div>
+          <div style={{ color:"#aabbcc", fontSize:"13px", marginBottom:"2px" }}>{ledger.company} — {ledger.jobName}</div>
+          <div style={{ color:"#334455", fontSize:"10px", marginBottom:"12px" }}>
+            {ledger.months}mo · HAZARD {ledger.hazard} · {ledger.jumps} JUMPS · NEGO {ledger.negotiation > 0 ? "+" : ""}{ledger.negotiation}%
+            {ledger.flatBonuses.filter(b=>b.label).map(b => ` · ${b.label}: ${parseFloat(b.amount)||0}cr`).join("")}
+          </div>
+          {ledger.entries.map((e, i) => (
+            <div key={i} style={{ borderTop:`1px solid #1a2a3a`, paddingTop:"8px", marginTop:"8px" }}>
+              <div style={{ color:"#ccddee", fontSize:"11px", letterSpacing:"0.05em" }}>
+                {e.name} <span style={{ color:"#445566" }}>— {e.role}</span>
+              </div>
+              <div style={{ color:"#7799bb", fontSize:"11px", marginTop:"3px", letterSpacing:"0.02em" }}>{e.disposition}</div>
+              {e.payType === "equity" && (
+                <div style={{ color:"#8888cc", fontSize:"10px", marginTop:"2px" }}>
+                  Equity split: {e.equityCash.toLocaleString()}cr cash + {e.equityShares} shares (locked 1 scenario)
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
+  const totalOwed = debt.reduce((s, d) => s + (parseFloat(d.amount) || 0), 0);
+  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const addDebt = () => { const next = [...debt, {id:Date.now(), creditor:"", amount:0, monthlyPayment:0, termMonths:0}]; setDebt(next); wardenSet(KEYS.debt, next); };
+  const upd = (id, p) => { const next = debt.map(d=>d.id===id?{...d,...p}:d); setDebt(next); wardenSet(KEYS.debt, next); };
+  const del = (id) => { const next = debt.filter(d=>d.id!==id); setDebt(next); wardenSet(KEYS.debt, next); };
+  return (
+    <div>
+      {debt.length > 0 && (
+        <div style={{ display:"flex", gap:"24px", marginBottom:"16px", padding:"12px", border:`1px solid #3a1a1a`, background:"rgba(20,5,5,0.5)" }}>
+          <div><div style={{ color:"#cc5555", fontSize:"22px", fontWeight:"bold" }}>{debt.length}</div><div style={{ color:"#664444", fontSize:"10px" }}>ACTIVE DEBTORS</div></div>
+          <div><div style={{ color:"#cc5555", fontSize:"22px", fontWeight:"bold" }}>+{debt.length}</div><div style={{ color:"#664444", fontSize:"10px" }}>MIN STRESS</div></div>
+          <div><div style={{ color:"#cc8855", fontSize:"18px", fontWeight:"bold" }}>{totalOwed.toLocaleString()}cr</div><div style={{ color:"#664444", fontSize:"10px" }}>TOTAL OWED</div></div>
+        </div>
+      )}
+      {debt.length === 0 && <div style={{ color:"#334455", fontSize:"11px", padding:"10px 0" }}>No active debts.</div>}
+      {debt.map(d => (
+        <div key={d.id} style={{ border:`1px solid #2a1a1a`, padding:"10px", marginBottom:"8px" }}>
+          <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center" }}>
+            <input value={d.creditor} onChange={e=>upd(d.id,{creditor:e.target.value})} placeholder="Creditor name" style={{ ...sI, flex:1, minWidth:"130px" }} />
+            <input type="number" value={d.amount} onChange={e=>upd(d.id,{amount:parseFloat(e.target.value)||0})} placeholder="Amount" style={{ ...sI, width:"90px" }} />
+            <span style={{ color:"#445566", fontSize:"10px" }}>cr</span>
+            <input type="number" value={d.monthlyPayment} onChange={e=>upd(d.id,{monthlyPayment:parseFloat(e.target.value)||0})} placeholder="mo payment" style={{ ...sI, width:"80px" }} />
+            <span style={{ color:"#445566", fontSize:"10px" }}>cr/mo</span>
+            <input type="number" value={d.termMonths} onChange={e=>upd(d.id,{termMonths:parseInt(e.target.value)||0})} placeholder="mo" style={{ ...sI, width:"55px" }} />
+            <span style={{ color:"#445566", fontSize:"10px" }}>mo remaining</span>
+            <button onClick={()=>del(d.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+          </div>
+        </div>
+      ))}
+      <button onClick={addDebt}
+        style={{ background:"none", border:`1px solid #3a2a2a`, color:"#664444",
+          fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>
+        + ADD DEBTOR
+      </button>
+    </div>
+  );
+}
+
+function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
+  const totalValue = portfolio.reduce((s, h) => { const st = stocks.find(x=>x.name===h.company); return s + (st ? st.price * h.shares : 0); }, 0);
+  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const add = () => { const next=[...portfolio,{id:Date.now(),company:stocks[0]?.name||"",shares:0,grantPrice:0,lockScenarios:0}]; setPortfolio(next); wardenSet(KEYS.portfolio,next); };
+  const upd = (id,p) => { const next=portfolio.map(h=>h.id===id?{...h,...p}:h); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
+  const del = (id) => { const next=portfolio.filter(h=>h.id!==id); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
+  return (
+    <div>
+      {portfolio.length > 0 && (
+        <div style={{ color:"#88ccff", fontSize:"14px", marginBottom:"12px" }}>
+          PORTFOLIO VALUE: {totalValue.toLocaleString()}cr
+        </div>
+      )}
+      {portfolio.length === 0 && <div style={{ color:"#334455", fontSize:"11px", padding:"10px 0" }}>No holdings. Equity payouts (PAYOUT tab) lock shares here automatically.</div>}
+      <div style={{ overflowX:"auto" }}>
+        {portfolio.length > 0 && (
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"12px" }}>
+            <thead><tr>
+              {["COMPANY","SHARES","GRANT","CURRENT","VALUE","G/L","STATUS",""].map(h => (
+                <th key={h} style={{ padding:"4px 6px", textAlign:"left", color:"#445566", fontWeight:"normal", fontSize:"10px" }}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {portfolio.map(h => {
+                const st = stocks.find(x=>x.name===h.company);
+                const cur = st?.price||0;
+                const val = cur * h.shares;
+                const gl = (cur - h.grantPrice) * h.shares;
+                const locked = h.lockScenarios > 0;
+                return (
+                  <tr key={h.id} style={{ borderBottom:`1px solid rgba(26,42,58,0.4)` }}>
+                    <td style={{ padding:"4px 6px" }}>
+                      <select value={h.company} onChange={e=>upd(h.id,{company:e.target.value})} style={{ ...sI, padding:"1px 4px", fontSize:"10px" }}>
+                        {stocks.map(s=><option key={s.name}>{s.name}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding:"4px 6px" }}><input type="number" min={0} value={h.shares} onChange={e=>upd(h.id,{shares:parseInt(e.target.value)||0})} style={{ ...sI, width:"55px", padding:"2px 4px" }} /></td>
+                    <td style={{ padding:"4px 6px" }}><input type="number" min={0} value={h.grantPrice} onChange={e=>upd(h.id,{grantPrice:parseInt(e.target.value)||0})} style={{ ...sI, width:"60px", padding:"2px 4px" }} /></td>
+                    <td style={{ padding:"4px 6px", color:"#88bbff" }}>{cur.toLocaleString()}</td>
+                    <td style={{ padding:"4px 6px", color:"#aaccee" }}>{val.toLocaleString()}cr</td>
+                    <td style={{ padding:"4px 6px", color:gl>=0?"#44cc88":"#cc5555" }}>{gl>=0?"+":""}{gl.toLocaleString()}</td>
+                    <td style={{ padding:"4px 6px" }}>
+                      {locked
+                        ? <span style={{ color:AMBER, fontSize:"10px", whiteSpace:"nowrap" }}>🔒 {h.lockScenarios} left</span>
+                        : <span style={{ color:"#44cc88", fontSize:"10px" }}>AVAILABLE</span>}
+                      {locked && <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"1px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"4px", color:"#448844" }}>UNLOCK</button>}
+                    </td>
+                    <td style={{ padding:"4px 6px" }}><button onClick={()=>del(h.id)} style={{ ...sI, padding:"1px 5px", cursor:"pointer", color:"#664444" }}>✕</button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a8a", fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer" }}>+ ADD HOLDING</button>
+    </div>
+  );
+}
+
+function ShipAccountPanel({ crew, setCrew, rollConfig, wardenSet, KEYS }) {
+  const shipBalance = crew.shipBalance || 0;
+  const shipExpenses = crew.shipExpenses || [];
+  const [amount, setAmount] = useState("");
+  const [txLabel, setTxLabel] = useState("");
+  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const upd = (patch) => { const next={...crew,...patch}; setCrew(next); wardenSet(KEYS.crew, next); };
+  const transact = (type) => {
+    const val = parseFloat(amount)||0; if (!val) return;
+    const signed = type === "withdraw" ? -val : val;
+    const next = { ...crew, shipBalance: shipBalance + signed,
+      shipExpenses: [...shipExpenses, {id:Date.now(), label:txLabel||(type==="deposit"?"Deposit":"Expense"), amount:signed}].slice(-20) };
+    setCrew(next); wardenSet(KEYS.crew, next); setAmount(""); setTxLabel("");
+  };
+  const ownerType = rollConfig.ownershipType || "company";
+  const BANKRUPTCY = [
+    ["Critical Success","Turn a profit. Choose one: 1 Major Upgrade, repair 1d5 Major Repairs, pay each crew 1d5×100kcr, or raise Save by 1d10."],
+    ["Success","Scrape by. Choose one: 1 Minor Upgrade, 1 Minor Repair, pay each crew 2d10 months salary, or raise Save by 1d5."],
+    ["Failure","Fall 1d10mcr in debt to ruthless lenders."],
+    ["Critical Failure","Company collapses. Massive debt to the worst people imaginable."],
+  ];
+  return (
+    <div>
+      <div style={{ padding:"12px", border:`1px solid #1a2a3a`, background:"rgba(0,5,15,0.5)", marginBottom:"16px", display:"inline-block" }}>
+        <div style={{ color:"#88ccff", fontSize:"22px", fontWeight:"bold" }}>{shipBalance.toLocaleString()}cr</div>
+        <div style={{ color:"#445566", fontSize:"10px" }}>SHIP ACCOUNT BALANCE</div>
+        <div style={{ color:"#334455", fontSize:"10px", marginTop:"2px" }}>Ownership: {ownerType === "company" ? "Company / Military" : ownerType === "owner" ? "Owner-Operator" : "Freelancer"}</div>
+      </div>
+      <div style={{ display:"flex", gap:"8px", marginBottom:"14px", flexWrap:"wrap", alignItems:"center" }}>
+        <input value={txLabel} onChange={e=>setTxLabel(e.target.value)} placeholder="Label (optional)" style={{ ...sI, flex:1, minWidth:"110px" }} />
+        <input type="number" min={0} value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Amount (cr)" style={{ ...sI, width:"110px" }} />
+        <button onClick={()=>transact("deposit")} style={{ background:"none", border:`1px solid #224422`, color:"#44cc88", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>+ DEPOSIT</button>
+        <button onClick={()=>transact("withdraw")} style={{ background:"none", border:`1px solid #442222`, color:"#cc5555", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>− WITHDRAW</button>
+      </div>
+      {shipExpenses.length > 0 && (
+        <div style={{ marginBottom:"16px" }}>
+          <div style={{ color:"#445566", fontSize:"10px", marginBottom:"6px" }}>RECENT TRANSACTIONS (last 20)</div>
+          {[...shipExpenses].reverse().slice(0,10).map(e => (
+            <div key={e.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid #0a1520`, fontSize:"11px" }}>
+              <span style={{ color:"#6688aa" }}>{e.label}</span>
+              <span style={{ color:e.amount>=0?"#44cc88":"#cc5555" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {ownerType === "owner" && (
+        <div style={{ borderTop:`1px solid #1a2a3a`, paddingTop:"14px" }}>
+          <div style={{ color:AMBER, fontSize:"10px", letterSpacing:"0.15em", marginBottom:"8px" }}>BANKRUPTCY SAVE — OWNER-OPERATOR</div>
+          <div style={{ color:"#445566", fontSize:"10px", marginBottom:"10px" }}>Roll quarterly or annually. Make a Luck Save.</div>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"10px" }}>
+            <tbody>{BANKRUPTCY.map(([r,c]) => (
+              <tr key={r} style={{ borderTop:`1px solid #0a1520` }}>
+                <td style={{ padding:"5px 8px 5px 0", color:r.includes("Critical S")?"#44cc88":r.includes("Success")?"#88bb88":r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td>
+                <td style={{ padding:"5px 0", color:"#8899aa", lineHeight:1.5 }}>{c}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
+  const contractors = crew.contractors || [];
+  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const add = () => { const next={...crew,contractors:[...contractors,{id:Date.now(),name:"",salary:0,paid:false}]}; setCrew(next); wardenSet(KEYS.crew,next); };
+  const upd = (id,p) => { const next={...crew,contractors:contractors.map(c=>c.id===id?{...c,...p}:c)}; setCrew(next); wardenSet(KEYS.crew,next); };
+  const del = (id) => { const next={...crew,contractors:contractors.filter(c=>c.id!==id)}; setCrew(next); wardenSet(KEYS.crew,next); };
+  return (
+    <div>
+      <div style={{ color:"#6688aa", fontSize:"10px", marginBottom:"12px", borderBottom:`1px solid #1a2a3a`, paddingBottom:"8px" }}>
+        Check Contractor Loyalty if Paid in Full — update in Mothership Companion App.
+      </div>
+      {contractors.length === 0 && <div style={{ color:"#334455", fontSize:"11px", padding:"8px 0" }}>No active contractors.</div>}
+      {contractors.map(c => (
+        <div key={c.id} style={{ display:"flex", gap:"8px", alignItems:"center", marginBottom:"6px", flexWrap:"wrap", padding:"8px", border:`1px solid ${c.paid?"#1a3a2a":"#2a1a1a"}` }}>
+          <input value={c.name} onChange={e=>upd(c.id,{name:e.target.value})} placeholder="Name" style={{ ...sI, flex:1, minWidth:"120px" }} />
+          <input type="number" min={0} value={c.salary} onChange={e=>upd(c.id,{salary:parseFloat(e.target.value)||0})} placeholder="Salary" style={{ ...sI, width:"80px" }} />
+          <span style={{ color:"#445566", fontSize:"10px" }}>cr/mo</span>
+          <button onClick={()=>upd(c.id,{paid:!c.paid})}
+            style={{ background:"none", border:`1px solid ${c.paid?"#224422":"#442222"}`, color:c.paid?"#44cc88":"#cc5555",
+              fontFamily:MONO, fontSize:"10px", padding:"3px 10px", cursor:"pointer", minWidth:"65px" }}>
+            {c.paid ? "PAID" : "UNPAID"}
+          </button>
+          <span style={{ color:c.paid?"#44aa66":"#cc5555", fontSize:"10px" }}>{c.paid ? "⚑ Roll loyalty" : "⚑ Not paid"}</span>
+          <button onClick={()=>del(c.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+        </div>
+      ))}
+      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>+ ADD CONTRACTOR</button>
+    </div>
+  );
+}
+
+function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
+  const [selCo, setSelCo] = useState(stocks.find(s=>!s.is_collapsed)?.name || "");
+  const cat = catalogs[selCo] || { status:"hidden", ineligibleReason:"", benefits:"", items:[] };
+  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const STATUS_OPTS = ["hidden","unlocked","revoked","ineligible"];
+  const STATUS_COLORS = { hidden:"#334455", unlocked:"#44cc88", revoked:"#cc5555", ineligible:AMBER };
+  const upd = (patch) => { const next={...catalogs,[selCo]:{...cat,...patch}}; setCatalogs(next); wardenSet(KEYS.catalogs,next); };
+  const addItem = () => upd({ items:[...(cat.items||[]),{id:Date.now(),name:"",price:"",notes:""}] });
+  const updItem = (id,p) => upd({ items:(cat.items||[]).map(it=>it.id===id?{...it,...p}:it) });
+  const delItem = (id) => upd({ items:(cat.items||[]).filter(it=>it.id!==id) });
+  return (
+    <div>
+      <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:"14px", flexWrap:"wrap" }}>
+        <select value={selCo} onChange={e=>setSelCo(e.target.value)} style={{ ...sI, minWidth:"160px" }}>
+          {stocks.filter(s=>!s.is_collapsed).map(s=><option key={s.name}>{s.name}</option>)}
+        </select>
+        <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
+          {STATUS_OPTS.map(st => (
+            <button key={st} onClick={()=>upd({status:st})}
+              style={{ background:cat.status===st?"rgba(255,255,255,0.04)":"none",
+                border:`1px solid ${cat.status===st?STATUS_COLORS[st]:"#1a2a3a"}`,
+                color:cat.status===st?STATUS_COLORS[st]:"#334455",
+                fontFamily:MONO, fontSize:"9px", letterSpacing:"0.1em", padding:"3px 9px", cursor:"pointer" }}>
+              {st.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <span style={{ color:STATUS_COLORS[cat.status]||"#334455", fontSize:"10px" }}>{cat.status.toUpperCase()}</span>
+      </div>
+      {cat.status === "ineligible" && (
+        <input value={cat.ineligibleReason||""} onChange={e=>upd({ineligibleReason:e.target.value})}
+          placeholder="Reason (e.g. company collapsed, absorbed by OmniCorp)"
+          style={{ ...sI, width:"100%", boxSizing:"border-box", marginBottom:"10px" }} />
+      )}
+      <div style={{ marginBottom:"12px" }}>
+        <div style={{ color:"#445566", fontSize:"10px", marginBottom:"5px" }}>CORPORATE PERKS / BENEFITS TEXT</div>
+        <textarea value={cat.benefits||""} onChange={e=>upd({benefits:e.target.value})}
+          placeholder="Perks, discounts, reward track description..."
+          rows={3} style={{ ...sI, width:"100%", boxSizing:"border-box", resize:"vertical", lineHeight:1.5 }} />
+      </div>
+      <div>
+        <div style={{ color:"#445566", fontSize:"10px", marginBottom:"8px" }}>CATALOG ITEMS</div>
+        {(cat.items||[]).map(it => (
+          <div key={it.id} style={{ display:"flex", gap:"6px", marginBottom:"5px", alignItems:"center" }}>
+            <input value={it.name} onChange={e=>updItem(it.id,{name:e.target.value})} placeholder="Item name" style={{ ...sI, flex:2, minWidth:"100px" }} />
+            <input value={it.price} onChange={e=>updItem(it.id,{price:e.target.value})} placeholder="Price" style={{ ...sI, width:"80px" }} />
+            <input value={it.notes} onChange={e=>updItem(it.id,{notes:e.target.value})} placeholder="Notes" style={{ ...sI, flex:3 }} />
+            <button onClick={()=>delItem(it.id)} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+          </div>
+        ))}
+        <button onClick={addItem} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>+ ADD ITEM</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Player Session Tab ────────────────────────────────────────────────────────
+
+const SHORE_LEAVE_TABLE = [
+  ["X","1d100×10kcr","2d10[+]"],["C","2d10×100cr","1d5"],["B","2d10×1kcr","1d10"],["A","2d10×10kcr","2d10"],["S","2d10×100kcr","All"],
+];
+const SHORE_LEAVE_RESULTS = [
+  ["Critical Success","Convert maximum stress for port class. Relieve all remainder."],
+  ["Success","Convert stress into permanent Save improvements (1 Stress = +1 to any Save). Relieve remainder to Minimum Stress."],
+  ["Failure","No conversion. All Stress relieved to Minimum Stress. Gain 1 Stress for the failed save."],
+  ["Critical Failure","No conversion. No relief. Make immediate Panic Check."],
+];
+const TREATMENTS_TABLE = [
+  ["Artificial Wellness Counselor","150cr","Advantage on next Rest Save"],
+  ["Immersive Slicksim Therapy","1kcr","Advantage on next Shore Leave Sanity Save"],
+  ["Medpod","6kcr","Heals 1 Wound"],
+  ["Pseudoflesh Injection","18kcr","Restores lost Stats"],
+  ["Deep Tissue Nanogel Massage","24kcr","Reduces Minimum Stress by 1"],
+  ["Psychosurgery","28kcr","Removes a Condition or Trauma Response"],
+  ["Cognitive Defragmentation","100kcr","Removes all Conditions, resets Minimum Stress to 2"],
+];
+const TRAINING_TABLE = [
+  ["Trained","None","2","10kcr","+10"],
+  ["Expert","1 Trained","4","50kcr","+15"],
+  ["Master","1 Expert","6","200kcr","+20"],
+];
+const MILITARY_RESULTS = [
+  ["Critical Success","Military Training, Athletics, one Expert Skill. +10 Combat, −10 Stat of choice. Marine Trauma Response."],
+  ["Success","Military Training, Athletics, two Trained Skills. +10 Combat, −10 Stat of choice. Marine Trauma Response."],
+  ["Failure","Military Training, Athletics, one Trained Skill. Marine Trauma Response."],
+  ["Critical Failure","Killed in Action."],
+];
+const CHECKLIST_ITEMS = [
+  "Collect pay",
+  "Buy/sell unlocked stocks",
+  "Roll contractor loyalty in Mothership Companion",
+  "Get treatment",
+  "Rest or take shore leave",
+  "Train skills if applicable",
+  "Check debt obligations",
+  "Ship repairs and maintenance",
+  "Go shopping",
+];
+
+function PlayerSessionTab({ debt, rollConfig }) {
+  const [months, setMonths] = useState(1);
+  const [jumps, setJumps] = useState(0);
+  const [hazard, setHazard] = useState("N/A");
+  const [trained, setTrained] = useState(0);
+  const [expert, setExpert] = useState(0);
+  const [master, setMaster] = useState(0);
+  const [negoPct, setNegoPct] = useState(0);
+
+  const salary = trained*500 + expert*1000 + master*2000;
+  const base = salary * months * (HAZARD_MULT[hazard]);
+  const total = Math.round(base * (1 + negoPct/100) + jumps*1000);
+  const timeUnit = rollConfig.trainingTimeUnit === "years" ? "years" : "months";
+
+  const sI = { background:"transparent", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, fontSize:"11px", padding:"4px 7px" };
+  const TH = { padding:"4px 8px", textAlign:"left", color:"#3a6a3a", fontWeight:"normal", fontSize:"10px" };
+  const TD = { padding:"5px 8px", color:GREEN_MID, fontSize:"11px", borderTop:`1px solid rgba(68,100,68,0.2)` };
+  const section = (title) => (
+    <div style={{ color:HEADER_GREEN, fontSize:"10px", letterSpacing:"0.2em", marginBottom:"10px", borderBottom:`1px solid ${GREEN_DARK}`, paddingBottom:"5px" }}>{title}</div>
+  );
+
+  return (
+    <div style={{ color:GREEN_MID }}>
+      {section("POST-SESSION CHECKLIST")}
+      <div style={{ marginBottom:"24px" }}>
+        {CHECKLIST_ITEMS.map((item, i) => (
+          <div key={i} style={{ display:"flex", gap:"10px", padding:"6px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px" }}>
+            <span style={{ color:GREEN_DARK, minWidth:"16px" }}>{i+1}.</span>
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+
+      {debt.length > 0 && (
+        <>
+          {section("DEBT OBLIGATIONS")}
+          <div style={{ display:"flex", gap:"20px", marginBottom:"10px" }}>
+            <span style={{ color:"#cc6666", fontSize:"13px" }}>+{debt.length} MIN STRESS</span>
+            <span style={{ color:"#cc8855" }}>{debt.reduce((s,d)=>s+(parseFloat(d.amount)||0),0).toLocaleString()}cr owed</span>
+          </div>
+          {debt.map(d => (
+            <div key={d.id} style={{ padding:"5px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"8px" }}>
+              <span>{d.creditor || "Unknown creditor"}</span>
+              <span style={{ color:"#cc7755" }}>{(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo · {d.termMonths} mo left</span>
+            </div>
+          ))}
+          <div style={{ marginBottom:"20px" }} />
+        </>
+      )}
+
+      {section("PAYOUT CALCULATOR (local — not saved)")}
+      <div style={{ marginBottom:"20px" }}>
+        <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"10px", alignItems:"flex-end" }}>
+          {[["MONTHS",months,setMonths,1,"60px"],["JUMPS (×1kcr)",jumps,setJumps,0,"60px"]].map(([lbl,val,set,min,w]) => (
+            <div key={lbl}><div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"3px" }}>{lbl}</div>
+              <input type="number" min={min} value={val} onChange={e=>set(Math.max(min,parseInt(e.target.value)||min))} style={{ ...sI, width:w }} /></div>
+          ))}
+          <div><div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"3px" }}>HAZARD</div>
+            <select value={hazard} onChange={e=>setHazard(e.target.value)} style={sI}>
+              {HAZARD_OPTS.map(h=><option key={h}>{h}</option>)}
+            </select></div>
+          <div><div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"3px" }}>NEGOTIATION</div>
+            <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
+              <button onClick={()=>setNegoPct(p=>Math.max(-25,p-5))} style={{ ...sI, padding:"2px 6px", cursor:"pointer" }}>−</button>
+              <span style={{ minWidth:"34px", textAlign:"center", color:negoPct<0?"#cc6666":negoPct>0?HEADER_GREEN:GREEN_DARK, fontSize:"12px" }}>{negoPct>0?"+":""}{negoPct}%</span>
+              <button onClick={()=>setNegoPct(p=>Math.min(25,p+5))} style={{ ...sI, padding:"2px 6px", cursor:"pointer" }}>+</button>
+            </div></div>
+        </div>
+        <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"10px", alignItems:"center" }}>
+          {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([lbl,val,set,rate]) => (
+            <div key={lbl} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+              <span style={{ color:"#3a6a3a", fontSize:"10px" }}>{lbl}</span>
+              <input type="number" min={0} max={10} value={val} onChange={e=>set(parseInt(e.target.value)||0)} style={{ ...sI, width:"38px" }} />
+              <span style={{ color:"#2a5a2a", fontSize:"9px" }}>×{rate.toLocaleString()}</span>
+            </div>
+          ))}
+          <span style={{ color:"#4a8a4a", fontSize:"11px" }}>{salary.toLocaleString()}cr/mo</span>
+        </div>
+        {salary > 0 && (
+          <div style={{ padding:"10px 12px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,20,0,0.3)" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"3px" }}>
+              <span style={{ color:"#4a8a4a", fontSize:"11px" }}>CASH PAYOUT</span>
+              <span style={{ color:HEADER_GREEN, fontSize:"15px", fontWeight:"bold" }}>{total.toLocaleString()}cr</span>
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between" }}>
+              <span style={{ color:"#4a8a4a", fontSize:"11px" }}>EQUITY OPTION</span>
+              <span style={{ color:GREEN_MID, fontSize:"12px" }}>{Math.round(total*0.5).toLocaleString()}cr cash + shares</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {section("MEDICAL TREATMENTS")}
+      <div style={{ marginBottom:"20px" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"8px" }}>
+          <thead><tr>{["TREATMENT","COST","EFFECT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+          <tbody>{TREATMENTS_TABLE.map(([t,c,e])=>(
+            <tr key={t}><td style={TD}>{t}</td><td style={{ ...TD, color:"#88aacc", whiteSpace:"nowrap" }}>{c}</td><td style={TD}>{e}</td></tr>
+          ))}</tbody>
+        </table>
+        <div style={{ color:"#3a6a3a", fontSize:"10px", lineHeight:1.6 }}>
+          <span style={{ color:"#4a8a4a" }}>REST SAVE:</span> Roll 1d100 under worst Save in a safe location. On success, reduce Stress by the ones digit. Advantage from: consensual sex, drug use, heavy drinking, or Wellness Counselor.
+        </div>
+      </div>
+
+      {section("SHORE LEAVE")}
+      <div style={{ marginBottom:"20px" }}>
+        <div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"8px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"10px" }}>
+          <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+          <tbody>{SHORE_LEAVE_TABLE.map(([p,c,s])=>(
+            <tr key={p}><td style={{ ...TD, color:AMBER }}>{p}</td><td style={{ ...TD, color:"#88aacc" }}>{c}</td><td style={{ ...TD, color:HEADER_GREEN }}>{s}</td></tr>
+          ))}</tbody>
+        </table>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px" }}>
+          <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+          <tbody>{SHORE_LEAVE_RESULTS.map(([r,o])=>(
+            <tr key={r}><td style={{ ...TD, color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td><td style={TD}>{o}</td></tr>
+          ))}</tbody>
+        </table>
+      </div>
+
+      {section(`SKILL TRAINING — ${timeUnit.toUpperCase()}`)}
+      <div style={{ marginBottom:"20px" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"12px" }}>
+          <thead><tr>{["TIER","PREREQ","DURATION","COST","BONUS"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+          <tbody>{TRAINING_TABLE.map(([tier,req,dur,cost,bonus])=>(
+            <tr key={tier}>
+              <td style={{ ...TD, color:AMBER }}>{tier}</td>
+              <td style={TD}>{req}</td>
+              <td style={{ ...TD, color:HEADER_GREEN }}>{dur} {timeUnit}</td>
+              <td style={{ ...TD, color:"#88aacc" }}>{cost}</td>
+              <td style={{ ...TD, color:HEADER_GREEN }}>{bonus}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+        <div style={{ color:"#4a8a4a", fontSize:"10px", marginBottom:"5px" }}>MILITARY ENLISTMENT (Alternative Path)</div>
+        <div style={{ color:"#3a6a3a", fontSize:"10px", lineHeight:1.6, marginBottom:"8px" }}>
+          Free. Duration: 6 {timeUnit}. While enlisted: Military covers Room &amp; Board, Medical, and Skill Training. Make a Combat Check on completion.
+        </div>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px" }}>
+          <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+          <tbody>{MILITARY_RESULTS.map(([r,o])=>(
+            <tr key={r}><td style={{ ...TD, color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td><td style={TD}>{o}</td></tr>
+          ))}</tbody>
+        </table>
+      </div>
+
+      {section("SHIP REPAIRS & MAINTENANCE")}
+      <div style={{ marginBottom:"20px", color:"#3a6a3a", fontSize:"10px", lineHeight:1.7 }}>
+        <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>MAJOR REPAIRS</div>
+        <div style={{ marginBottom:"8px" }}>Must be done in port. Cost: 1d5mcr × Ship Class per Hull/Megadamage point. Time: months to a year. <span style={{ color:GREEN_MID }}>Machine Shop exception:</span> repair up to 3 MDMG + 3 Hull without port; resupply 200kcr × Ship Class after.</div>
+        <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>MINOR REPAIRS</div>
+        <div style={{ marginBottom:"8px" }}>Done in flight by crew. Time: 2d10 days. Critical Failure escalates to Major Repair.</div>
+        <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>ANNUAL MAINTENANCE CHECK</div>
+        <div style={{ marginBottom:"8px" }}>Roll Systems Check annually. Failure: roll Maintenance Issues Table, all crew +1 Stress. Critical Failure: two rolls, entire crew Panic Check.</div>
+        <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>OPERATIONAL COSTS</div>
+        <table style={{ borderCollapse:"collapse", marginBottom:"8px" }}>
+          <tbody>
+            {[["Fuel (Class-I)","1kcr/unit"],["Fuel (Class-V)","100kcr/unit"],["Warp Core","1mcr each"]].map(([item,cost])=>(
+              <tr key={item}><td style={{ padding:"2px 16px 2px 0", color:"#4a8a4a" }}>{item}</td><td style={{ padding:"2px 0", color:"#88aacc" }}>{cost}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <div>Ammo resupply: Check after any engagement using ship weapons. Failure = Disadvantage or auto-fail on future Battle Checks.</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
-  const [tab, setTab] = useState("ticker"); // "ticker" | "jobs"
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, portfolio, catalogs, rollConfig, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
+  const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "session"
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
   const [showQR, setShowQR] = useState(false);
@@ -1043,7 +1805,11 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
 
         {/* Tab bar */}
         <div style={{ display: "flex", gap: "4px", marginBottom: "16px" }}>
-          {[["ticker","MARKET"],["jobs", jobs.filter(j=>j.status==="active").length > 0 ? `JOBS (${jobs.filter(j=>j.status==="active").length})` : "JOBS"]].map(([id, label]) => (
+          {[
+            ["ticker","MARKET"],
+            ["jobs", jobs.filter(j=>j.status==="active").length > 0 ? `JOBS (${jobs.filter(j=>j.status==="active").length})` : "JOBS"],
+            ["session", debt.length > 0 ? `SESSION (+${debt.length} STRESS)` : "SESSION"],
+          ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ background: tab === id ? "rgba(68,255,136,0.06)" : "none",
                 border: `1px solid ${tab === id ? GREEN_DARK : "#2a3a2a"}`,
@@ -1080,7 +1846,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         {tab === "ticker" && (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "24px" }}>
-              <StockRows stocks={stocks} history={history} visible={visible} expandedStock={expandedStock} setExpandedStock={setExpandedStock} />
+              <StockRows stocks={stocks} history={history} visible={visible} expandedStock={expandedStock} setExpandedStock={setExpandedStock} catalogs={catalogs} />
             </div>
 
             <div style={{ borderTop: `1px solid ${GREEN_DARK}`, paddingTop: "12px" }}>
@@ -1113,7 +1879,11 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
 
         {/* Job board tab */}
         {tab === "jobs" && (
-          <PlayerJobBoard jobs={jobs} stocks={stocks} />
+          <PlayerJobBoard jobs={jobs} stocks={stocks} catalogs={catalogs} />
+        )}
+
+        {tab === "session" && (
+          <PlayerSessionTab debt={debt} rollConfig={rollConfig} />
         )}
 
         {/* Theme switcher */}
@@ -1665,9 +2435,11 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
 
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
   storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig,
-  jobs, setJobs, theme, setTheme, onLogout, KEYS }) {
+  jobs, setJobs, crew, setCrew, debt, setDebt, portfolio, setPortfolio, catalogs, setCatalogs,
+  theme, setTheme, onLogout, KEYS }) {
 
-  const [panel, setPanel] = useState("corps"); // "headline" | "jobs" | "economy" | "corps" | "settings"
+  const [panel, setPanel] = useState("corps"); // "headline" | "jobs" | "economy" | "corps" | "session" | "settings"
+  const [sessionTab, setSessionTab] = useState("payout"); // "payout"|"debt"|"portfolio"|"ship"|"contractors"|"catalog"
   const [pendingAdvance, setPendingAdvance] = useState(null);
   const [pendingVariance, setPendingVariance] = useState(null);
   const [pendingHealthShift, setPendingHealthShift] = useState(null);
@@ -1865,6 +2637,34 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     }
     setJobs(newJobs);
     saveAll(sorted, newHeadlines, newHistory, newDate, updatedMergers, newJobs);
+
+    // ── Portfolio: decrement lock counters ──
+    if (portfolio.length > 0) {
+      const newPortfolio = portfolio.map(h => h.lockScenarios > 0 ? { ...h, lockScenarios: h.lockScenarios - 1 } : h);
+      setPortfolio(newPortfolio);
+      wardenSet(KEYS.portfolio, newPortfolio);
+    }
+
+    // ── Catalogs: auto-INELIGIBLE for collapsed/merged companies ──
+    const nowInactive = new Set([
+      ...collapsingNormal.map(b => b.name),
+      ...collapsingWithMerger.map(b => b.name),
+    ]);
+    if (nowInactive.size > 0) {
+      const newCatalogs = { ...catalogs };
+      for (const name of nowInactive) {
+        if (newCatalogs[name] && newCatalogs[name].status !== "ineligible") {
+          const reason = collapsingWithMerger.find(b => b.name === name) ? "Merged" : "Company collapsed";
+          newCatalogs[name] = { ...newCatalogs[name], status: "ineligible", ineligibleReason: reason };
+        } else if (!newCatalogs[name]) {
+          const reason = collapsingWithMerger.find(b => b.name === name) ? "Merged" : "Company collapsed";
+          newCatalogs[name] = { status: "ineligible", ineligibleReason: reason, benefits: "", items: [] };
+        }
+      }
+      setCatalogs(newCatalogs);
+      wardenSet(KEYS.catalogs, newCatalogs);
+    }
+
     setPendingAdvance(null);
     setPanel(null);
   };
@@ -1914,7 +2714,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {/* Toolbar — scrollable on mobile */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px",
           overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["settings","SETTINGS"]].map(([p, label]) => (
+          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["session","SESSION"],["settings","SETTINGS"]].map(([p, label]) => (
             <button key={p} onClick={() => setPanel(panel === p ? null : p)}
               style={{ background: panel === p ? "rgba(68,136,255,0.1)" : "none",
                 border: `1px solid ${panel === p ? "#4488ff" : "#1a2a3a"}`,
@@ -2666,6 +3466,51 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           </div>
         )}
 
+        {/* Panel: Session */}
+        {panel === "session" && (
+          <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
+            <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>POST-SCENARIO</div>
+            {/* Sub-tab bar */}
+            <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "20px", borderBottom: `1px solid #1a2a3a`, paddingBottom: "12px" }}>
+              {[["payout","PAYOUT"],["debt","DEBT"],["portfolio","PORTFOLIO"],["ship","SHIP"],["contractors","CONTRACTORS"],["catalog","CATALOG"]].map(([id, lbl]) => (
+                <button key={id} onClick={() => setSessionTab(id)}
+                  style={{ background: sessionTab === id ? "rgba(68,136,255,0.12)" : "none",
+                    border: `1px solid ${sessionTab === id ? "#334488" : "#1a2a3a"}`,
+                    color: sessionTab === id ? "#88aadd" : "#445566",
+                    fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                    padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {lbl}
+                  {id === "debt" && debt.length > 0 && <span style={{ color: "#cc5555", marginLeft: "4px" }}>({debt.length})</span>}
+                  {id === "portfolio" && portfolio.length > 0 && <span style={{ color: "#88bbff", marginLeft: "4px" }}>({portfolio.length})</span>}
+                </button>
+              ))}
+            </div>
+            {sessionTab === "payout" && (
+              <PayoutCalculator jobs={jobs} crew={crew} setCrew={setCrew} stocks={stocks}
+                portfolio={portfolio} setPortfolio={setPortfolio}
+                rollConfig={rollConfig} date={date}
+                wardenSet={wardenSet} KEYS={KEYS} showToast={showToast} />
+            )}
+            {sessionTab === "debt" && (
+              <DebtPanel debt={debt} setDebt={setDebt} wardenSet={wardenSet} KEYS={KEYS} />
+            )}
+            {sessionTab === "portfolio" && (
+              <PortfolioPanel portfolio={portfolio} setPortfolio={setPortfolio}
+                stocks={stocks} rollConfig={rollConfig} setRollConfig={setRollConfig}
+                saveSettings={saveSettings} wardenSet={wardenSet} KEYS={KEYS} />
+            )}
+            {sessionTab === "ship" && (
+              <ShipAccountPanel crew={crew} setCrew={setCrew} rollConfig={rollConfig} wardenSet={wardenSet} KEYS={KEYS} />
+            )}
+            {sessionTab === "contractors" && (
+              <ContractorPanel crew={crew} setCrew={setCrew} wardenSet={wardenSet} KEYS={KEYS} />
+            )}
+            {sessionTab === "catalog" && (
+              <CatalogPanel catalogs={catalogs} setCatalogs={setCatalogs} stocks={stocks} wardenSet={wardenSet} KEYS={KEYS} />
+            )}
+          </div>
+        )}
+
         {/* Panel: Settings */}
         {panel === "settings" && (
           <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
@@ -2740,6 +3585,47 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               </div>
             </div>
 
+            {/* ── Session Settings ── */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
+              <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "14px" }}>SESSION SETTINGS</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <span style={{ color: "#6688aa", fontSize: "11px", minWidth: "160px" }}>Training time unit</span>
+                {[["months","MONTHS (house rule)"],["years","YEARS (standard)"]].map(([val, lbl]) => (
+                  <button key={val} onClick={() => {
+                    const next = { ...rollConfig, trainingTimeUnit: val };
+                    setRollConfig(next); saveSettings({ rollConfig: next });
+                  }} style={{ background: (rollConfig.trainingTimeUnit || "months") === val ? "rgba(68,136,255,0.08)" : "none",
+                    border: `1px solid ${(rollConfig.trainingTimeUnit || "months") === val ? "#334488" : "#1a2a3a"}`,
+                    color: (rollConfig.trainingTimeUnit || "months") === val ? "#88aadd" : "#445566",
+                    fontFamily: MONO, fontSize: "10px", padding: "4px 10px", cursor: "pointer" }}>{lbl}</button>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <span style={{ color: "#6688aa", fontSize: "11px", minWidth: "160px" }}>Ship ownership</span>
+                {[["company","COMPANY / MILITARY"],["owner","OWNER-OPERATOR"],["freelancer","FREELANCER"]].map(([val, lbl]) => (
+                  <button key={val} onClick={() => {
+                    const next = { ...rollConfig, ownershipType: val };
+                    setRollConfig(next); saveSettings({ rollConfig: next });
+                  }} style={{ background: (rollConfig.ownershipType || "company") === val ? "rgba(68,136,255,0.08)" : "none",
+                    border: `1px solid ${(rollConfig.ownershipType || "company") === val ? "#334488" : "#1a2a3a"}`,
+                    color: (rollConfig.ownershipType || "company") === val ? "#88aadd" : "#445566",
+                    fontFamily: MONO, fontSize: "10px", padding: "4px 10px", cursor: "pointer" }}>{lbl}</button>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ color: "#6688aa", fontSize: "11px", minWidth: "160px" }}>Crew payment mode</span>
+                {[["all","ALL SAME"],["per","PER CREW"]].map(([val, lbl]) => (
+                  <button key={val} onClick={() => {
+                    const next = { ...rollConfig, crewPaymentMode: val };
+                    setRollConfig(next); saveSettings({ rollConfig: next });
+                  }} style={{ background: (rollConfig.crewPaymentMode || "all") === val ? "rgba(68,136,255,0.08)" : "none",
+                    border: `1px solid ${(rollConfig.crewPaymentMode || "all") === val ? "#334488" : "#1a2a3a"}`,
+                    color: (rollConfig.crewPaymentMode || "all") === val ? "#88aadd" : "#445566",
+                    fontFamily: MONO, fontSize: "10px", padding: "4px 10px", cursor: "pointer" }}>{lbl}</button>
+                ))}
+              </div>
+            </div>
+
             <div style={{ borderTop: `1px solid #1a2a3a`, marginTop: "24px", paddingTop: "20px" }}>
             <div style={{ color: "#6688aa", fontSize: "11px", marginBottom: "12px" }}>MERGER SETTINGS</div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
@@ -2766,7 +3652,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 style={{ ...inputStyle, width: "140px" }} />
               <button onClick={handleSavePin} style={{ ...actionBtn }}>SAVE PIN</button>
               <button onClick={() => {
-                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, jobs, exportedAt: new Date().toISOString() };
+                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, jobs, crew, debt, portfolio, catalogs, exportedAt: new Date().toISOString() };
                 const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -2799,6 +3685,10 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         const m = data.mergers || INITIAL_MERGERS;
                         const am = data.alwaysMerge ?? true;
                         const j = Array.isArray(data.jobs) ? data.jobs : [];
+                        const cr = data.crew && typeof data.crew === "object" && data.crew.profiles != null ? data.crew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] };
+                        const db = Array.isArray(data.debt) ? data.debt : [];
+                        const pf = Array.isArray(data.portfolio) ? data.portfolio : [];
+                        const cat = data.catalogs && typeof data.catalogs === "object" ? data.catalogs : {};
                         setStocks(sortByPrice(s));
                         setHeadlines(h);
                         setHistory(hist);
@@ -2806,12 +3696,20 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         setMergers(m);
                         setAlwaysMerge(am);
                         setJobs(j);
+                        setCrew(cr);
+                        setDebt(db);
+                        setPortfolio(pf);
+                        setCatalogs(cat);
                         await wardenSet(KEYS.stocks, s);
                         await wardenSet(KEYS.headlines, h);
                         await wardenSet(KEYS.history, hist);
                         await wardenSet(KEYS.date, d);
                         await wardenSet(KEYS.mergers, m);
                         await wardenSet(KEYS.jobs, j);
+                        await wardenSet(KEYS.crew, cr);
+                        await wardenSet(KEYS.debt, db);
+                        await wardenSet(KEYS.portfolio, pf);
+                        await wardenSet(KEYS.catalogs, cat);
                         await wardenSet(KEYS.settings, { alwaysMerge: am, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
                         e.target.value = "";
                         alert("Backup restored successfully.");
@@ -2997,6 +3895,10 @@ export default function StonksApp({ roomCode = "stonks" }) {
   const [alwaysMerge, setAlwaysMerge] = useState(true);
   const [rollConfig, setRollConfig] = useState(DEFAULT_ROLL_CONFIG);
   const [jobs, setJobs] = useState([]);
+  const [crew, setCrew] = useState({ profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] });
+  const [debt, setDebt] = useState([]);
+  const [portfolio, setPortfolio] = useState([]);
+  const [catalogs, setCatalogs] = useState({});
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -3012,6 +3914,10 @@ export default function StonksApp({ roomCode = "stonks" }) {
       const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
       const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
       const j = await safeGet(KEYS.jobs, []);
+      const cr = await safeGet(KEYS.crew, { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] });
+      const db = await safeGet(KEYS.debt, []);
+      const pf = await safeGet(KEYS.portfolio, []);
+      const cat = await safeGet(KEYS.catalogs, {});
       setStocks(sortByPrice(s));
       setHeadlines(h);
       setHistory(hist);
@@ -3021,6 +3927,12 @@ export default function StonksApp({ roomCode = "stonks" }) {
       setAlwaysMerge(sett.alwaysMerge ?? true);
       setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
       setJobs(Array.isArray(j) ? j : []);
+      // Migrate crew from old array format to new object format
+      setCrew(Array.isArray(cr) ? { profiles: cr, contractors: [], shipBalance: 0, shipExpenses: [] }
+             : (cr && typeof cr === "object" && cr.profiles != null ? cr : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }));
+      setDebt(Array.isArray(db) ? db : []);
+      setPortfolio(Array.isArray(pf) ? pf : []);
+      setCatalogs(cat && typeof cat === "object" ? cat : {});
       setLoaded(true);
     })();
   }, []);
@@ -3103,6 +4015,10 @@ export default function StonksApp({ roomCode = "stonks" }) {
         alwaysMerge={alwaysMerge} setAlwaysMerge={setAlwaysMerge}
         rollConfig={rollConfig} setRollConfig={setRollConfig}
         jobs={jobs} setJobs={setJobs}
+        crew={crew} setCrew={setCrew}
+        debt={debt} setDebt={setDebt}
+        portfolio={portfolio} setPortfolio={setPortfolio}
+        catalogs={catalogs} setCatalogs={setCatalogs}
         theme={theme} setTheme={setTheme}
         onLogout={() => setView("player")}
         KEYS={KEYS}
@@ -3117,6 +4033,10 @@ export default function StonksApp({ roomCode = "stonks" }) {
       yearLabel={rollConfig.yearLabel ?? "Year"} cycleLabel={rollConfig.cycleLabel ?? "Cycle"}
       onSwitchGame={() => { window.location.href = "/"; }}
       jobs={jobs}
+      debt={debt}
+      portfolio={portfolio}
+      catalogs={catalogs}
+      rollConfig={rollConfig}
       theme={theme} setTheme={setTheme}
       onRefresh={async () => {
         const [s, h, hist, d] = await Promise.all([
