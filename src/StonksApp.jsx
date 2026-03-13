@@ -949,6 +949,9 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
             {/* Expanded history */}
             {isExpanded && (
               <div style={{ padding: "8px 14px 14px", borderTop: `1px solid rgba(68,120,68,0.2)` }}>
+                <div style={{ color: "#4a8a4a", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "10px", textTransform: "uppercase" }}>
+                  {s.industry}
+                </div>
                 <div style={{ color: "#3a6a3a", fontSize: "9px", letterSpacing: "0.2em", marginBottom: "8px" }}>
                   PRICE HISTORY (LAST {priceHistory.length} CYCLES)
                 </div>
@@ -965,9 +968,6 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                     ))}
                   </div>
                 )}
-                <div style={{ color: "#2a4a2a", fontSize: "9px", marginTop: "8px", letterSpacing: "0.08em" }}>
-                  {s.industry}
-                </div>
                 {/* Catalog & Benefits */}
                 {(() => {
                   const cat = catalogs[s.name];
@@ -1037,8 +1037,8 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
   const [globalPayType, setGlobalPayType] = useState("cash");
   const [ledger, setLedger] = useState(null);
 
-  const completedJobs = jobs.filter(j => j.status === "completed");
-  const selJob = jobs.find(j => j.id === selJobId);
+  const linkableJobs = jobs.filter(j => j.status === "active" || j.status === "completed");
+  const selJob = jobs.find(j => String(j.id) === String(selJobId));
   const jobCorp = selJob?.company || "";
   const corpStock = stocks.find(s => s.name === jobCorp);
   const currentPrice = corpStock?.price || 0;
@@ -1112,14 +1112,22 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
         <div>{lbl("LINK TO JOB")}
           <select value={selJobId} onChange={e => setSelJobId(e.target.value)} style={{ ...sI, minWidth: "200px" }}>
             <option value="">— none —</option>
-            {completedJobs.map(j => <option key={j.id} value={j.id}>{j.company} — {(j.content||"").slice(0,28)}</option>)}
+            {linkableJobs.map(j => <option key={j.id} value={String(j.id)}>{j.company} — {(j.content||"").slice(0,28)} [{j.status}]</option>)}
           </select>
         </div>
         <div>{lbl("MONTHS")}
-          <input type="number" min={1} value={months} onChange={e => setMonths(Math.max(1,parseInt(e.target.value)||1))} style={{ ...sI, width: "60px" }} />
+          <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+            <button onClick={()=>setMonths(m=>Math.max(1,m-1))} style={{ ...sI, padding:"2px 8px", cursor:"pointer" }}>−</button>
+            <span style={{ color:"#aabbcc", minWidth:"28px", textAlign:"center" }}>{months}</span>
+            <button onClick={()=>setMonths(m=>m+1)} style={{ ...sI, padding:"2px 8px", cursor:"pointer" }}>+</button>
+          </div>
         </div>
         <div>{lbl("JUMPS (×1kcr)")}
-          <input type="number" min={0} value={jumps} onChange={e => setJumps(Math.max(0,parseInt(e.target.value)||0))} style={{ ...sI, width: "60px" }} />
+          <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+            <button onClick={()=>setJumps(j=>Math.max(0,j-1))} style={{ ...sI, padding:"2px 8px", cursor:"pointer" }}>−</button>
+            <span style={{ color:"#aabbcc", minWidth:"28px", textAlign:"center" }}>{jumps}</span>
+            <button onClick={()=>setJumps(j=>j+1)} style={{ ...sI, padding:"2px 8px", cursor:"pointer" }}>+</button>
+          </div>
         </div>
         <div>{lbl("HAZARD")}
           <select value={hazard} onChange={e => setHazard(e.target.value)} style={sI}>
@@ -1198,9 +1206,9 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
                 {[["trained","T",500],["expert","E",1000],["master","M",2000]].map(([field,lbl2,rate]) => (
                   <div key={field} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
                     <span style={{ color:"#445566", fontSize:"10px" }}>{lbl2}</span>
-                    <input type="number" min={0} max={10} value={p[field]||0}
-                      onChange={e=>updateProfile(p.id,{[field]:parseInt(e.target.value)||0})}
-                      style={{ ...sI, width:"38px", padding:"2px 4px" }} />
+                    <button onClick={()=>updateProfile(p.id,{[field]:Math.max(0,(p[field]||0)-1)})} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"11px", padding:"1px 6px", cursor:"pointer" }}>−</button>
+                    <span style={{ color:"#aabbcc", minWidth:"20px", textAlign:"center", fontSize:"12px" }}>{p[field]||0}</span>
+                    <button onClick={()=>updateProfile(p.id,{[field]:(p[field]||0)+1})} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"11px", padding:"1px 6px", cursor:"pointer" }}>+</button>
                     <span style={{ color:"#334455", fontSize:"9px" }}>×{rate.toLocaleString()}</span>
                   </div>
                 ))}
@@ -1310,7 +1318,13 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
 function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
   const totalValue = portfolio.reduce((s, h) => { const st = stocks.find(x=>x.name===h.company); return s + (st ? st.price * h.shares : 0); }, 0);
   const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
-  const add = () => { const next=[...portfolio,{id:Date.now(),company:stocks[0]?.name||"",shares:0,grantPrice:0,lockScenarios:0}]; setPortfolio(next); wardenSet(KEYS.portfolio,next); };
+  const btnS = { background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"13px", padding:"2px 9px", cursor:"pointer", lineHeight:1 };
+  const add = () => {
+    const co = stocks.find(s=>!s.is_collapsed)?.name || "";
+    const st = stocks.find(s=>s.name===co);
+    const next=[...portfolio,{id:Date.now(),company:co,shares:0,grantPrice:st?.price||0,lockScenarios:0}];
+    setPortfolio(next); wardenSet(KEYS.portfolio,next);
+  };
   const upd = (id,p) => { const next=portfolio.map(h=>h.id===id?{...h,...p}:h); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
   const del = (id) => { const next=portfolio.filter(h=>h.id!==id); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
   return (
@@ -1321,48 +1335,44 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
         </div>
       )}
       {portfolio.length === 0 && <div style={{ color:"#334455", fontSize:"11px", padding:"10px 0" }}>No holdings. Equity payouts (PAYOUT tab) lock shares here automatically.</div>}
-      <div style={{ overflowX:"auto" }}>
-        {portfolio.length > 0 && (
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"12px" }}>
-            <thead><tr>
-              {["COMPANY","SHARES","GRANT","CURRENT","VALUE","G/L","STATUS",""].map(h => (
-                <th key={h} style={{ padding:"4px 6px", textAlign:"left", color:"#445566", fontWeight:"normal", fontSize:"10px" }}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {portfolio.map(h => {
-                const st = stocks.find(x=>x.name===h.company);
-                const cur = st?.price||0;
-                const val = cur * h.shares;
-                const gl = (cur - h.grantPrice) * h.shares;
-                const locked = h.lockScenarios > 0;
-                return (
-                  <tr key={h.id} style={{ borderBottom:`1px solid rgba(26,42,58,0.4)` }}>
-                    <td style={{ padding:"4px 6px" }}>
-                      <select value={h.company} onChange={e=>upd(h.id,{company:e.target.value})} style={{ ...sI, padding:"1px 4px", fontSize:"10px" }}>
-                        {stocks.map(s=><option key={s.name}>{s.name}</option>)}
-                      </select>
-                    </td>
-                    <td style={{ padding:"4px 6px" }}><input type="number" min={0} value={h.shares} onChange={e=>upd(h.id,{shares:parseInt(e.target.value)||0})} style={{ ...sI, width:"55px", padding:"2px 4px" }} /></td>
-                    <td style={{ padding:"4px 6px" }}><input type="number" min={0} value={h.grantPrice} onChange={e=>upd(h.id,{grantPrice:parseInt(e.target.value)||0})} style={{ ...sI, width:"60px", padding:"2px 4px" }} /></td>
-                    <td style={{ padding:"4px 6px", color:"#88bbff" }}>{cur.toLocaleString()}</td>
-                    <td style={{ padding:"4px 6px", color:"#aaccee" }}>{val.toLocaleString()}cr</td>
-                    <td style={{ padding:"4px 6px", color:gl>=0?"#44cc88":"#cc5555" }}>{gl>=0?"+":""}{gl.toLocaleString()}</td>
-                    <td style={{ padding:"4px 6px" }}>
-                      {locked
-                        ? <span style={{ color:AMBER, fontSize:"10px", whiteSpace:"nowrap" }}>🔒 {h.lockScenarios} left</span>
-                        : <span style={{ color:"#44cc88", fontSize:"10px" }}>AVAILABLE</span>}
-                      {locked && <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"1px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"4px", color:"#448844" }}>UNLOCK</button>}
-                    </td>
-                    <td style={{ padding:"4px 6px" }}><button onClick={()=>del(h.id)} style={{ ...sI, padding:"1px 5px", cursor:"pointer", color:"#664444" }}>✕</button></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a8a", fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer" }}>+ ADD HOLDING</button>
+      {portfolio.map(h => {
+        const st = stocks.find(x=>x.name===h.company);
+        const cur = st?.price||0;
+        const val = cur * h.shares;
+        const gl = (cur - (h.grantPrice||cur)) * h.shares;
+        const locked = h.lockScenarios > 0;
+        return (
+          <div key={h.id} style={{ border:`1px solid #1a2a3a`, padding:"10px 12px", marginBottom:"8px" }}>
+            <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"6px" }}>
+              <select value={h.company} onChange={e=>{
+                const ns=stocks.find(s=>s.name===e.target.value);
+                upd(h.id,{company:e.target.value,grantPrice:ns?.price||h.grantPrice});
+              }} style={{ ...sI, flex:1, minWidth:"140px" }}>
+                {stocks.filter(s=>!s.is_collapsed).map(s=><option key={s.name}>{s.name}</option>)}
+              </select>
+              <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+                <button onClick={()=>upd(h.id,{shares:Math.max(0,(h.shares||0)-1)})} style={btnS}>−</button>
+                <span style={{ color:"#aabbcc", minWidth:"32px", textAlign:"center", fontSize:"13px" }}>{h.shares||0}</span>
+                <button onClick={()=>upd(h.id,{shares:(h.shares||0)+1})} style={btnS}>+</button>
+                <span style={{ color:"#445566", fontSize:"10px", marginLeft:"2px" }}>shares</span>
+              </div>
+              <button onClick={()=>del(h.id)} style={{ ...sI, padding:"2px 7px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+            </div>
+            <div style={{ display:"flex", gap:"16px", flexWrap:"wrap", fontSize:"11px" }}>
+              <span style={{ color:"#445566" }}>Grant: <span style={{ color:"#6688aa" }}>{(h.grantPrice||0).toLocaleString()}cr</span></span>
+              <span style={{ color:"#445566" }}>Now: <span style={{ color:"#88bbff" }}>{cur.toLocaleString()}cr</span></span>
+              <span style={{ color:"#445566" }}>Value: <span style={{ color:"#aaccee" }}>{val.toLocaleString()}cr</span></span>
+              <span style={{ color: gl>=0?"#44cc88":"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
+              {locked
+                ? <span style={{ color:AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios!==1?"s":""} locked
+                    <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:"#448844" }}>UNLOCK</button>
+                  </span>
+                : <span style={{ color:"#44cc88" }}>● AVAILABLE</span>}
+            </div>
+          </div>
+        );
+      })}
+      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a8a", fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"4px" }}>+ ADD HOLDING</button>
     </div>
   );
 }
@@ -1568,54 +1578,67 @@ function PlayerSessionTab({ debt, rollConfig }) {
   const [expert, setExpert] = useState(0);
   const [master, setMaster] = useState(0);
   const [negoPct, setNegoPct] = useState(0);
+  const [fuelClass, setFuelClass] = useState("I");
+  const [fuelUnits, setFuelUnits] = useState(0);
+  const [open, setOpen] = useState({ checklist:true, debt:true, payout:false, medical:false, shore:false, training:false, repairs:false });
+  const toggle = (k) => setOpen(o=>({...o,[k]:!o[k]}));
 
   const salary = trained*500 + expert*1000 + master*2000;
   const base = salary * months * (HAZARD_MULT[hazard]);
   const total = Math.round(base * (1 + negoPct/100) + jumps*1000);
   const timeUnit = rollConfig.trainingTimeUnit === "years" ? "years" : "months";
+  const FUEL_COSTS = { I:1000, II:2000, III:5000, IV:50000, V:100000 };
+  const fuelTotal = (FUEL_COSTS[fuelClass]||1000) * fuelUnits;
 
   const sI = { background:"transparent", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, fontSize:"11px", padding:"4px 7px" };
   const TH = { padding:"4px 8px", textAlign:"left", color:"#3a6a3a", fontWeight:"normal", fontSize:"10px" };
   const TD = { padding:"5px 8px", color:GREEN_MID, fontSize:"11px", borderTop:`1px solid rgba(68,100,68,0.2)` };
-  const section = (title) => (
-    <div style={{ color:HEADER_GREEN, fontSize:"10px", letterSpacing:"0.2em", marginBottom:"10px", borderBottom:`1px solid ${GREEN_DARK}`, paddingBottom:"5px" }}>{title}</div>
+
+  const Section = ({ id, title, badge, children }) => (
+    <div style={{ marginBottom:"16px" }}>
+      <button onClick={()=>toggle(id)}
+        style={{ display:"flex", justifyContent:"space-between", alignItems:"center", width:"100%",
+          background:"none", border:"none", borderBottom:`1px solid ${GREEN_DARK}`, paddingBottom:"5px", marginBottom: open[id]?"10px":"0",
+          cursor:"pointer", fontFamily:MONO, textAlign:"left" }}>
+        <span style={{ color:HEADER_GREEN, fontSize:"10px", letterSpacing:"0.2em" }}>{title}{badge ? <span style={{ color:"#cc6666", marginLeft:"8px" }}>{badge}</span> : null}</span>
+        <span style={{ color:GREEN_DARK, fontSize:"10px" }}>{open[id]?"▲":"▼"}</span>
+      </button>
+      {open[id] && children}
+    </div>
   );
 
   return (
     <div style={{ color:GREEN_MID }}>
-      {section("POST-SESSION CHECKLIST")}
-      <div style={{ marginBottom:"24px" }}>
+      <Section id="checklist" title="POST-SESSION CHECKLIST">
         {CHECKLIST_ITEMS.map((item, i) => (
           <div key={i} style={{ display:"flex", gap:"10px", padding:"6px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px" }}>
             <span style={{ color:GREEN_DARK, minWidth:"16px" }}>{i+1}.</span>
             <span>{item}</span>
           </div>
         ))}
-      </div>
+      </Section>
 
       {debt.length > 0 && (
-        <>
-          {section("DEBT OBLIGATIONS")}
-          <div style={{ display:"flex", gap:"20px", marginBottom:"10px" }}>
-            <span style={{ color:"#cc6666", fontSize:"13px" }}>+{debt.length} MIN STRESS</span>
-            <span style={{ color:"#cc8855" }}>{debt.reduce((s,d)=>s+(parseFloat(d.amount)||0),0).toLocaleString()}cr owed</span>
-          </div>
+        <Section id="debt" title="DEBT OBLIGATIONS" badge={`+${debt.length} MIN STRESS`}>
           {debt.map(d => (
             <div key={d.id} style={{ padding:"5px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"8px" }}>
               <span>{d.creditor || "Unknown creditor"}</span>
               <span style={{ color:"#cc7755" }}>{(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo · {d.termMonths} mo left</span>
             </div>
           ))}
-          <div style={{ marginBottom:"20px" }} />
-        </>
+        </Section>
       )}
 
-      {section("PAYOUT CALCULATOR (local — not saved)")}
-      <div style={{ marginBottom:"20px" }}>
+      <Section id="payout" title="PAYOUT CALCULATOR (local — not saved)">
         <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"10px", alignItems:"flex-end" }}>
-          {[["MONTHS",months,setMonths,1,"60px"],["JUMPS (×1kcr)",jumps,setJumps,0,"60px"]].map(([lbl,val,set,min,w]) => (
+          {[["MONTHS",months,setMonths,1],["JUMPS (×1kcr)",jumps,setJumps,0]].map(([lbl,val,set,min]) => (
             <div key={lbl}><div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"3px" }}>{lbl}</div>
-              <input type="number" min={min} value={val} onChange={e=>set(Math.max(min,parseInt(e.target.value)||min))} style={{ ...sI, width:w }} /></div>
+              <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+                <button onClick={()=>set(v=>Math.max(min,v-1))} style={{ ...sI, padding:"2px 7px", cursor:"pointer" }}>−</button>
+                <span style={{ color:GREEN_MID, minWidth:"24px", textAlign:"center" }}>{val}</span>
+                <button onClick={()=>set(v=>v+1)} style={{ ...sI, padding:"2px 7px", cursor:"pointer" }}>+</button>
+              </div>
+            </div>
           ))}
           <div><div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"3px" }}>HAZARD</div>
             <select value={hazard} onChange={e=>setHazard(e.target.value)} style={sI}>
@@ -1632,7 +1655,9 @@ function PlayerSessionTab({ debt, rollConfig }) {
           {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([lbl,val,set,rate]) => (
             <div key={lbl} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
               <span style={{ color:"#3a6a3a", fontSize:"10px" }}>{lbl}</span>
-              <input type="number" min={0} max={10} value={val} onChange={e=>set(parseInt(e.target.value)||0)} style={{ ...sI, width:"38px" }} />
+              <button onClick={()=>set(v=>Math.max(0,v-1))} style={{ ...sI, padding:"1px 6px", cursor:"pointer" }}>−</button>
+              <span style={{ color:GREEN_MID, minWidth:"18px", textAlign:"center" }}>{val}</span>
+              <button onClick={()=>set(v=>v+1)} style={{ ...sI, padding:"1px 6px", cursor:"pointer" }}>+</button>
               <span style={{ color:"#2a5a2a", fontSize:"9px" }}>×{rate.toLocaleString()}</span>
             </div>
           ))}
@@ -1650,10 +1675,9 @@ function PlayerSessionTab({ debt, rollConfig }) {
             </div>
           </div>
         )}
-      </div>
+      </Section>
 
-      {section("MEDICAL TREATMENTS")}
-      <div style={{ marginBottom:"20px" }}>
+      <Section id="medical" title="MEDICAL TREATMENTS">
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"8px" }}>
           <thead><tr>{["TREATMENT","COST","EFFECT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
           <tbody>{TREATMENTS_TABLE.map(([t,c,e])=>(
@@ -1663,10 +1687,9 @@ function PlayerSessionTab({ debt, rollConfig }) {
         <div style={{ color:"#3a6a3a", fontSize:"10px", lineHeight:1.6 }}>
           <span style={{ color:"#4a8a4a" }}>REST SAVE:</span> Roll 1d100 under worst Save in a safe location. On success, reduce Stress by the ones digit. Advantage from: consensual sex, drug use, heavy drinking, or Wellness Counselor.
         </div>
-      </div>
+      </Section>
 
-      {section("SHORE LEAVE")}
-      <div style={{ marginBottom:"20px" }}>
+      <Section id="shore" title="SHORE LEAVE">
         <div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"8px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"10px" }}>
           <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
@@ -1680,10 +1703,9 @@ function PlayerSessionTab({ debt, rollConfig }) {
             <tr key={r}><td style={{ ...TD, color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td><td style={TD}>{o}</td></tr>
           ))}</tbody>
         </table>
-      </div>
+      </Section>
 
-      {section(`SKILL TRAINING — ${timeUnit.toUpperCase()}`)}
-      <div style={{ marginBottom:"20px" }}>
+      <Section id="training" title={`SKILL TRAINING — ${timeUnit.toUpperCase()}`}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"12px" }}>
           <thead><tr>{["TIER","PREREQ","DURATION","COST","BONUS"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
           <tbody>{TRAINING_TABLE.map(([tier,req,dur,cost,bonus])=>(
@@ -1706,26 +1728,51 @@ function PlayerSessionTab({ debt, rollConfig }) {
             <tr key={r}><td style={{ ...TD, color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td><td style={TD}>{o}</td></tr>
           ))}</tbody>
         </table>
-      </div>
+      </Section>
 
-      {section("SHIP REPAIRS & MAINTENANCE")}
-      <div style={{ marginBottom:"20px", color:"#3a6a3a", fontSize:"10px", lineHeight:1.7 }}>
-        <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>MAJOR REPAIRS</div>
-        <div style={{ marginBottom:"8px" }}>Must be done in port. Cost: 1d5mcr × Ship Class per Hull/Megadamage point. Time: months to a year. <span style={{ color:GREEN_MID }}>Machine Shop exception:</span> repair up to 3 MDMG + 3 Hull without port; resupply 200kcr × Ship Class after.</div>
-        <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>MINOR REPAIRS</div>
-        <div style={{ marginBottom:"8px" }}>Done in flight by crew. Time: 2d10 days. Critical Failure escalates to Major Repair.</div>
-        <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>ANNUAL MAINTENANCE CHECK</div>
-        <div style={{ marginBottom:"8px" }}>Roll Systems Check annually. Failure: roll Maintenance Issues Table, all crew +1 Stress. Critical Failure: two rolls, entire crew Panic Check.</div>
-        <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>OPERATIONAL COSTS</div>
-        <table style={{ borderCollapse:"collapse", marginBottom:"8px" }}>
-          <tbody>
-            {[["Fuel (Class-I)","1kcr/unit"],["Fuel (Class-V)","100kcr/unit"],["Warp Core","1mcr each"]].map(([item,cost])=>(
-              <tr key={item}><td style={{ padding:"2px 16px 2px 0", color:"#4a8a4a" }}>{item}</td><td style={{ padding:"2px 0", color:"#88aacc" }}>{cost}</td></tr>
-            ))}
-          </tbody>
-        </table>
-        <div>Ammo resupply: Check after any engagement using ship weapons. Failure = Disadvantage or auto-fail on future Battle Checks.</div>
-      </div>
+      <Section id="repairs" title="SHIP REPAIRS & MAINTENANCE">
+        <div style={{ color:"#3a6a3a", fontSize:"10px", lineHeight:1.7 }}>
+          <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>MAJOR REPAIRS</div>
+          <div style={{ marginBottom:"8px" }}>Must be done in port. Cost: 1d5mcr × Ship Class per Hull/Megadamage point. Time: months to a year. <span style={{ color:GREEN_MID }}>Machine Shop exception:</span> repair up to 3 MDMG + 3 Hull without port; resupply 200kcr × Ship Class after.</div>
+          <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>MINOR REPAIRS</div>
+          <div style={{ marginBottom:"8px" }}>Done in flight by crew. Time: 2d10 days. Critical Failure escalates to Major Repair.</div>
+          <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>ANNUAL MAINTENANCE CHECK</div>
+          <div style={{ marginBottom:"12px" }}>Roll Systems Check annually. Failure: roll Maintenance Issues Table, all crew +1 Stress. Critical Failure: two rolls, entire crew Panic Check.</div>
+
+          <div style={{ color:"#4a8a4a", marginBottom:"8px" }}>FUEL CALCULATOR</div>
+          <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", alignItems:"center", marginBottom:"8px" }}>
+            <div>
+              <div style={{ color:"#3a6a3a", fontSize:"9px", marginBottom:"3px" }}>CLASS</div>
+              <select value={fuelClass} onChange={e=>setFuelClass(e.target.value)}
+                style={{ background:"transparent", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, fontSize:"11px", padding:"3px 6px" }}>
+              {Object.entries(FUEL_COSTS).map(([c,cost])=><option key={c} value={c}>Class-{c} ({(cost/1000).toLocaleString()}kcr)</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ color:"#3a6a3a", fontSize:"9px", marginBottom:"3px" }}>UNITS</div>
+              <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+                <button onClick={()=>setFuelUnits(v=>Math.max(0,v-1))} style={{ background:"none", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, padding:"2px 7px", cursor:"pointer" }}>−</button>
+                <span style={{ color:GREEN_MID, minWidth:"28px", textAlign:"center" }}>{fuelUnits}</span>
+                <button onClick={()=>setFuelUnits(v=>v+1)} style={{ background:"none", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, padding:"2px 7px", cursor:"pointer" }}>+</button>
+              </div>
+            </div>
+            {fuelUnits > 0 && (
+              <div style={{ color:HEADER_GREEN, fontSize:"13px", fontWeight:"bold" }}>{fuelTotal.toLocaleString()}cr</div>
+            )}
+          </div>
+          <table style={{ borderCollapse:"collapse", marginBottom:"10px" }}>
+            <thead><tr>{["CLASS","COST / UNIT"].map(h=><th key={h} style={{ ...TH, fontSize:"9px" }}>{h}</th>)}</tr></thead>
+            <tbody>
+              {[["I","1,000cr (1kcr)"],["II","2,000cr (2kcr)"],["III","5,000cr (5kcr)"],["IV","50,000cr (50kcr)"],["V","100,000cr (100kcr)"]].map(([cls,cost])=>(
+                <tr key={cls}><td style={{ padding:"2px 16px 2px 0", color:"#4a8a4a" }}>Class-{cls}</td><td style={{ padding:"2px 0", color:"#88aacc" }}>{cost}</td></tr>
+              ))}
+              <tr><td style={{ padding:"4px 16px 2px 0", color:"#4a8a4a" }}>Warp Core</td><td style={{ padding:"4px 0", color:"#88aacc" }}>1mcr each</td></tr>
+              <tr><td style={{ padding:"2px 16px 2px 0", color:"#4a8a4a" }}>Vessel Tow</td><td style={{ padding:"2px 0", color:"#88aacc" }}>500kcr</td></tr>
+            </tbody>
+          </table>
+          <div>Ammo resupply: Check after any engagement using ship weapons. Failure = Disadvantage or auto-fail on future Battle Checks.</div>
+        </div>
+      </Section>
     </div>
   );
 }
@@ -1733,7 +1780,7 @@ function PlayerSessionTab({ debt, rollConfig }) {
 // ─── Player View ──────────────────────────────────────────────────────────────
 
 function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, portfolio, catalogs, rollConfig, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
-  const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "session"
+  const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "downtime"
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
   const [showQR, setShowQR] = useState(false);
@@ -1808,7 +1855,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
           {[
             ["ticker","MARKET"],
             ["jobs", jobs.filter(j=>j.status==="active").length > 0 ? `JOBS (${jobs.filter(j=>j.status==="active").length})` : "JOBS"],
-            ["session", debt.length > 0 ? `SESSION (+${debt.length} STRESS)` : "SESSION"],
+            ["downtime", debt.length > 0 ? `DOWNTIME (+${debt.length} STRESS)` : "DOWNTIME"],
           ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ background: tab === id ? "rgba(68,255,136,0.06)" : "none",
@@ -1882,7 +1929,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
           <PlayerJobBoard jobs={jobs} stocks={stocks} catalogs={catalogs} />
         )}
 
-        {tab === "session" && (
+        {tab === "downtime" && (
           <PlayerSessionTab debt={debt} rollConfig={rollConfig} />
         )}
 
