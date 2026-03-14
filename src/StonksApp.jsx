@@ -428,7 +428,7 @@ function JobCard({ job, isOmniCorp, minimal = false }) {
       )}
       {renderJobContent(job)}
       {postedLabel && !minimal && (
-        <div style={{ color: "#2a4a2a", fontSize: "9px", marginTop: "8px", letterSpacing: "0.1em" }}>
+        <div style={{ color: GREEN_DARK, fontSize: "9px", marginTop: "8px", letterSpacing: "0.1em" }}>
           POSTED {postedLabel}
         </div>
       )}
@@ -789,7 +789,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
           ))}
           <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
             <button onClick={() => { setEditTarget("active"); setEditingId("new"); }}
-              style={{ background: "none", border: `1px solid #2a3a2a`, color: "#4a6a4a",
+              style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
               + NEW JOB TO BOARD
             </button>
@@ -823,7 +823,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
           ))}
           <div style={{ marginTop: "8px" }}>
             <button onClick={() => { setEditTarget("pool"); setEditingId("new"); }}
-              style={{ background: "none", border: `1px solid #2a3a2a`, color: "#4a6a4a",
+              style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
               + NEW JOB TO POOL
             </button>
@@ -908,7 +908,7 @@ function PlayerJobBoard({ jobs, stocks }) {
             <div style={{ marginTop: "12px" }}>
               {completedJobs.map(job => (
                 <div key={job.id} style={{ marginBottom: "12px", opacity: 0.55 }}>
-                  <div style={{ color: "#2a4a2a", fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>
+                  <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>
                     COMPLETED CYC {String(job.cycle_completed ?? "?").padStart(2,"0")} — {job.company}
                   </div>
                   <JobCard job={job} isOmniCorp={false} minimal />
@@ -990,7 +990,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                 {s.name}
                 {s.is_collapsed && <span style={{ color: "#444", marginLeft: "8px" }}>— DELISTED</span>}
                 {s.is_frozen && !s.is_collapsed && <span style={{ color: "#4488cc", marginLeft: "8px", fontSize: "10px" }}>❄</span>}
-                <span style={{ color: "#2a4a2a", fontSize: "10px", marginLeft: "8px" }}>{isExpanded ? "▲" : "▼"}</span>
+                <span style={{ color: GREEN_DARK, fontSize: "10px", marginLeft: "8px" }}>{isExpanded ? "▲" : "▼"}</span>
               </div>
               <div style={{ color: s.is_omnicorp ? AMBER : s.is_collapsed ? "#444" : HEADER_GREEN,
                 fontSize: "14px", minWidth: "80px", textAlign: "right", fontWeight: "bold" }}>
@@ -1004,20 +1004,20 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
             {/* Expanded history */}
             {isExpanded && (
               <div style={{ padding: "8px 14px 14px", borderTop: `1px solid rgba(68,120,68,0.2)` }}>
-                <div style={{ color: "#4a8a4a", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "10px", textTransform: "uppercase" }}>
+                <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "10px", textTransform: "uppercase" }}>
                   {s.industry}
                 </div>
-                <div style={{ color: "#3a6a3a", fontSize: "9px", letterSpacing: "0.2em", marginBottom: "8px" }}>
+                <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "8px" }}>
                   PRICE HISTORY (LAST {priceHistory.length} CYCLES)
                 </div>
                 {priceHistory.length === 0 ? (
-                  <div style={{ color: "#2a4a2a", fontSize: "10px" }}>No history recorded yet.</div>
+                  <div style={{ color: GREEN_DARK, fontSize: "10px" }}>No history recorded yet.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                     {[...priceHistory].reverse().map((h, idx) => (
                       <div key={idx} style={{ display: "flex", justifyContent: "space-between",
-                        fontSize: "10px", color: "#4a7a4a", padding: "1px 0" }}>
-                        <span style={{ color: "#2a4a2a" }}>CYC {String(h.date?.cycle ?? "?").padStart(2,"0")}</span>
+                        fontSize: "10px", color: GREEN_DARK, padding: "1px 0" }}>
+                        <span style={{ color: GREEN_DARK }}>CYC {String(h.date?.cycle ?? "?").padStart(2,"0")}</span>
                         <span style={{ color: HEADER_GREEN }}>{h.price.toLocaleString()}cr</span>
                       </div>
                     ))}
@@ -1043,7 +1043,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                       )}
                       {!isIneligible && cat.items && cat.items.length > 0 && (
                         <div>
-                          <div style={{ color: "#2a5a2a", fontSize: "9px", letterSpacing: "0.15em", marginBottom: "5px" }}>CATALOG</div>
+                          <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "5px" }}>CATALOG</div>
                           {cat.items.map(it => (
                             <div key={it.id} style={{ display: "flex", gap: "8px", padding: "3px 0", fontSize: "10px",
                               borderBottom: `1px solid rgba(68,100,68,0.1)`,
@@ -1051,7 +1051,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                               textDecoration: isRevoked ? "line-through" : "none" }}>
                               <span style={{ flex: 2, color: isRevoked ? "#444" : GREEN_DIM }}>{it.name}</span>
                               <span style={{ color: isRevoked ? "#444" : "#4a8aaa", whiteSpace: "nowrap" }}>{it.price}</span>
-                              {it.notes && <span style={{ flex: 2, color: "#2a5a2a" }}>{it.notes}</span>}
+                              {it.notes && <span style={{ flex: 2, color: GREEN_DARK }}>{it.notes}</span>}
                             </div>
                           ))}
                         </div>
@@ -1223,7 +1223,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
           </div>
         ))}
         <button onClick={() => setFlatBonuses(f=>[...f,{id:Date.now(),label:"",amount:""}])}
-          style={{ ...sI, padding:"3px 10px", cursor:"pointer", color:"#4a6a4a", fontSize:"10px" }}>+ BONUS</button>
+          style={{ ...sI, padding:"3px 10px", cursor:"pointer", color:GREEN_MID, fontSize:"10px" }}>+ BONUS</button>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
@@ -1713,8 +1713,8 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
     color:GREEN_MID, minWidth:"36px", textAlign:"center",
     fontSize:"18px", fontFamily:MONO, userSelect:"none",
   };
-  const lbl = { color:"#4a8a4a", fontSize:"12px", letterSpacing:"0.15em", marginBottom:"6px", display:"block" };
-  const TH = { padding:"6px 8px", textAlign:"left", color:"#3a6a3a", fontWeight:"normal", fontSize:"11px" };
+  const lbl = { color:GREEN_MID, fontSize:"12px", letterSpacing:"0.15em", marginBottom:"6px", display:"block" };
+  const TH = { padding:"6px 8px", textAlign:"left", color:GREEN_DARK, fontWeight:"normal", fontSize:"11px" };
   const TD = { padding:"7px 8px", color:GREEN_MID, fontSize:"12px", borderTop:`1px solid rgba(68,100,68,0.2)` };
 
   const Stepper = ({ value, onChange, min=0 }) => (
@@ -1778,15 +1778,15 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px" }}>
             {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([label,val,set,rate]) => (
               <div key={label} style={{ display:"flex", flexDirection:"column", gap:"4px" }}>
-                <span style={{ color:"#4a8a4a", fontSize:"11px", letterSpacing:"0.1em" }}>
-                  {label} <span style={{ color:"#2a5a2a" }}>×{rate >= 1000 ? (rate/1000)+"k" : rate}</span>
+                <span style={{ color:GREEN_MID, fontSize:"11px", letterSpacing:"0.1em" }}>
+                  {label} <span style={{ color:GREEN_DARK }}>×{rate >= 1000 ? (rate/1000)+"k" : rate}</span>
                 </span>
                 <Stepper value={val} onChange={set} />
               </div>
             ))}
           </div>
           {salary > 0 && (
-            <div style={{ color:"#4a8a4a", fontSize:"13px", marginTop:"10px" }}>
+            <div style={{ color:GREEN_MID, fontSize:"13px", marginTop:"10px" }}>
               Base salary: <span style={{ color:GREEN_MID }}>{salary.toLocaleString()}cr/mo</span>
             </div>
           )}
@@ -1794,12 +1794,12 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         {salary > 0 && (
           <div style={{ padding:"14px 16px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,20,0,0.3)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
-              <span style={{ color:"#4a8a4a", fontSize:"13px" }}>CASH PAYOUT</span>
+              <span style={{ color:GREEN_MID, fontSize:"13px" }}>CASH PAYOUT</span>
               <span style={{ color:HEADER_GREEN, fontSize:"22px", fontWeight:"bold" }}>{total.toLocaleString()}cr</span>
             </div>
             <div style={{ borderTop:`1px solid rgba(68,100,68,0.2)`, paddingTop:"12px" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
-                <span style={{ color:"#4a8a4a", fontSize:"13px" }}>EQUITY OPTION</span>
+                <span style={{ color:GREEN_MID, fontSize:"13px" }}>EQUITY OPTION</span>
                 <span style={{ color:GREEN_MID, fontSize:"14px" }}>{Math.round(total*0.5).toLocaleString()}cr cash</span>
               </div>
               <div>
@@ -1821,7 +1821,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
                   return price > 0 ? (
                     <div style={{ marginTop:"10px", padding:"10px 12px", background:"rgba(68,200,68,0.05)", border:`1px solid rgba(68,200,68,0.15)` }}>
                       <span style={{ color:HEADER_GREEN, fontSize:"20px", fontWeight:"bold" }}>{shares} share{shares!==1?"s":""}</span>
-                      <span style={{ color:"#3a6a3a", fontSize:"12px", marginLeft:"10px" }}>@ {price.toLocaleString()}cr each</span>
+                      <span style={{ color:GREEN_DARK, fontSize:"12px", marginLeft:"10px" }}>@ {price.toLocaleString()}cr each</span>
                     </div>
                   ) : <div style={{ color:"#445566", fontSize:"12px", marginTop:"8px" }}>no price data</div>;
                 })()}
@@ -1892,13 +1892,13 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
             ))}</tbody>
           </table>
         </div>
-        <div style={{ color:"#3a6a3a", fontSize:"12px", lineHeight:1.7 }}>
-          <span style={{ color:"#4a8a4a" }}>REST SAVE:</span> Roll 1d100 under worst Save in a safe location. On success, reduce Stress by the ones digit. Advantage from: consensual sex, drug use, heavy drinking, or Wellness Counselor.
+        <div style={{ color:GREEN_DARK, fontSize:"12px", lineHeight:1.7 }}>
+          <span style={{ color:GREEN_MID }}>REST SAVE:</span> Roll 1d100 under worst Save in a safe location. On success, reduce Stress by the ones digit. Advantage from: consensual sex, drug use, heavy drinking, or Wellness Counselor.
         </div>
       </Section>
 
       <Section id="shore" title="SHORE LEAVE">
-        <div style={{ color:"#3a6a3a", fontSize:"12px", marginBottom:"10px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
+        <div style={{ color:GREEN_DARK, fontSize:"12px", marginBottom:"10px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
         <div style={{ overflowX:"auto", marginBottom:"12px" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
@@ -1936,8 +1936,8 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
             ))}</tbody>
           </table>
         </div>
-        <div style={{ color:"#4a8a4a", fontSize:"12px", marginBottom:"6px" }}>MILITARY ENLISTMENT (Alternative Path)</div>
-        <div style={{ color:"#3a6a3a", fontSize:"12px", lineHeight:1.7, marginBottom:"10px" }}>
+        <div style={{ color:GREEN_MID, fontSize:"12px", marginBottom:"6px" }}>MILITARY ENLISTMENT (Alternative Path)</div>
+        <div style={{ color:GREEN_DARK, fontSize:"12px", lineHeight:1.7, marginBottom:"10px" }}>
           Free. Duration: 6 {timeUnit}. Military covers Room &amp; Board, Medical, and Skill Training. Make a Combat Check on completion.
         </div>
         <div style={{ overflowX:"auto" }}>
@@ -1955,14 +1955,14 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       </Section>
 
       <Section id="repairs" title="SHIP REPAIRS & MAINTENANCE">
-        <div style={{ color:"#3a6a3a", fontSize:"12px", lineHeight:1.8 }}>
-          <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>MAJOR REPAIRS</div>
+        <div style={{ color:GREEN_DARK, fontSize:"12px", lineHeight:1.8 }}>
+          <div style={{ color:GREEN_MID, marginBottom:"4px" }}>MAJOR REPAIRS</div>
           <div style={{ marginBottom:"12px" }}>Must be done in port. Cost: 1d5mcr × Ship Class per Hull/Megadamage point. Time: months to a year. <span style={{ color:GREEN_MID }}>Machine Shop exception:</span> repair up to 3 MDMG + 3 Hull without port; resupply 200kcr × Ship Class after.</div>
-          <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>MINOR REPAIRS</div>
+          <div style={{ color:GREEN_MID, marginBottom:"4px" }}>MINOR REPAIRS</div>
           <div style={{ marginBottom:"12px" }}>Done in flight by crew. Time: 2d10 days. Critical Failure escalates to Major Repair.</div>
-          <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>ANNUAL MAINTENANCE CHECK</div>
+          <div style={{ color:GREEN_MID, marginBottom:"4px" }}>ANNUAL MAINTENANCE CHECK</div>
           <div style={{ marginBottom:"16px" }}>Roll Systems Check annually. Failure: roll Maintenance Issues Table, all crew +1 Stress. Critical Failure: two rolls, entire crew Panic Check.</div>
-          <div style={{ color:"#4a8a4a", marginBottom:"10px" }}>OPERATIONAL COSTS</div>
+          <div style={{ color:GREEN_MID, marginBottom:"10px" }}>OPERATIONAL COSTS</div>
           <div style={{ overflowX:"auto", marginBottom:"12px" }}>
             <table style={{ borderCollapse:"collapse" }}>
               <thead><tr>{["CLASS","COST / UNIT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
@@ -1975,7 +1975,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
               </tbody>
             </table>
           </div>
-          <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>AMMO RESUPPLY</div>
+          <div style={{ color:GREEN_MID, marginBottom:"4px" }}>AMMO RESUPPLY</div>
           <div>Check after any engagement using ship weapons. Failure = Disadvantage or auto-fail on future Battle Checks.</div>
         </div>
       </Section>
@@ -2050,7 +2050,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                 width={180} height={180}
               />
             </div>
-            <div style={{ color: "#3a6a3a", fontSize: "9px", letterSpacing: "0.1em", textAlign: "center",
+            <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.1em", textAlign: "center",
               maxWidth: "200px", wordBreak: "break-all" }}>
               {window.location.href}
             </div>
@@ -2088,7 +2088,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                     {h.subtext}
                   </div>
                 )}
-                <div style={{ color: "#2a4a2a", fontSize: "10px", marginTop: "3px" }}>
+                <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "3px" }}>
                   <FictionDate date={h.date} />
                 </div>
               </div>
@@ -2105,7 +2105,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
 
             <div style={{ borderTop: `1px solid ${GREEN_DARK}`, paddingTop: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-                color: "#4a7a4a", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "8px" }}>
+                color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "8px" }}>
                 <span>ALL VALUES IN CREDITS (cr)</span>
                 <span>● LIVE FEED</span>
               </div>
@@ -2127,7 +2127,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                 </button>
                 <button onClick={onSwitchGame}
                   style={{ background: "none", border: `1px solid #2a3a2a`,
-                    color: "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                    color: GREEN_DARK, cursor: "pointer", fontFamily: MONO,
                     fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", minWidth: "110px" }}>
                   [ SWITCH GAME ]
                 </button>
@@ -2351,7 +2351,7 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
             {submitting ? "VERIFYING..." : locked ? "LOCKED" : "AUTHENTICATE"}
           </button>
           <button onClick={onCancel}
-            style={{ background: "none", border: "none", color: "#4a7a4a",
+            style={{ background: "none", border: "none", color: GREEN_DARK,
               fontFamily: MONO, fontSize: "12px", letterSpacing: "0.15em", padding: "10px", cursor: "pointer" }}>
             CANCEL
           </button>
@@ -2382,7 +2382,7 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
             />
             {recoveryError && <div style={{ color: RED, fontSize: "10px", letterSpacing: "0.1em" }}>INVALID PASSPHRASE</div>}
             <button onClick={submitRecovery}
-              style={{ background: "none", border: `1px solid #1a2a1a`, color: "#4a6a4a",
+              style={{ background: "none", border: `1px solid #1a2a1a`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
                 padding: "6px 16px", cursor: "pointer" }}>
               OVERRIDE
@@ -2429,13 +2429,13 @@ function HistoryLog({ history, headlines }) {
 
       {tab === "news" && (
         pastHeadlines.length === 0
-          ? <div style={{ color: "#4a7a4a", fontSize: "11px", padding: "8px 0" }}>NO ARCHIVED HEADLINES</div>
+          ? <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "8px 0" }}>NO ARCHIVED HEADLINES</div>
           : pastHeadlines.map((h, i) => (
             <div key={i} style={{ borderLeft: `2px solid ${i === 0 ? GREEN_DARK : "#2a3a2a"}`,
               paddingLeft: "12px", marginBottom: "14px", opacity: i === 0 ? 0.85 : 0.5 }}>
               <div style={{ color: GREEN_DIM, fontSize: "12px", letterSpacing: "0.05em" }}>{h.headline}</div>
-              {h.subtext && <div style={{ color: "#4a7a4a", fontSize: "10px", marginTop: "2px" }}>{h.subtext}</div>}
-              <div style={{ color: "#2a4a2a", fontSize: "10px", marginTop: "3px" }}>
+              {h.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{h.subtext}</div>}
+              <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "3px" }}>
                 <FictionDate date={h.date || h._cycle} />
               </div>
             </div>
@@ -2444,7 +2444,7 @@ function HistoryLog({ history, headlines }) {
 
       {tab === "market" && (
         history.length === 0
-          ? <div style={{ color: "#4a7a4a", fontSize: "11px", padding: "8px 0" }}>NO MARKET HISTORY</div>
+          ? <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "8px 0" }}>NO MARKET HISTORY</div>
           : [...history].reverse().map((entry, ei) => (
             <div key={ei} style={{ marginBottom: "20px", paddingBottom: "16px",
               borderBottom: `1px solid rgba(42,58,42,0.3)` }}>
@@ -2555,7 +2555,7 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
                 </div>}
               </div>
               <button onClick={() => startEdit(i)}
-                style={{ background: "none", border: `1px solid #1a3a1a`, color: "#4a7a4a",
+                style={{ background: "none", border: `1px solid #1a3a1a`, color: GREEN_DARK,
                   fontFamily: MONO, fontSize: "10px", padding: "2px 7px", cursor: "pointer", flexShrink: 0 }}>
                 EDIT
               </button>
@@ -3140,7 +3140,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   </button>
                 </div>
                 <div>
-                  <div style={{ color: "#4a6a4a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "10px" }}>
+                  <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.12em", marginBottom: "10px" }}>
                     PRICE VARIANCE — price movement only, no health or volatility changes
                   </div>
                   {/* Mode toggle */}
@@ -3580,7 +3580,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               <button onClick={() => {
                 const next = [...mergers, { name: "New Merger", partner1: "Company A", partner2: "Company B", industry: "Combined", triggered: false }];
                 setMergers(next); wardenSet(KEYS.mergers, next);
-              }} style={{ background: "none", border: `1px solid #2a3a2a`, color: "#4a6a4a",
+              }} style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "4px 12px", cursor: "pointer", marginTop: "4px" }}>
                 + ADD MERGER
               </button>
@@ -4008,7 +4008,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 const a = document.createElement("a");
                 a.href = url; a.download = `stonks-backup-${Date.now()}.json`; a.click();
                 URL.revokeObjectURL(url);
-              }} style={{ ...actionBtn, borderColor: "#44ff88", color: "#44ff88" }}>⬇ EXPORT BACKUP</button>
+              }} style={{ ...actionBtn, borderColor: GREEN, color: GREEN }}>⬇ EXPORT BACKUP</button>
               <label style={{ ...actionBtn, borderColor: "#44aaff", color: "#88ccff", cursor: "pointer",
                 display: "inline-block" }}>
                 ⬆ IMPORT BACKUP
