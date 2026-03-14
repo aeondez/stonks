@@ -619,7 +619,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
   // Sort: OmniCorp first
   const sortedActive = [...activeJobs].sort((a, b) => (b.company === omniName ? 1 : 0) - (a.company === omniName ? 1 : 0));
   const poolJobs = jobs.filter(j => j.status === "pool");
-  const completedJobs = jobs.filter(j => j.status === "completed").reverse();
+  const completedJobs = jobs.filter(j => j.status === "completed" || j.status === "revoked").reverse();
 
   const saveJobs = (next) => { setJobs(next); wardenSet(KEYS.jobs, next); };
 
@@ -660,6 +660,18 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
   const removeJob = (id) => {
     if (!window.confirm("Remove this job?")) return;
     saveJobs(jobs.filter(j => j.id !== id));
+  };
+
+  const uncompleteJob = (job) => {
+    const next = jobs.map(j => j.id === job.id ? { ...j, status: "active", cycle_completed: undefined } : j);
+    saveJobs(next);
+    showToast("JOB RETURNED TO BOARD", "#88ccff");
+  };
+
+  const revokeJob = (job) => {
+    const next = jobs.map(j => j.id === job.id ? { ...j, status: "revoked", cycle_completed: date.cycle } : j);
+    saveJobs(next);
+    showToast(`JOB REVOKED — ${job.company}`, "#cc5533");
   };
 
   const promoteToActive = (job) => {
@@ -763,6 +775,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                     NO BUMP
                   </button>
                 )}
+                <button onClick={() => revokeJob(job)} style={jBtnStyle("#664422")}>REVOKE</button>
                 <button onClick={() => {
                   const next = jobs.map(j => j.id === job.id ? { ...j, frozen: !j.frozen } : j);
                   saveJobs(next);
@@ -818,22 +831,36 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
         </div>
       )}
 
-      {/* COMPLETED */}
+      {/* COMPLETED + REVOKED */}
       {!editingId && subPanel === "completed" && (
         <div>
           {completedJobs.length === 0 && (
             <div style={{ color: "#334455", fontSize: "10px", letterSpacing: "0.1em", padding: "8px 0" }}>
-              No completed jobs yet.
+              No completed or revoked jobs yet.
             </div>
           )}
-          {completedJobs.map(job => (
-            <div key={job.id} style={{ marginBottom: "12px", opacity: 0.7 }}>
-              <div style={{ color: "#334455", fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>
-                COMPLETED CYC {String(job.cycle_completed ?? "?").padStart(2,"0")} — {job.company}
+          {completedJobs.map(job => {
+            const isRevoked = job.status === "revoked";
+            return (
+              <div key={job.id} style={{ marginBottom: "12px", opacity: isRevoked ? 0.85 : 0.7,
+                borderLeft: isRevoked ? "2px solid #882200" : "2px solid #224422",
+                paddingLeft: "10px" }}>
+                <div style={{ fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px",
+                  color: isRevoked ? "#882200" : "#334455" }}>
+                  {isRevoked ? "⚠ REVOKED" : "✓ COMPLETED"} CYC {String(job.cycle_completed ?? "?").padStart(2,"0")} — <span style={{ textDecoration: isRevoked ? "line-through" : "none" }}>{job.company}</span>
+                </div>
+                <div style={{ opacity: isRevoked ? 0.6 : 1, textDecoration: isRevoked ? "line-through" : "none" }}>
+                  <JobCard job={job} isOmniCorp={false} minimal />
+                </div>
+                <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
+                  <button onClick={() => uncompleteJob(job)} style={jBtnStyle("#4466aa")}>↩ MARK INCOMPLETE</button>
+                  {!isRevoked && <button onClick={() => revokeJob(job)} style={jBtnStyle("#664422")}>REVOKE</button>}
+                  {isRevoked && <button onClick={() => completeJob(job, true)} style={jBtnStyle("#446644")}>MARK COMPLETE</button>}
+                  <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
+                </div>
               </div>
-              <JobCard job={job} isOmniCorp={false} minimal />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -847,7 +874,9 @@ function PlayerJobBoard({ jobs, stocks }) {
   const activeJobs = [...jobs.filter(j => j.status === "active")]
     .sort((a, b) => (b.company === omniName ? 1 : 0) - (a.company === omniName ? 1 : 0));
   const completedJobs = jobs.filter(j => j.status === "completed").slice().reverse();
+  const revokedJobs = jobs.filter(j => j.status === "revoked").slice().reverse();
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showRevoked, setShowRevoked] = useState(false);
 
   return (
     <div>
@@ -883,6 +912,32 @@ function PlayerJobBoard({ jobs, stocks }) {
                     COMPLETED CYC {String(job.cycle_completed ?? "?").padStart(2,"0")} — {job.company}
                   </div>
                   <JobCard job={job} isOmniCorp={false} minimal />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {revokedJobs.length > 0 && (
+        <div style={{ marginTop: "12px" }}>
+          <button onClick={() => setShowRevoked(v => !v)}
+            style={{ background: "none", border: `1px solid ${showRevoked ? "#882200" : "#441100"}`,
+              color: showRevoked ? "#cc5533" : "#663322", cursor: "pointer", fontFamily: MONO,
+              fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", width: "100%" }}>
+            {showRevoked ? "[ HIDE REVOKED ]" : `[ REVOKED CONTRACTS (${revokedJobs.length}) ]`}
+          </button>
+          {showRevoked && (
+            <div style={{ marginTop: "12px" }}>
+              {revokedJobs.map(job => (
+                <div key={job.id} style={{ marginBottom: "12px", opacity: 0.7,
+                  borderLeft: "2px solid #882200", paddingLeft: "10px" }}>
+                  <div style={{ color: "#882200", fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>
+                    ⚠ REVOKED CYC {String(job.cycle_completed ?? "?").padStart(2,"0")} — <span style={{ textDecoration: "line-through" }}>{job.company}</span>
+                  </div>
+                  <div style={{ opacity: 0.65, textDecoration: "line-through", textDecorationColor: "#882200" }}>
+                    <JobCard job={job} isOmniCorp={false} minimal />
+                  </div>
                 </div>
               ))}
             </div>
@@ -1306,7 +1361,7 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
             <input type="number" value={d.monthlyPayment} onChange={e=>upd(d.id,{monthlyPayment:parseFloat(e.target.value)||0})} placeholder="mo payment" style={{ ...sI, width:"80px" }} />
             <span style={{ color:"#445566", fontSize:"10px" }}>cr/mo</span>
             <input type="number" value={d.termMonths} onChange={e=>upd(d.id,{termMonths:parseInt(e.target.value)||0})} placeholder="mo" style={{ ...sI, width:"55px" }} />
-            <span style={{ color:"#445566", fontSize:"10px" }}>mo remaining</span>
+            <span style={{ color:"#445566", fontSize:"10px" }}>cycles remaining</span>
             <button onClick={()=>del(d.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
         </div>
@@ -1623,7 +1678,7 @@ const CHECKLIST_ITEMS = [
   "Go shopping",
 ];
 
-function PlayerSessionTab({ debt, crew, rollConfig }) {
+function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   const [months, setMonths] = useState(1);
   const [jumps, setJumps] = useState(0);
   const [hazard, setHazard] = useState("N/A");
@@ -1633,6 +1688,7 @@ function PlayerSessionTab({ debt, crew, rollConfig }) {
   const [negoPct, setNegoPct] = useState(0);
   const [fuelClass, setFuelClass] = useState("I");
   const [fuelUnits, setFuelUnits] = useState(0);
+  const [equityCorp, setEquityCorp] = useState("");
   const [open, setOpen] = useState({ checklist:true, debt:true, contractors:true, payout:false, medical:false, shore:false, training:false, repairs:false });
   const toggle = (k) => setOpen(o=>({...o,[k]:!o[k]}));
 
@@ -1676,7 +1732,7 @@ function PlayerSessionTab({ debt, crew, rollConfig }) {
           {debt.map(d => (
             <div key={d.id} style={{ padding:"5px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"8px" }}>
               <span>{d.creditor || "Unknown creditor"}</span>
-              <span style={{ color:"#cc7755" }}>{(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo · {d.termMonths} mo left</span>
+              <span style={{ color:"#cc7755" }}>{(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo · {d.termMonths} {(rollConfig.cycleLabel || "Cycle").toLowerCase()}s left</span>
             </div>
           ))}
         </Section>
@@ -1734,13 +1790,37 @@ function PlayerSessionTab({ debt, crew, rollConfig }) {
         </div>
         {salary > 0 && (
           <div style={{ padding:"10px 12px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,20,0,0.3)" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"3px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
               <span style={{ color:"#4a8a4a", fontSize:"11px" }}>CASH PAYOUT</span>
               <span style={{ color:HEADER_GREEN, fontSize:"15px", fontWeight:"bold" }}>{total.toLocaleString()}cr</span>
             </div>
-            <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <span style={{ color:"#4a8a4a", fontSize:"11px" }}>EQUITY OPTION</span>
-              <span style={{ color:GREEN_MID, fontSize:"12px" }}>{Math.round(total*0.5).toLocaleString()}cr cash + shares</span>
+            <div style={{ borderTop:`1px solid rgba(68,100,68,0.2)`, paddingTop:"8px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
+                <span style={{ color:"#4a8a4a", fontSize:"11px" }}>EQUITY OPTION</span>
+                <span style={{ color:GREEN_MID, fontSize:"12px" }}>{Math.round(total*0.5).toLocaleString()}cr cash</span>
+              </div>
+              {/* Corp selector for share calc */}
+              <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
+                <select value={equityCorp} onChange={e=>setEquityCorp(e.target.value)}
+                  style={{ ...sI, flex:1, minWidth:"130px" }}>
+                  <option value="">— select corp —</option>
+                  {(stocks||[]).filter(s=>!s.is_collapsed).map(s=>(
+                    <option key={s.name} value={s.name}>{s.name} ({s.price.toLocaleString()}cr)</option>
+                  ))}
+                </select>
+                {equityCorp && (() => {
+                  const st = (stocks||[]).find(s=>s.name===equityCorp);
+                  const price = st?.price || 0;
+                  const equityCash = Math.round(total * 0.5);
+                  const shares = price > 0 ? Math.ceil(equityCash * 1.2 / price) : 0;
+                  return price > 0 ? (
+                    <span style={{ color:HEADER_GREEN, fontSize:"13px", fontWeight:"bold" }}>
+                      {shares} share{shares !== 1 ? "s" : ""}
+                      <span style={{ color:"#3a6a3a", fontSize:"10px", marginLeft:"6px" }}>@ {price.toLocaleString()}cr</span>
+                    </span>
+                  ) : <span style={{ color:"#445566", fontSize:"10px" }}>no price data</span>;
+                })()}
+              </div>
             </div>
           </div>
         )}
@@ -1999,7 +2079,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         )}
 
         {tab === "downtime" && (
-          <PlayerSessionTab debt={debt} crew={crew} rollConfig={rollConfig} />
+          <PlayerSessionTab debt={debt} crew={crew} rollConfig={rollConfig} stocks={stocks} />
         )}
 
         {/* Theme switcher */}
