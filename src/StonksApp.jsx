@@ -2545,7 +2545,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       return s;
     });
     setPendingVariance(result);
-    setPanel("advance");
+    setPanel("economy");
   };
 
   const handleVarianceConfirm = () => {
@@ -2567,7 +2567,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
   const handleHealthRoll = () => {
     setPendingHealthShift(computeHealthOnly(stocks, rollConfig));
-    setPanel("advance");
+    setPanel("economy");
   };
 
   const handleHealthConfirm = () => {
@@ -2609,7 +2609,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     const advanceResult = computeAdvance(stocks, rollConfig);
     const bankruptcyResult = computeBankruptcyCheck(advanceResult, mergers, alwaysMerge);
     setPendingAdvance({ advance: advanceResult, bankruptcy: bankruptcyResult });
-    setPanel("advance");
+    setPanel("economy");
   };
 
   const handleAdvanceConfirm = () => {
@@ -2766,7 +2766,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {/* Toolbar — scrollable on mobile */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px",
           overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["session","SESSION"],["settings","SETTINGS"]].map(([p, label]) => (
+          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["crew","CREW"],["settings","SETTINGS"]].map(([p, label]) => (
             <button key={p} onClick={() => setPanel(panel === p ? null : p)}
               style={{ background: panel === p ? "rgba(68,136,255,0.1)" : "none",
                 border: `1px solid ${panel === p ? "#4488ff" : "#1a2a3a"}`,
