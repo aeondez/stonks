@@ -300,6 +300,17 @@ const THEMES = {
     scanline: "rgba(255,220,100,0.04)",
     accent: "#ff8844",
   },
+  blue: {
+    label: "BLUE",
+    bg: "#060810",
+    primary: "#44aaff",
+    primaryDim: "#88bbdd",
+    primaryDark: "#2a4a6a",
+    primaryMid: "#4a7a9a",
+    primaryHeader: "#ddeeff",
+    scanline: "rgba(100,180,255,0.04)",
+    accent: "#ffdd77",
+  },
   mono: {
     label: "MONO",
     bg: "#080808",
@@ -3056,10 +3067,22 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               {label}
             </button>
           ))}
+          <div style={{ display:"flex", gap:"4px", marginLeft:"auto", alignItems:"center" }}>
+            {Object.entries(THEMES).map(([key, t]) => (
+              <button key={key} onClick={() => setTheme(key)}
+                style={{ background: theme === key ? "rgba(255,255,255,0.08)" : "none",
+                  border: `1px solid ${theme === key ? "#6688aa" : "#1a2a3a"}`,
+                  color: theme === key ? "#aabbcc" : "#445566",
+                  fontFamily: MONO, fontSize: "9px", letterSpacing: "0.08em",
+                  padding: "3px 7px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
           <button onClick={onLogout}
             style={{ background: "none", border: "none", color: "#6688aa", fontFamily: MONO,
               fontSize: "11px", letterSpacing: "0.1em", padding: "7px 8px", cursor: "pointer",
-              whiteSpace: "nowrap", flexShrink: 0, marginLeft: "auto" }}>
+              whiteSpace: "nowrap", flexShrink: 0 }}>
             ← EXIT
           </button>
         </div>
