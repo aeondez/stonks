@@ -1975,7 +1975,8 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
               </tbody>
             </table>
           </div>
-          <div>Ammo resupply: Check after any engagement using ship weapons. Failure = Disadvantage or auto-fail on future Battle Checks.</div>
+          <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>AMMO RESUPPLY</div>
+          <div>Check after any engagement using ship weapons. Failure = Disadvantage or auto-fail on future Battle Checks.</div>
         </div>
       </Section>
     </div>
