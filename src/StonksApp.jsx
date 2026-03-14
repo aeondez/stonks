@@ -1988,6 +1988,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
 function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
   const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "downtime"
   const [showHistory, setShowHistory] = useState(false);
+  const [showPortfolio, setShowPortfolio] = useState(false);
   const [visible, setVisible] = useState([]);
   const [showQR, setShowQR] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -2109,11 +2110,20 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                 <span>● LIVE FEED</span>
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
-                <button onClick={() => setShowHistory(!showHistory)}
+                <button onClick={() => { setShowHistory(!showHistory); setShowPortfolio(false); }}
                   style={{ background: "none", border: `1px solid ${showHistory ? GREEN_DARK : "#2a3a2a"}`,
                     color: showHistory ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
                     fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
-                  {showHistory ? "[ HIDE HISTORY ]" : "[ VIEW HISTORY ]"}
+                  {showHistory ? "[ HIDE HISTORY ]" : "[ HISTORY ]"}
+                </button>
+                <button onClick={() => { setShowPortfolio(!showPortfolio); setShowHistory(false); }}
+                  style={{ background: "none", border: `1px solid ${showPortfolio ? GREEN_DARK : "#2a3a2a"}`,
+                    color: showPortfolio ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
+                  {showPortfolio ? "[ HIDE PORTFOLIO ]" : "[ PORTFOLIO ]"}
+                  {portfolio.length > 0 && !showPortfolio && (
+                    <span style={{ color: "#4488ff", marginLeft: "6px" }}>({portfolio.length})</span>
+                  )}
                 </button>
                 <button onClick={onSwitchGame}
                   style={{ background: "none", border: `1px solid #2a3a2a`,
@@ -2126,6 +2136,60 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
 
             {showHistory && (
               <HistoryLog history={history} headlines={headlines} />
+            )}
+
+            {showPortfolio && (
+              <div style={{ marginTop: "16px" }}>
+                {portfolio.length === 0 ? (
+                  <div style={{ color: GREEN_DARK, fontSize: "11px", textAlign: "center", padding: "20px 0" }}>
+                    No equity holdings on record.
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ color: GREEN_MID, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "12px",
+                      borderBottom: `1px solid ${GREEN_DARK}`, paddingBottom: "8px" }}>
+                      EQUITY HOLDINGS — {portfolio.length} POSITION{portfolio.length !== 1 ? "S" : ""}
+                    </div>
+                    {portfolio.map(h => {
+                      const st = stocks.find(s => s.name === h.company);
+                      const cur = st?.price || 0;
+                      const val = cur * h.shares;
+                      const gl = (cur - (h.grantPrice || cur)) * h.shares;
+                      const locked = h.lockScenarios > 0;
+                      return (
+                        <div key={h.id} style={{ padding: "10px 0", borderBottom: `1px solid rgba(68,100,68,0.15)`,
+                          display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
+                          <div>
+                            <div style={{ color: GREEN_MID, fontSize: "13px" }}>{h.company}</div>
+                            <div style={{ color: "#445566", fontSize: "10px", marginTop: "2px" }}>
+                              {h.shares} share{h.shares !== 1 ? "s" : ""} · grant {(h.grantPrice||0).toLocaleString()}cr
+                            </div>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ color: HEADER_GREEN, fontSize: "14px", fontWeight: "bold" }}>
+                              {val.toLocaleString()}cr
+                            </div>
+                            <div style={{ fontSize: "11px", color: gl >= 0 ? "#44cc88" : "#cc5555" }}>
+                              {gl >= 0 ? "+" : ""}{gl.toLocaleString()}cr
+                              {locked && <span style={{ color: AMBER, marginLeft: "8px" }}>🔒 {h.lockScenarios} left</span>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between",
+                      fontSize: "12px", color: "#445566" }}>
+                      <span>TOTAL VALUE</span>
+                      <span style={{ color: HEADER_GREEN, fontWeight: "bold" }}>
+                        {portfolio.reduce((s, h) => {
+                          const st = stocks.find(x => x.name === h.company);
+                          return s + (st ? st.price * h.shares : 0);
+                        }, 0).toLocaleString()}cr
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </>
         )}
