@@ -1686,8 +1686,6 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   const [expert, setExpert] = useState(0);
   const [master, setMaster] = useState(0);
   const [negoPct, setNegoPct] = useState(0);
-  const [fuelClass, setFuelClass] = useState("I");
-  const [fuelUnits, setFuelUnits] = useState(0);
   const [equityCorp, setEquityCorp] = useState("");
   const [open, setOpen] = useState({ checklist:false, debt:false, contractors:false, payout:false, medical:false, shore:false, training:false, repairs:false });
   const toggle = (k) => setOpen(o=>({...o,[k]:!o[k]}));
@@ -1696,8 +1694,6 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   const base = salary * months + salary * months * HAZARD_MULT[hazard];
   const total = Math.round(base * (1 + negoPct/100) + jumps*1000);
   const timeUnit = rollConfig.trainingTimeUnit === "years" ? "years" : "months";
-  const FUEL_COSTS = { I:1000, II:2000, III:5000, IV:50000, V:100000 };
-  const fuelTotal = (FUEL_COSTS[fuelClass]||1000) * fuelUnits;
   const cycleWord = (rollConfig.cycleLabel || "Cycle").toLowerCase();
 
   // Mobile-safe: font-size 16px on all selects/inputs prevents iOS auto-zoom scroll-jump
@@ -1966,33 +1962,13 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           <div style={{ marginBottom:"12px" }}>Done in flight by crew. Time: 2d10 days. Critical Failure escalates to Major Repair.</div>
           <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>ANNUAL MAINTENANCE CHECK</div>
           <div style={{ marginBottom:"16px" }}>Roll Systems Check annually. Failure: roll Maintenance Issues Table, all crew +1 Stress. Critical Failure: two rolls, entire crew Panic Check.</div>
-          <div style={{ color:"#4a8a4a", marginBottom:"10px" }}>FUEL CALCULATOR</div>
-          <div style={{ display:"flex", gap:"16px", flexWrap:"wrap", alignItems:"flex-end", marginBottom:"14px" }}>
-            <div style={{ flex:"1", minWidth:"160px" }}>
-              <span style={lbl}>CLASS</span>
-              <div style={{ position:"relative" }}>
-                <select value={fuelClass} onChange={e=>setFuelClass(e.target.value)} style={sel}>
-                  {Object.entries(FUEL_COSTS).map(([c,cost])=>(
-                    <option key={c} value={c}>Class-{c} ({(cost/1000).toLocaleString()}kcr/unit)</option>
-                  ))}
-                </select>
-                <span style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", color:GREEN_DARK, pointerEvents:"none", fontSize:"12px" }}>▾</span>
-              </div>
-            </div>
-            <div>
-              <span style={lbl}>UNITS</span>
-              <Stepper value={fuelUnits} onChange={setFuelUnits} />
-            </div>
-            {fuelUnits > 0 && (
-              <div style={{ color:HEADER_GREEN, fontSize:"20px", fontWeight:"bold", paddingBottom:"6px" }}>{fuelTotal.toLocaleString()}cr</div>
-            )}
-          </div>
+          <div style={{ color:"#4a8a4a", marginBottom:"10px" }}>OPERATIONAL COSTS</div>
           <div style={{ overflowX:"auto", marginBottom:"12px" }}>
             <table style={{ borderCollapse:"collapse" }}>
               <thead><tr>{["CLASS","COST / UNIT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
               <tbody>
                 {[["I","1,000cr (1kcr)"],["II","2,000cr (2kcr)"],["III","5,000cr (5kcr)"],["IV","50,000cr (50kcr)"],["V","100,000cr (100kcr)"]].map(([cls,cost])=>(
-                  <tr key={cls}><td style={{ ...TD, paddingRight:"24px" }}>Class-{cls}</td><td style={{ ...TD, color:"#88aacc" }}>{cost}</td></tr>
+                  <tr key={cls}><td style={{ ...TD, paddingRight:"24px" }}>Class-{cls} Fuel</td><td style={{ ...TD, color:"#88aacc" }}>{cost}</td></tr>
                 ))}
                 <tr><td style={{ ...TD, paddingRight:"24px" }}>Warp Core</td><td style={{ ...TD, color:"#88aacc" }}>1mcr each</td></tr>
                 <tr><td style={{ ...TD, paddingRight:"24px" }}>Vessel Tow</td><td style={{ ...TD, color:"#88aacc" }}>500kcr</td></tr>
