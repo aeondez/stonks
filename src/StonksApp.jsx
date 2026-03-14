@@ -2162,16 +2162,16 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                           <div>
                             <div style={{ color: GREEN_MID, fontSize: "13px" }}>{h.company}</div>
                             <div style={{ color: "#445566", fontSize: "10px", marginTop: "2px" }}>
-                              {h.shares} share{h.shares !== 1 ? "s" : ""} · grant {(h.grantPrice||0).toLocaleString()}cr
+                              {h.shares} share{h.shares !== 1 ? "s" : ""} @ {cur.toLocaleString()}cr each
                             </div>
                           </div>
                           <div style={{ textAlign: "right" }}>
                             <div style={{ color: HEADER_GREEN, fontSize: "14px", fontWeight: "bold" }}>
                               {val.toLocaleString()}cr
                             </div>
-                            <div style={{ fontSize: "11px", color: gl >= 0 ? "#44cc88" : "#cc5555" }}>
-                              {gl >= 0 ? "+" : ""}{gl.toLocaleString()}cr
-                              {locked && <span style={{ color: AMBER, marginLeft: "8px" }}>🔒 {h.lockScenarios} left</span>}
+                            <div style={{ fontSize: "11px" }}>
+                              {locked && <span style={{ color: AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios !== 1 ? "s" : ""} locked</span>}
+                              {!locked && <span style={{ color: "#44cc88" }}>● available</span>}
                             </div>
                           </div>
                         </div>
