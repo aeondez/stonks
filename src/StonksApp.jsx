@@ -994,11 +994,11 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
               </div>
               <div style={{ color: s.is_omnicorp ? AMBER : s.is_collapsed ? "#444" : HEADER_GREEN,
                 fontSize: "14px", minWidth: "80px", textAlign: "right", fontWeight: "bold" }}>
-                {s.price.toLocaleString()}cr
+                {!s.is_collapsed && s.price.toLocaleString()+"cr"}
               </div>
               <div style={{ minWidth: "70px", textAlign: "right", fontSize: "13px",
                 color: changeColor, paddingLeft: "16px" }}>
-                {isUp ? "▲" : isDown ? "▼" : "—"} {Math.abs(s.change)}
+                {!s.is_collapsed && (isUp ? "▲" : isDown ? "▼" : "—") + " " + Math.abs(s.change)}
               </div>
             </div>
             {/* Expanded history */}
