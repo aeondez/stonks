@@ -1698,19 +1698,48 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   const timeUnit = rollConfig.trainingTimeUnit === "years" ? "years" : "months";
   const FUEL_COSTS = { I:1000, II:2000, III:5000, IV:50000, V:100000 };
   const fuelTotal = (FUEL_COSTS[fuelClass]||1000) * fuelUnits;
+  const cycleWord = (rollConfig.cycleLabel || "Cycle").toLowerCase();
 
-  const sI = { background:"transparent", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, fontSize:"11px", padding:"4px 7px" };
-  const TH = { padding:"4px 8px", textAlign:"left", color:"#3a6a3a", fontWeight:"normal", fontSize:"10px" };
-  const TD = { padding:"5px 8px", color:GREEN_MID, fontSize:"11px", borderTop:`1px solid rgba(68,100,68,0.2)` };
+  // Mobile-safe: font-size 16px on all selects/inputs prevents iOS auto-zoom scroll-jump
+  const sel = {
+    background:"transparent", border:`1px solid rgba(68,200,68,0.25)`,
+    color:GREEN_MID, fontFamily:MONO, fontSize:"16px",
+    padding:"10px 12px", minHeight:"44px", width:"100%", boxSizing:"border-box",
+    WebkitAppearance:"none", appearance:"none", borderRadius:0,
+  };
+  const stepBtn = {
+    background:"none", border:`1px solid rgba(68,200,68,0.25)`, color:GREEN_MID,
+    fontFamily:MONO, fontSize:"20px", lineHeight:1,
+    minWidth:"44px", minHeight:"44px", cursor:"pointer",
+    display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
+  };
+  const valDisplay = {
+    color:GREEN_MID, minWidth:"36px", textAlign:"center",
+    fontSize:"18px", fontFamily:MONO, userSelect:"none",
+  };
+  const lbl = { color:"#4a8a4a", fontSize:"12px", letterSpacing:"0.15em", marginBottom:"6px", display:"block" };
+  const TH = { padding:"6px 8px", textAlign:"left", color:"#3a6a3a", fontWeight:"normal", fontSize:"11px" };
+  const TD = { padding:"7px 8px", color:GREEN_MID, fontSize:"12px", borderTop:`1px solid rgba(68,100,68,0.2)` };
+
+  const Stepper = ({ value, onChange, min=0 }) => (
+    <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+      <button onClick={()=>onChange(v=>Math.max(min,v-1))} style={stepBtn}>−</button>
+      <span style={valDisplay}>{value}</span>
+      <button onClick={()=>onChange(v=>v+1)} style={stepBtn}>+</button>
+    </div>
+  );
 
   const Section = ({ id, title, badge, children }) => (
-    <div style={{ marginBottom:"16px" }}>
+    <div style={{ marginBottom:"20px" }}>
       <button onClick={()=>toggle(id)}
         style={{ display:"flex", justifyContent:"space-between", alignItems:"center", width:"100%",
-          background:"none", border:"none", borderBottom:`1px solid ${GREEN_DARK}`, paddingBottom:"5px", marginBottom: open[id]?"10px":"0",
-          cursor:"pointer", fontFamily:MONO, textAlign:"left" }}>
-        <span style={{ color:HEADER_GREEN, fontSize:"10px", letterSpacing:"0.2em" }}>{title}{badge ? <span style={{ color:"#cc6666", marginLeft:"8px" }}>{badge}</span> : null}</span>
-        <span style={{ color:GREEN_DARK, fontSize:"10px" }}>{open[id]?"▲":"▼"}</span>
+          background:"none", border:"none", borderBottom:`1px solid ${GREEN_DARK}`,
+          paddingBottom:"8px", marginBottom: open[id]?"14px":"0",
+          cursor:"pointer", fontFamily:MONO, textAlign:"left", minHeight:"44px" }}>
+        <span style={{ color:HEADER_GREEN, fontSize:"12px", letterSpacing:"0.2em" }}>
+          {title}{badge ? <span style={{ color:"#cc6666", marginLeft:"10px" }}>{badge}</span> : null}
+        </span>
+        <span style={{ color:GREEN_DARK, fontSize:"14px", paddingLeft:"12px" }}>{open[id]?"▲":"▼"}</span>
       </button>
       {open[id] && children}
     </div>
@@ -1720,8 +1749,9 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
     <div style={{ color:GREEN_MID }}>
       <Section id="checklist" title="POST-SESSION CHECKLIST">
         {CHECKLIST_ITEMS.map((item, i) => (
-          <div key={i} style={{ display:"flex", gap:"10px", padding:"6px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px" }}>
-            <span style={{ color:GREEN_DARK, minWidth:"16px" }}>{i+1}.</span>
+          <div key={i} style={{ display:"flex", gap:"12px", padding:"10px 0",
+            borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"13px", lineHeight:1.5 }}>
+            <span style={{ color:GREEN_DARK, minWidth:"20px", flexShrink:0 }}>{i+1}.</span>
             <span>{item}</span>
           </div>
         ))}
@@ -1730,9 +1760,13 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       {debt.length > 0 && (
         <Section id="debt" title="DEBT OBLIGATIONS" badge={`+${debt.length} MIN STRESS`}>
           {debt.map(d => (
-            <div key={d.id} style={{ padding:"5px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"8px" }}>
+            <div key={d.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
+              fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px" }}>
               <span>{d.creditor || "Unknown creditor"}</span>
-              <span style={{ color:"#cc7755" }}>{(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo · {d.termMonths} {(rollConfig.cycleLabel || "Cycle").toLowerCase()}s left</span>
+              <span style={{ color:"#cc7755" }}>
+                {(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo
+                <span style={{ color:"#664433", marginLeft:"8px" }}>· {d.termMonths} {cycleWord}s left</span>
+              </span>
             </div>
           ))}
         </Section>
@@ -1741,10 +1775,12 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       {(crew?.contractors?.length > 0) && (
         <Section id="contractors" title="CONTRACTORS">
           {(crew.contractors || []).map(c => (
-            <div key={c.id} style={{ padding:"6px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
+            <div key={c.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
+              fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
               <span style={{ color:GREEN_MID }}>
                 {c.name || c.occupation || "Unnamed"}
-                {c.name && c.occupation && <span style={{ color:"#4a8a6a", marginLeft:"8px", fontSize:"10px" }}>{c.occupation}</span>}
+                {c.name && c.occupation &&
+                  <span style={{ color:"#4a8a6a", marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
               </span>
               <span style={{ color: c.paid ? "#44cc88" : "#cc7755" }}>
                 {(c.salary||0).toLocaleString()}cr/mo · {c.paid ? "PAID" : "UNPAID"}
@@ -1754,71 +1790,87 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         </Section>
       )}
 
-      <Section id="payout" title="PAYOUT CALCULATOR (local — not saved)">
-        <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"10px", alignItems:"flex-end" }}>
-          {[["MONTHS",months,setMonths,1],["JUMPS (×1kcr)",jumps,setJumps,0]].map(([lbl,val,set,min]) => (
-            <div key={lbl}><div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"3px" }}>{lbl}</div>
-              <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-                <button onClick={()=>set(v=>Math.max(min,v-1))} style={{ ...sI, padding:"2px 7px", cursor:"pointer" }}>−</button>
-                <span style={{ color:GREEN_MID, minWidth:"24px", textAlign:"center" }}>{val}</span>
-                <button onClick={()=>set(v=>v+1)} style={{ ...sI, padding:"2px 7px", cursor:"pointer" }}>+</button>
-              </div>
+      <Section id="payout" title="PAYOUT CALCULATOR">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
+          {[["MONTHS",months,setMonths,1],["JUMPS (×1kcr)",jumps,setJumps,0]].map(([label,val,set,min]) => (
+            <div key={label}>
+              <span style={lbl}>{label}</span>
+              <Stepper value={val} onChange={set} min={min} />
             </div>
           ))}
-          <div><div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"3px" }}>HAZARD</div>
-            <select value={hazard} onChange={e=>setHazard(e.target.value)} style={sI}>
-              {HAZARD_OPTS.map(h=><option key={h}>{h}</option>)}
-            </select></div>
-          <div><div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"3px" }}>NEGOTIATION</div>
-            <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
-              <button onClick={()=>setNegoPct(p=>Math.max(-25,p-5))} style={{ ...sI, padding:"2px 6px", cursor:"pointer" }}>−</button>
-              <span style={{ minWidth:"34px", textAlign:"center", color:negoPct<0?"#cc6666":negoPct>0?HEADER_GREEN:GREEN_DARK, fontSize:"12px" }}>{negoPct>0?"+":""}{negoPct}%</span>
-              <button onClick={()=>setNegoPct(p=>Math.min(25,p+5))} style={{ ...sI, padding:"2px 6px", cursor:"pointer" }}>+</button>
-            </div></div>
         </div>
-        <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"10px", alignItems:"center" }}>
-          {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([lbl,val,set,rate]) => (
-            <div key={lbl} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-              <span style={{ color:"#3a6a3a", fontSize:"10px" }}>{lbl}</span>
-              <button onClick={()=>set(v=>Math.max(0,v-1))} style={{ ...sI, padding:"1px 6px", cursor:"pointer" }}>−</button>
-              <span style={{ color:GREEN_MID, minWidth:"18px", textAlign:"center" }}>{val}</span>
-              <button onClick={()=>set(v=>v+1)} style={{ ...sI, padding:"1px 6px", cursor:"pointer" }}>+</button>
-              <span style={{ color:"#2a5a2a", fontSize:"9px" }}>×{rate.toLocaleString()}</span>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
+          <div>
+            <span style={lbl}>HAZARD</span>
+            <div style={{ position:"relative" }}>
+              <select value={hazard} onChange={e=>setHazard(e.target.value)} style={sel}>
+                {HAZARD_OPTS.map(h=><option key={h}>{h}</option>)}
+              </select>
+              <span style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", color:GREEN_DARK, pointerEvents:"none", fontSize:"12px" }}>▾</span>
             </div>
-          ))}
-          <span style={{ color:"#4a8a4a", fontSize:"11px" }}>{salary.toLocaleString()}cr/mo</span>
+          </div>
+          <div>
+            <span style={lbl}>NEGOTIATION</span>
+            <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+              <button onClick={()=>setNegoPct(p=>Math.max(-25,p-5))} style={stepBtn}>−</button>
+              <span style={{ ...valDisplay, color:negoPct<0?"#cc6666":negoPct>0?HEADER_GREEN:GREEN_DARK, minWidth:"48px", fontSize:"17px" }}>
+                {negoPct>0?"+":""}{negoPct}%
+              </span>
+              <button onClick={()=>setNegoPct(p=>Math.min(25,p+5))} style={stepBtn}>+</button>
+            </div>
+          </div>
+        </div>
+        <div style={{ marginBottom:"16px" }}>
+          <span style={lbl}>SKILL TIERS</span>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px" }}>
+            {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([label,val,set,rate]) => (
+              <div key={label} style={{ display:"flex", flexDirection:"column", gap:"4px" }}>
+                <span style={{ color:"#4a8a4a", fontSize:"11px", letterSpacing:"0.1em" }}>
+                  {label} <span style={{ color:"#2a5a2a" }}>×{rate >= 1000 ? (rate/1000)+"k" : rate}</span>
+                </span>
+                <Stepper value={val} onChange={set} />
+              </div>
+            ))}
+          </div>
+          {salary > 0 && (
+            <div style={{ color:"#4a8a4a", fontSize:"13px", marginTop:"10px" }}>
+              Base salary: <span style={{ color:GREEN_MID }}>{salary.toLocaleString()}cr/mo</span>
+            </div>
+          )}
         </div>
         {salary > 0 && (
-          <div style={{ padding:"10px 12px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,20,0,0.3)" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
-              <span style={{ color:"#4a8a4a", fontSize:"11px" }}>CASH PAYOUT</span>
-              <span style={{ color:HEADER_GREEN, fontSize:"15px", fontWeight:"bold" }}>{total.toLocaleString()}cr</span>
+          <div style={{ padding:"14px 16px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,20,0,0.3)" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+              <span style={{ color:"#4a8a4a", fontSize:"13px" }}>CASH PAYOUT</span>
+              <span style={{ color:HEADER_GREEN, fontSize:"22px", fontWeight:"bold" }}>{total.toLocaleString()}cr</span>
             </div>
-            <div style={{ borderTop:`1px solid rgba(68,100,68,0.2)`, paddingTop:"8px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
-                <span style={{ color:"#4a8a4a", fontSize:"11px" }}>EQUITY OPTION</span>
-                <span style={{ color:GREEN_MID, fontSize:"12px" }}>{Math.round(total*0.5).toLocaleString()}cr cash</span>
+            <div style={{ borderTop:`1px solid rgba(68,100,68,0.2)`, paddingTop:"12px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
+                <span style={{ color:"#4a8a4a", fontSize:"13px" }}>EQUITY OPTION</span>
+                <span style={{ color:GREEN_MID, fontSize:"14px" }}>{Math.round(total*0.5).toLocaleString()}cr cash</span>
               </div>
-              {/* Corp selector for share calc */}
-              <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
-                <select value={equityCorp} onChange={e=>setEquityCorp(e.target.value)}
-                  style={{ ...sI, flex:1, minWidth:"130px" }}>
-                  <option value="">— select corp —</option>
-                  {(stocks||[]).filter(s=>!s.is_collapsed).map(s=>(
-                    <option key={s.name} value={s.name}>{s.name} ({s.price.toLocaleString()}cr)</option>
-                  ))}
-                </select>
+              <div>
+                <span style={lbl}>+ SHARES FROM CORP</span>
+                <div style={{ position:"relative" }}>
+                  <select value={equityCorp} onChange={e=>setEquityCorp(e.target.value)} style={sel}>
+                    <option value="">— select corporation —</option>
+                    {(stocks||[]).filter(s=>!s.is_collapsed).map(s=>(
+                      <option key={s.name} value={s.name}>{s.name} ({s.price.toLocaleString()}cr)</option>
+                    ))}
+                  </select>
+                  <span style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", color:GREEN_DARK, pointerEvents:"none", fontSize:"12px" }}>▾</span>
+                </div>
                 {equityCorp && (() => {
                   const st = (stocks||[]).find(s=>s.name===equityCorp);
                   const price = st?.price || 0;
                   const equityCash = Math.round(total * 0.5);
                   const shares = price > 0 ? Math.ceil(equityCash * 1.2 / price) : 0;
                   return price > 0 ? (
-                    <span style={{ color:HEADER_GREEN, fontSize:"13px", fontWeight:"bold" }}>
-                      {shares} share{shares !== 1 ? "s" : ""}
-                      <span style={{ color:"#3a6a3a", fontSize:"10px", marginLeft:"6px" }}>@ {price.toLocaleString()}cr</span>
-                    </span>
-                  ) : <span style={{ color:"#445566", fontSize:"10px" }}>no price data</span>;
+                    <div style={{ marginTop:"10px", padding:"10px 12px", background:"rgba(68,200,68,0.05)", border:`1px solid rgba(68,200,68,0.15)` }}>
+                      <span style={{ color:HEADER_GREEN, fontSize:"20px", fontWeight:"bold" }}>{shares} share{shares!==1?"s":""}</span>
+                      <span style={{ color:"#3a6a3a", fontSize:"12px", marginLeft:"10px" }}>@ {price.toLocaleString()}cr each</span>
+                    </div>
+                  ) : <div style={{ color:"#445566", fontSize:"12px", marginTop:"8px" }}>no price data</div>;
                 })()}
               </div>
             </div>
@@ -1827,98 +1879,121 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       </Section>
 
       <Section id="medical" title="MEDICAL TREATMENTS">
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"8px" }}>
-          <thead><tr>{["TREATMENT","COST","EFFECT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-          <tbody>{TREATMENTS_TABLE.map(([t,c,e])=>(
-            <tr key={t}><td style={TD}>{t}</td><td style={{ ...TD, color:"#88aacc", whiteSpace:"nowrap" }}>{c}</td><td style={TD}>{e}</td></tr>
-          ))}</tbody>
-        </table>
-        <div style={{ color:"#3a6a3a", fontSize:"10px", lineHeight:1.6 }}>
+        <div style={{ overflowX:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", marginBottom:"10px" }}>
+            <thead><tr>{["TREATMENT","COST","EFFECT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <tbody>{TREATMENTS_TABLE.map(([t,c,e])=>(
+              <tr key={t}>
+                <td style={TD}>{t}</td>
+                <td style={{ ...TD, color:"#88aacc", whiteSpace:"nowrap" }}>{c}</td>
+                <td style={TD}>{e}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <div style={{ color:"#3a6a3a", fontSize:"12px", lineHeight:1.7 }}>
           <span style={{ color:"#4a8a4a" }}>REST SAVE:</span> Roll 1d100 under worst Save in a safe location. On success, reduce Stress by the ones digit. Advantage from: consensual sex, drug use, heavy drinking, or Wellness Counselor.
         </div>
       </Section>
 
       <Section id="shore" title="SHORE LEAVE">
-        <div style={{ color:"#3a6a3a", fontSize:"10px", marginBottom:"8px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"10px" }}>
-          <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-          <tbody>{SHORE_LEAVE_TABLE.map(([p,c,s])=>(
-            <tr key={p}><td style={{ ...TD, color:AMBER }}>{p}</td><td style={{ ...TD, color:"#88aacc" }}>{c}</td><td style={{ ...TD, color:HEADER_GREEN }}>{s}</td></tr>
-          ))}</tbody>
-        </table>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px" }}>
-          <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-          <tbody>{SHORE_LEAVE_RESULTS.map(([r,o])=>(
-            <tr key={r}><td style={{ ...TD, color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td><td style={TD}>{o}</td></tr>
-          ))}</tbody>
-        </table>
+        <div style={{ color:"#3a6a3a", fontSize:"12px", marginBottom:"10px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
+        <div style={{ overflowX:"auto", marginBottom:"12px" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <tbody>{SHORE_LEAVE_TABLE.map(([p,c,s])=>(
+              <tr key={p}><td style={{ ...TD, color:AMBER }}>{p}</td><td style={{ ...TD, color:"#88aacc" }}>{c}</td><td style={{ ...TD, color:HEADER_GREEN }}>{s}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <div style={{ overflowX:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <tbody>{SHORE_LEAVE_RESULTS.map(([r,o])=>(
+              <tr key={r}>
+                <td style={{ ...TD, whiteSpace:"nowrap", paddingRight:"16px",
+                  color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755" }}>{r}</td>
+                <td style={TD}>{o}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
       </Section>
 
       <Section id="training" title={`SKILL TRAINING — ${timeUnit.toUpperCase()}`}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", marginBottom:"12px" }}>
-          <thead><tr>{["TIER","PREREQ","DURATION","COST","BONUS"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-          <tbody>{TRAINING_TABLE.map(([tier,req,dur,cost,bonus])=>(
-            <tr key={tier}>
-              <td style={{ ...TD, color:AMBER }}>{tier}</td>
-              <td style={TD}>{req}</td>
-              <td style={{ ...TD, color:HEADER_GREEN }}>{dur} {timeUnit}</td>
-              <td style={{ ...TD, color:"#88aacc" }}>{cost}</td>
-              <td style={{ ...TD, color:HEADER_GREEN }}>{bonus}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-        <div style={{ color:"#4a8a4a", fontSize:"10px", marginBottom:"5px" }}>MILITARY ENLISTMENT (Alternative Path)</div>
-        <div style={{ color:"#3a6a3a", fontSize:"10px", lineHeight:1.6, marginBottom:"8px" }}>
-          Free. Duration: 6 {timeUnit}. While enlisted: Military covers Room &amp; Board, Medical, and Skill Training. Make a Combat Check on completion.
+        <div style={{ overflowX:"auto", marginBottom:"14px" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead><tr>{["TIER","PREREQ","DURATION","COST","BONUS"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <tbody>{TRAINING_TABLE.map(([tier,req,dur,cost,bonus])=>(
+              <tr key={tier}>
+                <td style={{ ...TD, color:AMBER }}>{tier}</td>
+                <td style={TD}>{req}</td>
+                <td style={{ ...TD, color:HEADER_GREEN }}>{dur} {timeUnit}</td>
+                <td style={{ ...TD, color:"#88aacc" }}>{cost}</td>
+                <td style={{ ...TD, color:HEADER_GREEN }}>{bonus}</td>
+              </tr>
+            ))}</tbody>
+          </table>
         </div>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px" }}>
-          <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-          <tbody>{MILITARY_RESULTS.map(([r,o])=>(
-            <tr key={r}><td style={{ ...TD, color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td><td style={TD}>{o}</td></tr>
-          ))}</tbody>
-        </table>
+        <div style={{ color:"#4a8a4a", fontSize:"12px", marginBottom:"6px" }}>MILITARY ENLISTMENT (Alternative Path)</div>
+        <div style={{ color:"#3a6a3a", fontSize:"12px", lineHeight:1.7, marginBottom:"10px" }}>
+          Free. Duration: 6 {timeUnit}. Military covers Room &amp; Board, Medical, and Skill Training. Make a Combat Check on completion.
+        </div>
+        <div style={{ overflowX:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <tbody>{MILITARY_RESULTS.map(([r,o])=>(
+              <tr key={r}>
+                <td style={{ ...TD, whiteSpace:"nowrap", paddingRight:"16px",
+                  color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755" }}>{r}</td>
+                <td style={TD}>{o}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
       </Section>
 
       <Section id="repairs" title="SHIP REPAIRS & MAINTENANCE">
-        <div style={{ color:"#3a6a3a", fontSize:"10px", lineHeight:1.7 }}>
-          <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>MAJOR REPAIRS</div>
-          <div style={{ marginBottom:"8px" }}>Must be done in port. Cost: 1d5mcr × Ship Class per Hull/Megadamage point. Time: months to a year. <span style={{ color:GREEN_MID }}>Machine Shop exception:</span> repair up to 3 MDMG + 3 Hull without port; resupply 200kcr × Ship Class after.</div>
-          <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>MINOR REPAIRS</div>
-          <div style={{ marginBottom:"8px" }}>Done in flight by crew. Time: 2d10 days. Critical Failure escalates to Major Repair.</div>
-          <div style={{ color:"#4a8a4a", marginBottom:"2px" }}>ANNUAL MAINTENANCE CHECK</div>
-          <div style={{ marginBottom:"12px" }}>Roll Systems Check annually. Failure: roll Maintenance Issues Table, all crew +1 Stress. Critical Failure: two rolls, entire crew Panic Check.</div>
-
-          <div style={{ color:"#4a8a4a", marginBottom:"8px" }}>FUEL CALCULATOR</div>
-          <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", alignItems:"center", marginBottom:"8px" }}>
-            <div>
-              <div style={{ color:"#3a6a3a", fontSize:"9px", marginBottom:"3px" }}>CLASS</div>
-              <select value={fuelClass} onChange={e=>setFuelClass(e.target.value)}
-                style={{ background:"transparent", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, fontSize:"11px", padding:"3px 6px" }}>
-              {Object.entries(FUEL_COSTS).map(([c,cost])=><option key={c} value={c}>Class-{c} ({(cost/1000).toLocaleString()}kcr)</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={{ color:"#3a6a3a", fontSize:"9px", marginBottom:"3px" }}>UNITS</div>
-              <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-                <button onClick={()=>setFuelUnits(v=>Math.max(0,v-1))} style={{ background:"none", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, padding:"2px 7px", cursor:"pointer" }}>−</button>
-                <span style={{ color:GREEN_MID, minWidth:"28px", textAlign:"center" }}>{fuelUnits}</span>
-                <button onClick={()=>setFuelUnits(v=>v+1)} style={{ background:"none", border:`1px solid rgba(68,200,68,0.2)`, color:GREEN_MID, fontFamily:MONO, padding:"2px 7px", cursor:"pointer" }}>+</button>
+        <div style={{ color:"#3a6a3a", fontSize:"12px", lineHeight:1.8 }}>
+          <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>MAJOR REPAIRS</div>
+          <div style={{ marginBottom:"12px" }}>Must be done in port. Cost: 1d5mcr × Ship Class per Hull/Megadamage point. Time: months to a year. <span style={{ color:GREEN_MID }}>Machine Shop exception:</span> repair up to 3 MDMG + 3 Hull without port; resupply 200kcr × Ship Class after.</div>
+          <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>MINOR REPAIRS</div>
+          <div style={{ marginBottom:"12px" }}>Done in flight by crew. Time: 2d10 days. Critical Failure escalates to Major Repair.</div>
+          <div style={{ color:"#4a8a4a", marginBottom:"4px" }}>ANNUAL MAINTENANCE CHECK</div>
+          <div style={{ marginBottom:"16px" }}>Roll Systems Check annually. Failure: roll Maintenance Issues Table, all crew +1 Stress. Critical Failure: two rolls, entire crew Panic Check.</div>
+          <div style={{ color:"#4a8a4a", marginBottom:"10px" }}>FUEL CALCULATOR</div>
+          <div style={{ display:"flex", gap:"16px", flexWrap:"wrap", alignItems:"flex-end", marginBottom:"14px" }}>
+            <div style={{ flex:"1", minWidth:"160px" }}>
+              <span style={lbl}>CLASS</span>
+              <div style={{ position:"relative" }}>
+                <select value={fuelClass} onChange={e=>setFuelClass(e.target.value)} style={sel}>
+                  {Object.entries(FUEL_COSTS).map(([c,cost])=>(
+                    <option key={c} value={c}>Class-{c} ({(cost/1000).toLocaleString()}kcr/unit)</option>
+                  ))}
+                </select>
+                <span style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", color:GREEN_DARK, pointerEvents:"none", fontSize:"12px" }}>▾</span>
               </div>
             </div>
+            <div>
+              <span style={lbl}>UNITS</span>
+              <Stepper value={fuelUnits} onChange={setFuelUnits} />
+            </div>
             {fuelUnits > 0 && (
-              <div style={{ color:HEADER_GREEN, fontSize:"13px", fontWeight:"bold" }}>{fuelTotal.toLocaleString()}cr</div>
+              <div style={{ color:HEADER_GREEN, fontSize:"20px", fontWeight:"bold", paddingBottom:"6px" }}>{fuelTotal.toLocaleString()}cr</div>
             )}
           </div>
-          <table style={{ borderCollapse:"collapse", marginBottom:"10px" }}>
-            <thead><tr>{["CLASS","COST / UNIT"].map(h=><th key={h} style={{ ...TH, fontSize:"9px" }}>{h}</th>)}</tr></thead>
-            <tbody>
-              {[["I","1,000cr (1kcr)"],["II","2,000cr (2kcr)"],["III","5,000cr (5kcr)"],["IV","50,000cr (50kcr)"],["V","100,000cr (100kcr)"]].map(([cls,cost])=>(
-                <tr key={cls}><td style={{ padding:"2px 16px 2px 0", color:"#4a8a4a" }}>Class-{cls}</td><td style={{ padding:"2px 0", color:"#88aacc" }}>{cost}</td></tr>
-              ))}
-              <tr><td style={{ padding:"4px 16px 2px 0", color:"#4a8a4a" }}>Warp Core</td><td style={{ padding:"4px 0", color:"#88aacc" }}>1mcr each</td></tr>
-              <tr><td style={{ padding:"2px 16px 2px 0", color:"#4a8a4a" }}>Vessel Tow</td><td style={{ padding:"2px 0", color:"#88aacc" }}>500kcr</td></tr>
-            </tbody>
-          </table>
+          <div style={{ overflowX:"auto", marginBottom:"12px" }}>
+            <table style={{ borderCollapse:"collapse" }}>
+              <thead><tr>{["CLASS","COST / UNIT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+              <tbody>
+                {[["I","1,000cr (1kcr)"],["II","2,000cr (2kcr)"],["III","5,000cr (5kcr)"],["IV","50,000cr (50kcr)"],["V","100,000cr (100kcr)"]].map(([cls,cost])=>(
+                  <tr key={cls}><td style={{ ...TD, paddingRight:"24px" }}>Class-{cls}</td><td style={{ ...TD, color:"#88aacc" }}>{cost}</td></tr>
+                ))}
+                <tr><td style={{ ...TD, paddingRight:"24px" }}>Warp Core</td><td style={{ ...TD, color:"#88aacc" }}>1mcr each</td></tr>
+                <tr><td style={{ ...TD, paddingRight:"24px" }}>Vessel Tow</td><td style={{ ...TD, color:"#88aacc" }}>500kcr</td></tr>
+              </tbody>
+            </table>
+          </div>
           <div>Ammo resupply: Check after any engagement using ship weapons. Failure = Disadvantage or auto-fail on future Battle Checks.</div>
         </div>
       </Section>
