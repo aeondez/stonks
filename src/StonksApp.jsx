@@ -1689,7 +1689,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   const [fuelClass, setFuelClass] = useState("I");
   const [fuelUnits, setFuelUnits] = useState(0);
   const [equityCorp, setEquityCorp] = useState("");
-  const [open, setOpen] = useState({ checklist:true, debt:true, contractors:true, payout:false, medical:false, shore:false, training:false, repairs:false });
+  const [open, setOpen] = useState({ checklist:false, debt:false, contractors:false, payout:false, medical:false, shore:false, training:false, repairs:false });
   const toggle = (k) => setOpen(o=>({...o,[k]:!o[k]}));
 
   const salary = trained*500 + expert*1000 + master*2000;
@@ -1861,7 +1861,12 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       )}
 
       {(crew?.contractors?.length > 0) && (
-        <Section id="contractors" title="CONTRACTORS">
+        <Section id="contractors" title="CONTRACTORS" badge={(() => {
+          const unpaid = (crew.contractors||[]).filter(c=>!c.paid);
+          if (unpaid.length === 0) return null;
+          const total = unpaid.reduce((s,c)=>s+(c.salary||0),0);
+          return `${unpaid.length} UNPAID · ${total.toLocaleString()}cr/mo`;
+        })()}>
           {(crew.contractors || []).map(c => (
             <div key={c.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
               fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
