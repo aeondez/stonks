@@ -580,9 +580,9 @@ function JobEditor({ job, stocks, onSave, onCancel }) {
                   border: `1px solid ${frozen ? "#4488cc" : "#1a2a3a"}`,
                   color: frozen ? "#88ccff" : "#445566",
                   fontFamily: MONO, fontSize: "10px", padding: "3px 10px", cursor: "pointer" }}>
-                {frozen ? "❄ FROZEN" : "UNFROZEN"}
+                {frozen ? "📌 STICKY" : "NOT STICKY"}
               </button>
-              <span style={{ color: "#334455", fontSize: "9px" }}>Frozen jobs stay on the board until manually completed</span>
+              <span style={{ color: "#334455", fontSize: "9px" }}>Sticky jobs stay on the board until manually completed</span>
             </div>
           )}
         </div>
@@ -766,9 +766,9 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                 <button onClick={() => {
                   const next = jobs.map(j => j.id === job.id ? { ...j, frozen: !j.frozen } : j);
                   saveJobs(next);
-                  showToast(job.frozen ? "JOB UNFROZEN" : "JOB FROZEN", "#88ccff");
+                  showToast(job.frozen ? "JOB UNSTICKIED" : "JOB STICKIED", "#88ccff");
                 }} style={jBtnStyle(job.frozen ? "#4488cc" : "#334455")}>
-                  {job.frozen ? "❄ FROZEN" : "FREEZE"}
+                  {job.frozen ? "📌 STICKY" : "STICKY OFF"}
                 </button>
                 <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
               </div>
@@ -802,7 +802,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                   const next = jobs.map(j => j.id === job.id ? { ...j, frozen: !j.frozen } : j);
                   saveJobs(next);
                 }} style={jBtnStyle(job.frozen ? "#4488cc" : "#334455")}>
-                  {job.frozen ? "❄ FROZEN" : "FREEZE"}
+                  {job.frozen ? "📌 STICKY" : "STICKY OFF"}
                 </button>
                 <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
               </div>
@@ -1445,10 +1445,36 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, wardenSet, KEYS }) {
   );
 }
 
+const CONTRACTOR_TYPES = [
+  ["Archaeologist", 6000],
+  ["Asteroid Miner", 2000],
+  ["Android", 6000],
+  ["Bodyguard", 2000],
+  ["Captain", 10000],
+  ["Chaplain", 750],
+  ["Corporate Fixer", 24000],
+  ["Doctor", 8000],
+  ["Engineer", 7000],
+  ["Hacker", 8000],
+  ["Marine (Grunt)", 1500],
+  ["Marine (Officer)", 3500],
+  ["Pilot", 3000],
+  ["Pioneer", 1500],
+  ["Scientist", 4000],
+  ["Survival Guide", 3000],
+  ["Surgeon", 12000],
+  ["Teamster", 2000],
+  ["Therapist", 3000],
+  ["Void Urchin", 100],
+];
+
 function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
   const contractors = crew.contractors || [];
   const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
-  const add = () => { const next={...crew,contractors:[...contractors,{id:Date.now(),name:"",salary:0,paid:false}]}; setCrew(next); wardenSet(KEYS.crew,next); };
+  const add = () => {
+    const next={...crew,contractors:[...contractors,{id:Date.now(),name:"",occupation:"",salary:0,paid:false}]};
+    setCrew(next); wardenSet(KEYS.crew,next);
+  };
   const upd = (id,p) => { const next={...crew,contractors:contractors.map(c=>c.id===id?{...c,...p}:c)}; setCrew(next); wardenSet(KEYS.crew,next); };
   const del = (id) => { const next={...crew,contractors:contractors.filter(c=>c.id!==id)}; setCrew(next); wardenSet(KEYS.crew,next); };
   return (
@@ -1458,17 +1484,39 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
       </div>
       {contractors.length === 0 && <div style={{ color:"#334455", fontSize:"11px", padding:"8px 0" }}>No active contractors.</div>}
       {contractors.map(c => (
-        <div key={c.id} style={{ display:"flex", gap:"8px", alignItems:"center", marginBottom:"6px", flexWrap:"wrap", padding:"8px", border:`1px solid ${c.paid?"#1a3a2a":"#2a1a1a"}` }}>
-          <input value={c.name} onChange={e=>upd(c.id,{name:e.target.value})} placeholder="Name" style={{ ...sI, flex:1, minWidth:"120px" }} />
-          <input type="number" min={0} value={c.salary} onChange={e=>upd(c.id,{salary:parseFloat(e.target.value)||0})} placeholder="Salary" style={{ ...sI, width:"80px" }} />
-          <span style={{ color:"#445566", fontSize:"10px" }}>cr/mo</span>
-          <button onClick={()=>upd(c.id,{paid:!c.paid})}
-            style={{ background:"none", border:`1px solid ${c.paid?"#224422":"#442222"}`, color:c.paid?"#44cc88":"#cc5555",
-              fontFamily:MONO, fontSize:"10px", padding:"3px 10px", cursor:"pointer", minWidth:"65px" }}>
-            {c.paid ? "PAID" : "UNPAID"}
-          </button>
-          <span style={{ color:c.paid?"#44aa66":"#cc5555", fontSize:"10px" }}>{c.paid ? "⚑ Roll loyalty" : "⚑ Not paid"}</span>
-          <button onClick={()=>del(c.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+        <div key={c.id} style={{ marginBottom:"8px", padding:"10px 12px", border:`1px solid ${c.paid?"#1a3a2a":"#2a1a1a"}` }}>
+          <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"6px" }}>
+            {/* Occupation dropdown — auto-fills salary */}
+            <select value={c.occupation||""} onChange={e => {
+              const occ = e.target.value;
+              const match = CONTRACTOR_TYPES.find(([t]) => t === occ);
+              upd(c.id, { occupation: occ, salary: match ? match[1] : c.salary });
+            }} style={{ ...sI, minWidth:"160px" }}>
+              <option value="">— Select type —</option>
+              {CONTRACTOR_TYPES.map(([t]) => <option key={t}>{t}</option>)}
+            </select>
+            {/* Freeform name */}
+            <input value={c.name} onChange={e=>upd(c.id,{name:e.target.value})}
+              placeholder="Name (optional)"
+              style={{ ...sI, flex:1, minWidth:"120px" }} />
+            <button onClick={()=>del(c.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+          </div>
+          <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
+            {/* Salary — editable, pre-filled by occupation */}
+            <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+              <input type="number" min={0} value={c.salary}
+                onChange={e=>upd(c.id,{salary:parseFloat(e.target.value)||0})}
+                style={{ ...sI, width:"80px" }} />
+              <span style={{ color:"#445566", fontSize:"10px" }}>cr/mo</span>
+            </div>
+            <button onClick={()=>upd(c.id,{paid:!c.paid})}
+              style={{ background:"none", border:`1px solid ${c.paid?"#224422":"#442222"}`,
+                color:c.paid?"#44cc88":"#cc5555",
+                fontFamily:MONO, fontSize:"10px", padding:"3px 12px", cursor:"pointer" }}>
+              {c.paid ? "✓ PAID" : "UNPAID"}
+            </button>
+            {c.paid && <span style={{ color:"#44aa66", fontSize:"10px" }}>⚑ Roll loyalty</span>}
+          </div>
         </div>
       ))}
       <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>+ ADD CONTRACTOR</button>
@@ -1575,7 +1623,7 @@ const CHECKLIST_ITEMS = [
   "Go shopping",
 ];
 
-function PlayerSessionTab({ debt, rollConfig }) {
+function PlayerSessionTab({ debt, crew, rollConfig }) {
   const [months, setMonths] = useState(1);
   const [jumps, setJumps] = useState(0);
   const [hazard, setHazard] = useState("N/A");
@@ -1585,7 +1633,7 @@ function PlayerSessionTab({ debt, rollConfig }) {
   const [negoPct, setNegoPct] = useState(0);
   const [fuelClass, setFuelClass] = useState("I");
   const [fuelUnits, setFuelUnits] = useState(0);
-  const [open, setOpen] = useState({ checklist:true, debt:true, payout:false, medical:false, shore:false, training:false, repairs:false });
+  const [open, setOpen] = useState({ checklist:true, debt:true, contractors:true, payout:false, medical:false, shore:false, training:false, repairs:false });
   const toggle = (k) => setOpen(o=>({...o,[k]:!o[k]}));
 
   const salary = trained*500 + expert*1000 + master*2000;
@@ -1629,6 +1677,22 @@ function PlayerSessionTab({ debt, rollConfig }) {
             <div key={d.id} style={{ padding:"5px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"8px" }}>
               <span>{d.creditor || "Unknown creditor"}</span>
               <span style={{ color:"#cc7755" }}>{(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo · {d.termMonths} mo left</span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {(crew?.contractors?.length > 0) && (
+        <Section id="contractors" title="CONTRACTORS">
+          {(crew.contractors || []).map(c => (
+            <div key={c.id} style={{ padding:"6px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"11px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
+              <span style={{ color:GREEN_MID }}>
+                {c.name || c.occupation || "Unnamed"}
+                {c.name && c.occupation && <span style={{ color:"#4a8a6a", marginLeft:"8px", fontSize:"10px" }}>{c.occupation}</span>}
+              </span>
+              <span style={{ color: c.paid ? "#44cc88" : "#cc7755" }}>
+                {(c.salary||0).toLocaleString()}cr/mo · {c.paid ? "PAID" : "UNPAID"}
+              </span>
             </div>
           ))}
         </Section>
@@ -1784,7 +1848,7 @@ function PlayerSessionTab({ debt, rollConfig }) {
 
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, portfolio, catalogs, rollConfig, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
   const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "downtime"
   const [showHistory, setShowHistory] = useState(false);
   const [visible, setVisible] = useState([]);
@@ -1935,7 +1999,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         )}
 
         {tab === "downtime" && (
-          <PlayerSessionTab debt={debt} rollConfig={rollConfig} />
+          <PlayerSessionTab debt={debt} crew={crew} rollConfig={rollConfig} />
         )}
 
         {/* Theme switcher */}
@@ -4113,6 +4177,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       onSwitchGame={() => { window.location.href = "/"; }}
       jobs={jobs}
       debt={debt}
+      crew={crew}
       portfolio={portfolio}
       catalogs={catalogs}
       rollConfig={rollConfig}
