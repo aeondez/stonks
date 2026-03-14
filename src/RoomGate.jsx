@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const MONO = "'Share Tech Mono', 'Courier New', monospace";
 const BG = "#060807";
@@ -10,12 +10,36 @@ const RED = "#ff4455";
 const AMBER = "#ffcc44";
 
 export default function RoomGate() {
-  const [joinCode, setJoinCode] = useState("");
+  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creationKey, setCreationKey] = useState("");
   const [keyError, setKeyError] = useState("");
   const [error, setError] = useState("");
+  const refs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
+
+  const handleDigit = (i, val) => {
+    const clean = val.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (!clean && val) return; // reject non-alphanum
+    const next = [...digits];
+    next[i] = clean.slice(-1);
+    setDigits(next);
+    setError("");
+    if (clean && i < 5) refs[i + 1].current?.focus();
+    if (!clean && i > 0) refs[i - 1].current?.focus();
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
+    if (!pasted) return;
+    const next = ["", "", "", "", "", ""];
+    pasted.split("").forEach((ch, i) => { next[i] = ch; });
+    setDigits(next);
+    setError("");
+    const focusIdx = Math.min(pasted.length, 5);
+    refs[focusIdx].current?.focus();
+  };
 
   const createGame = async () => {
     if (!creationKey.trim()) { setKeyError("Enter the creation key."); return; }
@@ -43,7 +67,7 @@ export default function RoomGate() {
   };
 
   const joinGame = () => {
-    const code = joinCode.trim().toUpperCase();
+    const code = digits.join("").toUpperCase();
     if (!/^[A-Z0-9]{6}$/.test(code)) {
       setError("Enter a valid 6-character game code.");
       return;
@@ -51,12 +75,11 @@ export default function RoomGate() {
     window.location.href = `/room/${code}`;
   };
 
-  const inputStyle = {
-    width: "100%", background: "transparent",
-    border: `1px solid ${GREEN_DARK}`, color: "#e8ffe8",
-    fontFamily: MONO, fontSize: "14px", textAlign: "center",
-    letterSpacing: "0.2em", padding: "12px", outline: "none",
-    boxSizing: "border-box",
+  const boxStyle = {
+    width: "42px", height: "52px", background: "transparent",
+    border: `1px solid ${GREEN_DARK}`, color: GREEN,
+    fontFamily: MONO, fontSize: "22px", textAlign: "center", outline: "none",
+    letterSpacing: 0, boxSizing: "border-box",
   };
 
   return (
@@ -81,16 +104,22 @@ export default function RoomGate() {
           ● LIVE MARKET FEED
         </div>
 
-        {/* JOIN section — always visible */}
+        {/* JOIN section — 6-digit boxes */}
         <div style={{ marginBottom: "32px" }}>
-          <input
-            value={joinCode}
-            onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setError(""); }}
-            onKeyDown={(e) => e.key === "Enter" && joinGame()}
-            maxLength={6}
-            placeholder="ENTER GAME CODE"
-            style={{ ...inputStyle, fontSize: "20px", letterSpacing: "0.4em", marginBottom: "12px" }}
-          />
+          <div style={{ color: "#4a7a4a", fontSize: "9px", letterSpacing: "0.2em", marginBottom: "10px" }}>GAME CODE</div>
+          <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginBottom: "14px" }}>
+            {digits.map((d, i) => (
+              <input key={i} ref={refs[i]} value={d} maxLength={1}
+                autoComplete="off" autoCorrect="off" autoCapitalize="characters" spellCheck={false}
+                onChange={(e) => handleDigit(i, e.target.value)}
+                onPaste={handlePaste}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") joinGame();
+                  if (e.key === "Backspace" && !d && i > 0) { refs[i-1].current?.focus(); }
+                }}
+                style={{ ...boxStyle, borderColor: error ? RED : GREEN_DARK }} />
+            ))}
+          </div>
           <button onClick={joinGame}
             style={{ display: "block", width: "100%", background: "none",
               border: `1px solid ${GREEN_DARK}`, color: GREEN_DIM, fontFamily: MONO,
@@ -126,7 +155,11 @@ export default function RoomGate() {
               onKeyDown={(e) => e.key === "Enter" && createGame()}
               type="password"
               placeholder="enter key"
-              style={{ ...inputStyle, fontSize: "13px", letterSpacing: "0.1em", marginBottom: "8px" }}
+              style={{ width: "100%", background: "transparent",
+                border: `1px solid ${GREEN_DARK}`, color: "#e8ffe8",
+                fontFamily: MONO, fontSize: "13px", textAlign: "center",
+                letterSpacing: "0.1em", padding: "12px", outline: "none",
+                boxSizing: "border-box", marginBottom: "8px" }}
             />
             {keyError && (
               <div style={{ color: RED, fontSize: "10px", letterSpacing: "0.1em", marginBottom: "8px" }}>

@@ -1995,6 +1995,19 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
     if (!val && i > 0) refs[i - 1].current?.focus();
   };
 
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    const next = ["", "", "", "", "", ""];
+    pasted.split("").forEach((ch, i) => { next[i] = ch; });
+    setDigits(next);
+    setError(false);
+    const focusIdx = Math.min(pasted.length, 5);
+    refs[focusIdx].current?.focus();
+    if (pasted.length === 6) setTimeout(submit, 50);
+  };
+
   const [locked, setLocked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -2052,6 +2065,7 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
             <input key={i} ref={refs[i]} value={d} maxLength={1}
               inputMode="numeric" pattern="[0-9]*" autoComplete="off"
               onChange={(e) => { if (!locked) handleKey(i, e.target.value); }}
+              onPaste={handlePaste}
               onKeyDown={(e) => { if (!locked && e.key === "Enter") submit(); if (e.key === "Backspace" && !d && i > 0) refs[i-1].current?.focus(); }}
               disabled={locked || submitting}
               style={{ width: "42px", height: "52px", background: "transparent",
@@ -2491,7 +2505,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   theme, setTheme, onLogout, KEYS }) {
 
   const [panel, setPanel] = useState("corps"); // "headline" | "jobs" | "economy" | "corps" | "session" | "settings"
-  const [sessionTab, setSessionTab] = useState("payout"); // "payout"|"debt"|"portfolio"|"ship"|"contractors"|"catalog"
+  const [sessionTab, setSessionTab] = useState("debt"); // "debt"|"portfolio"|"ship"|"contractors"
+  const [jobsTab, setJobsTab] = useState("board"); // "board"|"payout"
   const [pendingAdvance, setPendingAdvance] = useState(null);
   const [pendingVariance, setPendingVariance] = useState(null);
   const [pendingHealthShift, setPendingHealthShift] = useState(null);
@@ -2766,7 +2781,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {/* Toolbar — scrollable on mobile */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px",
           overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["crew","CREW"],["settings","SETTINGS"]].map(([p, label]) => (
+          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["session","SESSION"],["settings","SETTINGS"]].map(([p, label]) => (
             <button key={p} onClick={() => setPanel(panel === p ? null : p)}
               style={{ background: panel === p ? "rgba(68,136,255,0.1)" : "none",
                 border: `1px solid ${panel === p ? "#4488ff" : "#1a2a3a"}`,
@@ -3323,14 +3338,36 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
         {/* Panel: Jobs */}
         {panel === "jobs" && (
-          <JobBoardPanel
-            jobs={jobs} setJobs={setJobs}
-            stocks={stocks} setStocks={setStocks}
-            date={date}
-            rollConfig={rollConfig} setRollConfig={setRollConfig}
-            alwaysMerge={alwaysMerge}
-            KEYS={KEYS} wardenSet={wardenSet} showToast={showToast}
-          />
+          <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
+            <div style={{ display: "flex", gap: "4px", marginBottom: "20px", borderBottom: `1px solid #1a2a3a`, paddingBottom: "12px" }}>
+              {[["board","BOARD"],["payout","PAYOUT"]].map(([id, lbl]) => (
+                <button key={id} onClick={() => setJobsTab(id)}
+                  style={{ background: jobsTab === id ? "rgba(68,136,255,0.12)" : "none",
+                    border: `1px solid ${jobsTab === id ? "#334488" : "#1a2a3a"}`,
+                    color: jobsTab === id ? "#88aadd" : "#445566",
+                    fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                    padding: "4px 12px", cursor: "pointer" }}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+            {jobsTab === "board" && (
+              <JobBoardPanel
+                jobs={jobs} setJobs={setJobs}
+                stocks={stocks} setStocks={setStocks}
+                date={date}
+                rollConfig={rollConfig} setRollConfig={setRollConfig}
+                alwaysMerge={alwaysMerge}
+                KEYS={KEYS} wardenSet={wardenSet} showToast={showToast}
+              />
+            )}
+            {jobsTab === "payout" && (
+              <PayoutCalculator jobs={jobs} crew={crew} setCrew={setCrew} stocks={stocks}
+                portfolio={portfolio} setPortfolio={setPortfolio}
+                rollConfig={rollConfig} date={date}
+                wardenSet={wardenSet} KEYS={KEYS} showToast={showToast} />
+            )}
+          </div>
         )}
 
         {/* Panel: Corps */}
@@ -3515,16 +3552,21 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               </div>
               <AddCorpRow onAdd={(corp) => { const next = sortByPrice([...stocks, corp]); setStocks(next); wardenSet(KEYS.stocks, next); }} inputStyle={inputStyle} />
             </div>
+            {/* Catalog — inline below corp editor */}
+            <div style={{ borderTop: `1px solid #1a2a3a`, paddingTop: "20px", marginTop: "8px" }}>
+              <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "14px" }}>CATALOG & BENEFITS</div>
+              <CatalogPanel catalogs={catalogs} setCatalogs={setCatalogs} stocks={stocks} wardenSet={wardenSet} KEYS={KEYS} />
+            </div>
           </div>
         )}
 
         {/* Panel: Session */}
         {panel === "session" && (
           <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid #1a2a3a`, padding: "20px", marginBottom: "20px" }}>
-            <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>POST-SCENARIO</div>
+            <div style={{ color: "#aaccee", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>SESSION</div>
             {/* Sub-tab bar */}
             <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "20px", borderBottom: `1px solid #1a2a3a`, paddingBottom: "12px" }}>
-              {[["payout","PAYOUT"],["debt","DEBT"],["portfolio","PORTFOLIO"],["ship","SHIP"],["contractors","CONTRACTORS"],["catalog","CATALOG"]].map(([id, lbl]) => (
+              {[["debt","DEBT"],["portfolio","PORTFOLIO"],["ship","SHIP"],["contractors","CONTRACTORS"]].map(([id, lbl]) => (
                 <button key={id} onClick={() => setSessionTab(id)}
                   style={{ background: sessionTab === id ? "rgba(68,136,255,0.12)" : "none",
                     border: `1px solid ${sessionTab === id ? "#334488" : "#1a2a3a"}`,
@@ -3537,12 +3579,6 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 </button>
               ))}
             </div>
-            {sessionTab === "payout" && (
-              <PayoutCalculator jobs={jobs} crew={crew} setCrew={setCrew} stocks={stocks}
-                portfolio={portfolio} setPortfolio={setPortfolio}
-                rollConfig={rollConfig} date={date}
-                wardenSet={wardenSet} KEYS={KEYS} showToast={showToast} />
-            )}
             {sessionTab === "debt" && (
               <DebtPanel debt={debt} setDebt={setDebt} wardenSet={wardenSet} KEYS={KEYS} />
             )}
@@ -3556,9 +3592,6 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             )}
             {sessionTab === "contractors" && (
               <ContractorPanel crew={crew} setCrew={setCrew} wardenSet={wardenSet} KEYS={KEYS} />
-            )}
-            {sessionTab === "catalog" && (
-              <CatalogPanel catalogs={catalogs} setCatalogs={setCatalogs} stocks={stocks} wardenSet={wardenSet} KEYS={KEYS} />
             )}
           </div>
         )}
