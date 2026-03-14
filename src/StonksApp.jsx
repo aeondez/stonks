@@ -1747,49 +1747,6 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
 
   return (
     <div style={{ color:GREEN_MID }}>
-      <Section id="checklist" title="POST-SESSION CHECKLIST">
-        {CHECKLIST_ITEMS.map((item, i) => (
-          <div key={i} style={{ display:"flex", gap:"12px", padding:"10px 0",
-            borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"13px", lineHeight:1.5 }}>
-            <span style={{ color:GREEN_DARK, minWidth:"20px", flexShrink:0 }}>{i+1}.</span>
-            <span>{item}</span>
-          </div>
-        ))}
-      </Section>
-
-      {debt.length > 0 && (
-        <Section id="debt" title="DEBT OBLIGATIONS" badge={`+${debt.length} MIN STRESS`}>
-          {debt.map(d => (
-            <div key={d.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
-              fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px" }}>
-              <span>{d.creditor || "Unknown creditor"}</span>
-              <span style={{ color:"#cc7755" }}>
-                {(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo
-                <span style={{ color:"#664433", marginLeft:"8px" }}>· {d.termMonths} {cycleWord}s left</span>
-              </span>
-            </div>
-          ))}
-        </Section>
-      )}
-
-      {(crew?.contractors?.length > 0) && (
-        <Section id="contractors" title="CONTRACTORS">
-          {(crew.contractors || []).map(c => (
-            <div key={c.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
-              fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
-              <span style={{ color:GREEN_MID }}>
-                {c.name || c.occupation || "Unnamed"}
-                {c.name && c.occupation &&
-                  <span style={{ color:"#4a8a6a", marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
-              </span>
-              <span style={{ color: c.paid ? "#44cc88" : "#cc7755" }}>
-                {(c.salary||0).toLocaleString()}cr/mo · {c.paid ? "PAID" : "UNPAID"}
-              </span>
-            </div>
-          ))}
-        </Section>
-      )}
-
       <Section id="payout" title="PAYOUT CALCULATOR">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
           {[["MONTHS",months,setMonths,1],["JUMPS (×1kcr)",jumps,setJumps,0]].map(([label,val,set,min]) => (
@@ -1877,6 +1834,49 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           </div>
         )}
       </Section>
+
+      <Section id="checklist" title="POST-SESSION CHECKLIST">
+        {CHECKLIST_ITEMS.map((item, i) => (
+          <div key={i} style={{ display:"flex", gap:"12px", padding:"10px 0",
+            borderBottom:`1px solid rgba(68,100,68,0.15)`, fontSize:"13px", lineHeight:1.5 }}>
+            <span style={{ color:GREEN_DARK, minWidth:"20px", flexShrink:0 }}>{i+1}.</span>
+            <span>{item}</span>
+          </div>
+        ))}
+      </Section>
+
+      {debt.length > 0 && (
+        <Section id="debt" title="DEBT OBLIGATIONS" badge={`+${debt.length} MIN STRESS`}>
+          {debt.map(d => (
+            <div key={d.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
+              fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px" }}>
+              <span>{d.creditor || "Unknown creditor"}</span>
+              <span style={{ color:"#cc7755" }}>
+                {(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo
+                <span style={{ color:"#664433", marginLeft:"8px" }}>· {d.termMonths} {cycleWord}s left</span>
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {(crew?.contractors?.length > 0) && (
+        <Section id="contractors" title="CONTRACTORS">
+          {(crew.contractors || []).map(c => (
+            <div key={c.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
+              fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
+              <span style={{ color:GREEN_MID }}>
+                {c.name || c.occupation || "Unnamed"}
+                {c.name && c.occupation &&
+                  <span style={{ color:"#4a8a6a", marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
+              </span>
+              <span style={{ color: c.paid ? "#44cc88" : "#cc7755" }}>
+                {(c.salary||0).toLocaleString()}cr/mo · {c.paid ? "PAID" : "UNPAID"}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
 
       <Section id="medical" title="MEDICAL TREATMENTS">
         <div style={{ overflowX:"auto" }}>
