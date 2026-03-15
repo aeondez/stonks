@@ -979,10 +979,10 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
 
         // Build price history for this stock from history snapshots
         const priceHistory = history
-          .filter(h => h.stocks)
-          .map(h => {
-            const snap = h.stocks.find(x => x.name === s.name);
-            return snap ? { price: snap.price, date: h.date } : null;
+          .filter(entry => entry.stocks)
+          .map(entry => {
+            const snap = entry.stocks.find(x => x.name === s.name);
+            return snap ? { price: snap.price, date: entry.date } : null;
           })
           .filter(Boolean)
           .slice(-10); // last 10 entries
@@ -1028,7 +1028,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                   <div style={{ color: GREEN_DARK, fontSize: "10px" }}>No history recorded yet.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                    {[...priceHistory].reverse().map((h, idx) => (
+                    {[...priceHistory].reverse().map((ph, idx) => (
                       <div key={idx} style={{ display: "flex", justifyContent: "space-between",
                         fontSize: "10px", color: GREEN_DARK, padding: "1px 0" }}>
                         <span style={{ color: GREEN_DARK }}>CYC {String(h.date?.cycle ?? "?").padStart(2,"0")}</span>
@@ -1148,7 +1148,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
       const newHoldings = equityProfiles.map(p => {
         const { equityShares } = calcPayout(p);
         return { id: Date.now() + Math.random(), company: jobCorp, shares: equityShares, grantPrice: currentPrice, lockScenarios: 1 };
-      }).filter(h => h.shares > 0);
+      }).filter(holding => holding.shares > 0);
       if (newHoldings.length > 0) {
         const newPortfolio = [...portfolio, ...newHoldings];
         setPortfolio(newPortfolio); wardenSet(KEYS.portfolio, newPortfolio);
@@ -1205,7 +1205,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
         </div>
         <div>{lbl("HAZARD")}
           <select value={hazard} onChange={e => setHazard(e.target.value)} style={sI}>
-            {HAZARD_OPTS.map(h => <option key={h}>{h}</option>)}
+            {HAZARD_OPTS.map(opt => <option key={opt}>{opt}</option>)}
           </select>
         </div>
       </div>
@@ -1401,7 +1401,7 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
     const next=[...portfolio,{id:Date.now(),company:co,shares:0,grantPrice:st?.price||0,lockScenarios:0}];
     setPortfolio(next); wardenSet(KEYS.portfolio,next);
   };
-  const upd = (id,p) => { const next=portfolio.map(h=>h.id===id?{...h,...p}:h); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
+  const upd = (id,p) => { const next=portfolio.map(item=>item.id===id?{...item,...p}:item); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
   const del = (id) => { const next=portfolio.filter(h=>h.id!==id); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
   return (
     <div>
@@ -1411,28 +1411,28 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
         </div>
       )}
       {portfolio.length === 0 && <div style={{ color:GREEN_DARK, fontSize:"11px", padding:"10px 0" }}>No holdings. Equity payouts (PAYOUT tab) lock shares here automatically.</div>}
-      {portfolio.map(h => {
-        const st = stocks.find(x=>x.name===h.company);
+      {portfolio.map(holding => {
+        const st = stocks.find(x=>x.name===holding.company);
         const cur = st?.price||0;
-        const val = cur * h.shares;
-        const gl = (cur - (h.grantPrice||cur)) * h.shares;
-        const locked = h.lockScenarios > 0;
+        const val = cur * holding.shares;
+        const gl = (cur - (holding.grantPrice||cur)) * holding.shares;
+        const locked = holding.lockScenarios > 0;
         return (
-          <div key={h.id} style={{ border:`1px solid #1a2a3a`, padding:"10px 12px", marginBottom:"8px" }}>
+          <div key={holding.id} style={{ border:`1px solid #1a2a3a`, padding:"10px 12px", marginBottom:"8px" }}>
             <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"6px" }}>
-              <select value={h.company} onChange={e=>{
+              <select value={holding.company} onChange={e=>{
                 const ns=stocks.find(s=>s.name===e.target.value);
-                upd(h.id,{company:e.target.value,grantPrice:ns?.price||h.grantPrice});
+                upd(holding.id,{company:e.target.value,grantPrice:ns?.price||holding.grantPrice});
               }} style={{ ...sI, flex:1, minWidth:"140px" }}>
                 {stocks.filter(s=>!s.is_collapsed).map(s=><option key={s.name}>{s.name}</option>)}
               </select>
               <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-                <button onClick={()=>upd(h.id,{shares:Math.max(0,(h.shares||0)-1)})} style={btnS}>−</button>
-                <span style={{ color:"#aabbcc", minWidth:"32px", textAlign:"center", fontSize:"13px" }}>{h.shares||0}</span>
-                <button onClick={()=>upd(h.id,{shares:(h.shares||0)+1})} style={btnS}>+</button>
+                <button onClick={()=>upd(holding.id,{shares:Math.max(0,(holding.shares||0)-1)})} style={btnS}>−</button>
+                <span style={{ color:"#aabbcc", minWidth:"32px", textAlign:"center", fontSize:"13px" }}>{holding.shares||0}</span>
+                <button onClick={()=>upd(holding.id,{shares:(holding.shares||0)+1})} style={btnS}>+</button>
                 <span style={{ color:GREEN_DARK, fontSize:"10px", marginLeft:"2px" }}>shares</span>
               </div>
-              <button onClick={()=>del(h.id)} style={{ ...sI, padding:"2px 7px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+              <button onClick={()=>del(holding.id)} style={{ ...sI, padding:"2px 7px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
             </div>
             <div style={{ display:"flex", gap:"16px", flexWrap:"wrap", fontSize:"11px" }}>
               <span style={{ color:GREEN_DARK }}>Grant: <span style={{ color:"#6688aa" }}>{(h.grantPrice||0).toLocaleString()}cr</span></span>
@@ -1440,8 +1440,8 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
               <span style={{ color:GREEN_DARK }}>Value: <span style={{ color:"#aaccee" }}>{val.toLocaleString()}cr</span></span>
               <span style={{ color: gl>=0?GREEN:"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
               {locked
-                ? <span style={{ color:AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios!==1?"s":""} locked
-                    <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:GREEN_DARK }}>UNLOCK</button>
+                ? <span style={{ color:AMBER }}>🔒 {holding.lockScenarios} scenario{holding.lockScenarios!==1?"s":""} locked
+                    <button onClick={()=>upd(holding.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:GREEN_DARK }}>UNLOCK</button>
                   </span>
                 : <span style={{ color: GREEN }}>● AVAILABLE</span>}
             </div>
@@ -1820,7 +1820,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
             <span style={lbl}>HAZARD</span>
             <div style={{ position:"relative" }}>
               <select value={hazard} onChange={e=>lockScroll(()=>setHazard(e.target.value))} style={sel}>
-                {HAZARD_OPTS.map(h=><option key={h}>{h}</option>)}
+                {HAZARD_OPTS.map(opt=><option key={opt}>{opt}</option>)}
               </select>
               <span style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", color:GREEN_DARK, pointerEvents:"none", fontSize:"12px" }}>▾</span>
             </div>
@@ -1946,7 +1946,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       <Section id="medical" title="MEDICAL TREATMENTS">
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse", marginBottom:"10px" }}>
-            <thead><tr>{["TREATMENT","COST","EFFECT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <thead><tr>{["TREATMENT","COST","EFFECT"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
             <tbody>{TREATMENTS_TABLE.map(([t,c,e])=>(
               <tr key={t}>
                 <td style={TD}>{t}</td>
@@ -1965,7 +1965,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         <div style={{ color:GREEN_DARK, fontSize:"12px", marginBottom:"10px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
         <div style={{ overflowX:"auto", marginBottom:"12px" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
             <tbody>{SHORE_LEAVE_TABLE.map(([p,c,s])=>(
               <tr key={p}><td style={{ ...TD, color:AMBER }}>{p}</td><td style={{ ...TD, color:"#88aacc" }}>{c}</td><td style={{ ...TD, color:HEADER_GREEN }}>{s}</td></tr>
             ))}</tbody>
@@ -1973,7 +1973,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         </div>
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <thead><tr>{["RESULT","OUTCOME"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
             <tbody>{SHORE_LEAVE_RESULTS.map(([r,o])=>(
               <tr key={r}>
                 <td style={{ ...TD, whiteSpace:"nowrap", paddingRight:"16px",
@@ -1991,7 +1991,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         </div>
         <div style={{ overflowX:"auto", marginBottom:"14px" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr>{["TIER","DURATION","COST","BONUS"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <thead><tr>{["TIER","DURATION","COST","BONUS"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
             <tbody>{TRAINING_TABLE.map(([tier,req,dur,cost,bonus])=>(
               <tr key={tier}>
                 <td style={{ ...TD, color:AMBER }}>{tier}</td>
@@ -2008,7 +2008,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         </div>
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+            <thead><tr>{["RESULT","OUTCOME"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
             <tbody>{MILITARY_RESULTS.map(([r,o])=>(
               <tr key={r}>
                 <td style={{ ...TD, whiteSpace:"nowrap", paddingRight:"16px",
@@ -2031,7 +2031,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           <div style={{ color:GREEN_MID, marginBottom:"10px" }}>OPERATIONAL COSTS</div>
           <div style={{ overflowX:"auto", marginBottom:"12px" }}>
             <table style={{ borderCollapse:"collapse" }}>
-              <thead><tr>{["CLASS","COST / UNIT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+              <thead><tr>{["CLASS","COST / UNIT"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
               <tbody>
                 {[["I","1,000cr (1kcr)"],["II","2,000cr (2kcr)"],["III","5,000cr (5kcr)"],["IV","50,000cr (50kcr)"],["V","100,000cr (100kcr)"]].map(([cls,cost])=>(
                   <tr key={cls}><td style={{ ...TD, paddingRight:"24px" }}>Class-{cls} Fuel</td><td style={{ ...TD, color:"#88aacc" }}>{cost}</td></tr>
@@ -2144,18 +2144,18 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         {/* Headlines */}
         {tab === "ticker" && recentHeadlines.length > 0 && (
           <div style={{ marginBottom: "24px" }}>
-            {recentHeadlines.map((h, i) => (
+            {recentHeadlines.map((hl, i) => (
               <div key={i} style={{ borderLeft: `2px solid ${i === 0 ? GREEN : GREEN_DARK}`,
                 paddingLeft: "12px", marginBottom: "12px", opacity: i === 0 ? 1 : 0.55 }}>
                 <div style={{ color: i === 0 ? HEADER_GREEN : GREEN_DIM, fontSize: "12px",
-                  letterSpacing: "0.08em", fontWeight: "bold" }}>{h.headline}</div>
-                {h.subtext && (
+                  letterSpacing: "0.08em", fontWeight: "bold" }}>{hl.headline}</div>
+                {hl.subtext && (
                   <div style={{ color: GREEN_MID, fontSize: "11px", marginTop: "2px", letterSpacing: "0.04em" }}>
-                    {h.subtext}
+                    {hl.subtext}
                   </div>
                 )}
                 <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "3px" }}>
-                  <FictionDate date={h.date} />
+                  <FictionDate date={hl.date} />
                 </div>
               </div>
             ))}
@@ -2235,14 +2235,14 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                       borderBottom: `1px solid ${GREEN_DARK}`, paddingBottom: "8px" }}>
                       EQUITY HOLDINGS — {portfolio.length} POSITION{portfolio.length !== 1 ? "S" : ""}
                     </div>
-                    {portfolio.map(h => {
-                      const st = stocks.find(s => s.name === h.company);
+                    {portfolio.map(holding => {
+                      const st = stocks.find(s => s.name === holding.company);
                       const cur = st?.price || 0;
-                      const val = cur * h.shares;
-                      const gl = (cur - (h.grantPrice || cur)) * h.shares;
-                      const locked = h.lockScenarios > 0;
+                      const val = cur * holding.shares;
+                      const gl = (cur - (holding.grantPrice || cur)) * holding.shares;
+                      const locked = holding.lockScenarios > 0;
                       return (
-                        <div key={h.id} style={{ padding: "10px 0", borderBottom: `1px solid rgba(68,100,68,0.15)`,
+                        <div key={holding.id} style={{ padding: "10px 0", borderBottom: `1px solid rgba(68,100,68,0.15)`,
                           display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
                           <div>
                             <div style={{ color: GREEN_MID, fontSize: "13px" }}>{h.company}</div>
@@ -2255,7 +2255,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                               {val.toLocaleString()}cr
                             </div>
                             <div style={{ fontSize: "11px" }}>
-                              {locked && <span style={{ color: AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios !== 1 ? "s" : ""} locked</span>}
+                              {locked && <span style={{ color: AMBER }}>🔒 {holding.lockScenarios} scenario{holding.lockScenarios !== 1 ? "s" : ""} locked</span>}
                               {!locked && <span style={{ color: GREEN }}>● AVAILABLE</span>}
                             </div>
                           </div>
@@ -2266,9 +2266,9 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                       fontSize: "12px", color: GREEN_DARK }}>
                       <span>TOTAL VALUE</span>
                       <span style={{ color: HEADER_GREEN, fontWeight: "bold" }}>
-                        {portfolio.reduce((s, h) => {
-                          const st = stocks.find(x => x.name === h.company);
-                          return s + (st ? st.price * h.shares : 0);
+                        {portfolio.reduce((sum, holding) => {
+                          const st = stocks.find(x => x.name === holding.company);
+                          return sum + (st ? st.price * holding.shares : 0);
                         }, 0).toLocaleString()}cr
                       </span>
                     </div>
@@ -2489,9 +2489,9 @@ function HistoryLog({ history, headlines }) {
   const pastHeadlines = [];
   const seenIds = new Set();
   [...history].reverse().forEach((entry) => {
-    if (entry.headlines) entry.headlines.forEach((h) => {
-      const key = h.id || h.headline;
-      if (!seenIds.has(key)) { seenIds.add(key); pastHeadlines.push({ ...h, _cycle: entry.date }); }
+    if (entry.headlines) entry.headlines.forEach((hl) => {
+      const key = hl.id || hl.headline;
+      if (!seenIds.has(key)) { seenIds.add(key); pastHeadlines.push({ ...hl, _cycle: entry.date }); }
     });
   });
 
@@ -2515,13 +2515,13 @@ function HistoryLog({ history, headlines }) {
       {tab === "news" && (
         pastHeadlines.length === 0
           ? <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "8px 0" }}>NO ARCHIVED HEADLINES</div>
-          : pastHeadlines.map((h, i) => (
+          : pastHeadlines.map((hl, i) => (
             <div key={i} style={{ borderLeft: `2px solid ${GREEN_DARK}`,
               paddingLeft: "12px", marginBottom: "14px", opacity: i === 0 ? 0.85 : 0.5 }}>
-              <div style={{ color: GREEN_DIM, fontSize: "12px", letterSpacing: "0.05em" }}>{h.headline}</div>
-              {h.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{h.subtext}</div>}
+              <div style={{ color: GREEN_DIM, fontSize: "12px", letterSpacing: "0.05em" }}>{hl.headline}</div>
+              {hl.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{hl.subtext}</div>}
               <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "3px" }}>
-                <FictionDate date={h.date || h._cycle} />
+                <FictionDate date={hl.date || hl._cycle} />
               </div>
             </div>
           ))
@@ -2575,11 +2575,11 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
   };
 
   const saveEdit = () => {
-    const next = headlines.map((h, i) => i !== editingIdx ? h : {
-      ...h,
+    const next = headlines.map((hl, i) => i !== editingIdx ? hl : {
+      ...hl,
       headline: editHL.toUpperCase().trim(),
       subtext: editSub.trim(),
-      date: { year: parseInt(editYear,10) || h.date?.year, cycle: parseInt(editCycle,10) || h.date?.cycle },
+      date: { year: parseInt(editYear,10) || hl.date?.year, cycle: parseInt(editCycle,10) || hl.date?.cycle },
     });
     setHeadlines(next);
     wardenSet(KEYS.headlines, next);
@@ -2601,7 +2601,7 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
       <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.2em", marginBottom: "10px" }}>
         PLAYER FEED — {headlines.length} HEADLINE{headlines.length !== 1 ? "S" : ""}
       </div>
-      {headlines.map((h, i) => (
+      {headlines.map((hl, i) => (
         <div key={h.id || i} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)`, padding: "8px 0" }}>
           {editingIdx === i ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -2706,7 +2706,7 @@ function AddCorpRow({ onAdd, inputStyle }) {
           <div style={lbl}>HEALTH</div>
           <select value={health} onChange={e => setHealth(e.target.value)}
             style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
-            {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
+            {HEALTH_STEPS.map(hs => <option key={hs} value={hs}>{hs}</option>)}
           </select>
         </div>
         <div style={field}>
@@ -3023,7 +3023,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     const histEntry = { date: { ...date }, stocks: stocks.map(({ healthRoll, volRoll, priceRoll, coinFlip, healthShift, volShift, _skipped, ...rest }) => rest), headlines: headlines.slice(0, 5) };
     const newHistory = [...history, histEntry].slice(-100); // cap at 100 to prevent unbounded growth
     const newHeadlines = autoHeadlines.length > 0 ? [...autoHeadlines, ...headlines] : headlines;
-    if (autoHeadlines.length > 0) autoHeadlines.forEach((h) => { setLastPublished(h.headline); clearTimeout(window._lpTimer); window._lpTimer = setTimeout(() => setLastPublished(null), 3500); });
+    if (autoHeadlines.length > 0) autoHeadlines.forEach((hl) => { setLastPublished(hl.headline); clearTimeout(window._lpTimer); window._lpTimer = setTimeout(() => setLastPublished(null), 3500); });
     setStocks(sorted);
     setMergers(updatedMergers);
     setDate(newDate);
@@ -3057,7 +3057,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
     // ── Portfolio: decrement lock counters ──
     if (portfolio.length > 0) {
-      const newPortfolio = portfolio.map(h => h.lockScenarios > 0 ? { ...h, lockScenarios: h.lockScenarios - 1 } : h);
+      const newPortfolio = portfolio.map(holding => holding.lockScenarios > 0 ? { ...holding, lockScenarios: holding.lockScenarios - 1 } : holding);
       setPortfolio(newPortfolio);
       wardenSet(KEYS.portfolio, newPortfolio);
     }
@@ -3181,19 +3181,19 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               OMNICORP ACQUISITION TRIGGERS:
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
-              {OMNICORP_HEADLINES.filter((h) => {
-                const protectedBy = MERGER_PROTECTED[h.company];
+              {OMNICORP_HEADLINES.filter((omniHL) => {
+                const protectedBy = MERGER_PROTECTED[omniHL.company];
                 if (!protectedBy) return true; // not a merger partner, always show
                 const merger = mergers.find((m) => m.name === protectedBy);
                 if (!merger) return true; // merger doesn't exist, show
                 // Hide if merger is still pending (both partners alive)
                 return getMergerStatus(merger, stocks) !== "pending";
-              }).map((h) => (
-                <button key={h.company} onClick={() => pushHeadline(h)}
+              }).map((omniHL) => (
+                <button key={omniHL.company} onClick={() => pushHeadline(omniHL)}
                   style={{ background: "rgba(80,60,0,0.2)", border: `1px solid rgba(255,200,0,0.15)`,
                     color: AMBER, fontFamily: MONO, fontSize: "10px", padding: "4px 8px",
                     cursor: "pointer", letterSpacing: "0.08em" }}>
-                  {h.company.toUpperCase()}
+                  {omniHL.company.toUpperCase()}
                 </button>
               ))}
             </div>
@@ -3309,8 +3309,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                              {["COMPANY","VOL","ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
-                                <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
+                              {["COMPANY","VOL","ROLL","COIN","Δ PRICE","NEW PRICE"].map((col) => (
+                                <th key={col} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
@@ -3360,8 +3360,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                              {["COMPANY","OLD HEALTH","H.ROLL","SHIFT","NEW HEALTH"].map((h) => (
-                                <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
+                              {["COMPANY","OLD HEALTH","H.ROLL","SHIFT","NEW HEALTH"].map((col) => (
+                                <th key={col} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
@@ -3434,8 +3434,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                        {["COMPANY","HEALTH","H.ROLL","H.SHIFT","VOL","V.ROLL","V.SHIFT","DIE ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
-                          <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
+                        {["COMPANY","HEALTH","H.ROLL","H.SHIFT","VOL","V.ROLL","V.SHIFT","DIE ROLL","COIN","Δ PRICE","NEW PRICE"].map((col) => (
+                          <th key={col} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -3760,9 +3760,9 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                    {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","HEALTH","VOL","FREEZE"].map((h) => (
-                      <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: GREEN_MID,
-                        fontSize: "10px", letterSpacing: "0.12em", fontWeight: "normal" }}>{h}</th>
+                    {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","HEALTH","VOL","FREEZE"].map((col) => (
+                      <th key={col} style={{ padding: "8px 10px", textAlign: "left", color: GREEN_MID,
+                        fontSize: "10px", letterSpacing: "0.12em", fontWeight: "normal" }}>{col}</th>
                     ))}
                   </tr>
                 </thead>
@@ -3871,8 +3871,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL",""].map(h => (
-                        <th key={h} style={{ padding: "4px 6px", textAlign: "left", color: GREEN_DARK, fontWeight: "normal", letterSpacing: "0.08em", fontSize: "10px" }}>{h}</th>
+                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL",""].map(col => (
+                        <th key={col} style={{ padding: "4px 6px", textAlign: "left", color: GREEN_DARK, fontWeight: "normal", letterSpacing: "0.08em", fontSize: "10px" }}>{col}</th>
                       ))}
                     </tr>
                   </thead>
@@ -3894,7 +3894,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <td style={{ padding: "3px 4px" }}>
                           <select value={s.health} onChange={(e) => { const next = stocks.map((x, xi) => xi === i ? { ...x, health: e.target.value } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
                             style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
-                            {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
+                            {HEALTH_STEPS.map(hs => <option key={hs} value={hs}>{hs}</option>)}
                           </select>
                         </td>
                         <td style={{ padding: "3px 4px" }}>
