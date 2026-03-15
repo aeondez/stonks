@@ -195,10 +195,10 @@ function computeBankruptcyCheck(stocks, mergers = [], alwaysMerge = true) {
     const collapses = bankruptRoll >= 7;
     let triggersMerger = null;
     if (collapses && alwaysMerge) {
-      const m = mergers.find((m) => !m.triggered &&
-        getMergerStatus(m, stocks) === "pending" &&
-        (m.partner1 === s.name || m.partner2 === s.name));
-      if (m) triggersMerger = m.name;
+      const mFound = mergers.find((mr) => !mr.triggered &&
+        getMergerStatus(mr, stocks) === "pending" &&
+        (mr.partner1 === s.name || mr.partner2 === s.name));
+      if (mFound) triggersMerger = mFound.name;
     }
     return { ...s, bankruptRoll, collapses, triggersMerger };
   });
@@ -551,7 +551,7 @@ function JobEditor({ job, stocks, onSave, onCancel }) {
                 <div>
                   <div style={labelStyle}>HAZARD PAY</div>
                   <select value={tmpl.hazard ?? 0} onChange={e => setTmpl(p => ({...p, hazard: parseInt(e.target.value)}))} style={selStyle}>
-                    {HAZARD_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
+                    {HAZARD_LABELS.map((lbl2, i) => <option key={i} value={i}>{lbl2}</option>)}
                   </select>
                 </div>
                 <div>
@@ -1112,7 +1112,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
   const corpStock = stocks.find(s => s.name === jobCorp);
   const currentPrice = corpStock?.price || 0;
   const negoFinal = negoManual !== "" ? (parseFloat(negoManual) || 0) : negoPct;
-  const flatTotal = flatBonuses.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+  const flatTotal = flatBonuses.reduce((sum, bonus) => sum + (parseFloat(bonus.amount) || 0), 0);
 
   const calcPayout = (p) => {
     const salary = (p.trained || 0) * 500 + (p.expert || 0) * 1000 + (p.master || 0) * 2000;
@@ -1228,10 +1228,10 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 
       <div style={{ marginBottom: "14px" }}>
         {lbl("FLAT BONUSES")}
-        {flatBonuses.map((b, i) => (
+        {flatBonuses.map((bonus, i) => (
           <div key={b.id} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "center" }}>
-            <input value={b.label} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,label:e.target.value}:x))} placeholder="Label" style={{ ...sI, flex: 1 }} />
-            <input type="number" value={b.amount} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,amount:e.target.value}:x))} placeholder="cr" style={{ ...sI, width: "80px" }} />
+            <input value={bonus.label} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,label:e.target.value}:x))} placeholder="Label" style={{ ...sI, flex: 1 }} />
+            <input type="number" value={bonus.amount} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,amount:e.target.value}:x))} placeholder="cr" style={{ ...sI, width: "80px" }} />
             <span style={{ color: GREEN_DARK, fontSize: "10px" }}>cr</span>
             <button onClick={() => setFlatBonuses(f=>f.filter((_,j)=>j!==i))} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
@@ -1242,12 +1242,12 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
         {lbl("PAYMENT MODE")}
-        {["cash","equity"].map(t => (
+        {["cash","equity"].map(payType => (
           <button key={t} onClick={() => setGlobalPayType(t)}
             style={{ ...sI, padding:"3px 10px", cursor:"pointer", fontSize:"10px",
               color: globalPayType === t ? "#88ccff" : GREEN_DARK,
               borderColor: globalPayType === t ? "#336699" : "#1a2a3a" }}>
-            {t.toUpperCase()}
+            {payType.toUpperCase()}
           </button>
         ))}
         {rollConfig.crewPaymentMode === "per" && <span style={{ color:GREEN_DARK, fontSize:"10px" }}>per-crew override active (set per row below)</span>}
@@ -1331,7 +1331,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
           <div style={{ color:"#aabbcc", fontSize:"13px", marginBottom:"2px" }}>{ledger.company} — {ledger.jobName}</div>
           <div style={{ color:GREEN_DARK, fontSize:"10px", marginBottom:"12px" }}>
             {ledger.months}mo · HAZARD {ledger.hazard} · {ledger.jumps} JUMPS · NEGO {ledger.negotiation > 0 ? "+" : ""}{ledger.negotiation}%
-            {ledger.flatBonuses.filter(b=>b.label).map(b => ` · ${b.label}: ${parseFloat(b.amount)||0}cr`).join("")}
+            {ledger.flatBonuses.filter(fb=>fb.label).map(fb => ` · ${fb.label}: ${parseFloat(fb.amount)||0}cr`).join("")}
           </div>
           {ledger.entries.map((e, i) => (
             <div key={i} style={{ borderTop:`1px solid #1a2a3a`, paddingTop:"8px", marginTop:"8px" }}>
@@ -1353,7 +1353,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 }
 
 function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
-  const totalOwed = debt.reduce((s, d) => s + (parseFloat(d.amount) || 0), 0);
+  const totalOwed = debt.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
   const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
   const addDebt = () => { const next = [...debt, {id:Date.now(), creditor:"", amount:0, monthlyPayment:0, termMonths:0}]; setDebt(next); wardenSet(KEYS.debt, next); };
   const upd = (id, p) => { const next = debt.map(d=>d.id===id?{...d,...p}:d); setDebt(next); wardenSet(KEYS.debt, next); };
@@ -1368,17 +1368,17 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
         </div>
       )}
       {debt.length === 0 && <div style={{ color:GREEN_DARK, fontSize:"11px", padding:"10px 0" }}>No active debts.</div>}
-      {debt.map(d => (
-        <div key={d.id} style={{ border:`1px solid #2a1a1a`, padding:"10px", marginBottom:"8px" }}>
+      {debt.map(debt_item => (
+        <div key={debt_item.id} style={{ border:`1px solid #2a1a1a`, padding:"10px", marginBottom:"8px" }}>
           <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center" }}>
-            <input value={d.creditor} onChange={e=>upd(d.id,{creditor:e.target.value})} placeholder="Creditor name" style={{ ...sI, flex:1, minWidth:"130px" }} />
-            <input type="number" value={d.amount} onChange={e=>upd(d.id,{amount:parseFloat(e.target.value)||0})} placeholder="Amount" style={{ ...sI, width:"90px" }} />
+            <input value={debt_item.creditor} onChange={e=>upd(debt_item.id,{creditor:e.target.value})} placeholder="Creditor name" style={{ ...sI, flex:1, minWidth:"130px" }} />
+            <input type="number" value={debt_item.amount} onChange={e=>upd(debt_item.id,{amount:parseFloat(e.target.value)||0})} placeholder="Amount" style={{ ...sI, width:"90px" }} />
             <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cr</span>
-            <input type="number" value={d.monthlyPayment} onChange={e=>upd(d.id,{monthlyPayment:parseFloat(e.target.value)||0})} placeholder="mo payment" style={{ ...sI, width:"80px" }} />
+            <input type="number" value={debt_item.monthlyPayment} onChange={e=>upd(debt_item.id,{monthlyPayment:parseFloat(e.target.value)||0})} placeholder="mo payment" style={{ ...sI, width:"80px" }} />
             <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cr/mo</span>
-            <input type="number" value={d.termMonths} onChange={e=>upd(d.id,{termMonths:parseInt(e.target.value)||0})} placeholder="mo" style={{ ...sI, width:"55px" }} />
+            <input type="number" value={debt_item.termMonths} onChange={e=>upd(debt_item.id,{termMonths:parseInt(e.target.value)||0})} placeholder="mo" style={{ ...sI, width:"55px" }} />
             <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cycles remaining</span>
-            <button onClick={()=>del(d.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+            <button onClick={()=>del(debt_item.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
         </div>
       ))}
@@ -1392,7 +1392,7 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
 }
 
 function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
-  const totalValue = portfolio.reduce((s, h) => { const st = stocks.find(x=>x.name===h.company); return s + (st ? st.price * h.shares : 0); }, 0);
+  const totalValue = portfolio.reduce((sum, holding) => { const st = stocks.find(x=>x.name===holding.company); return sum + (st ? st.price * holding.shares : 0); }, 0);
   const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
   const btnS = { background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"13px", padding:"2px 9px", cursor:"pointer", lineHeight:1 };
   const add = () => {
@@ -1588,39 +1588,39 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
         Check Contractor Loyalty if Paid in Full — update in Mothership Companion App.
       </div>
       {contractors.length === 0 && <div style={{ color:GREEN_DARK, fontSize:"11px", padding:"8px 0" }}>No active contractors.</div>}
-      {contractors.map(c => (
-        <div key={c.id} style={{ marginBottom:"8px", padding:"10px 12px", border:`1px solid ${c.paid?"#1a3a2a":"#2a1a1a"}` }}>
+      {contractors.map(ct => (
+        <div key={ct.id} style={{ marginBottom:"8px", padding:"10px 12px", border:`1px solid ${ct.paid?"#1a3a2a":"#2a1a1a"}` }}>
           <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"6px" }}>
             {/* Occupation dropdown — auto-fills salary */}
-            <select value={c.occupation||""} onChange={e => {
+            <select value={ct.occupation||""} onChange={e => {
               const occ = e.target.value;
               const match = CONTRACTOR_TYPES.find(([t]) => t === occ);
-              upd(c.id, { occupation: occ, salary: match ? match[1] : c.salary });
+              upd(ct.id, { occupation: occ, salary: match ? match[1] : ct.salary });
             }} style={{ ...sI, minWidth:"160px" }}>
               <option value="">— Select type —</option>
               {CONTRACTOR_TYPES.map(([t]) => <option key={t}>{t}</option>)}
             </select>
             {/* Freeform name */}
-            <input value={c.name} onChange={e=>upd(c.id,{name:e.target.value})}
+            <input value={ct.name} onChange={e=>upd(ct.id,{name:e.target.value})}
               placeholder="Name (optional)"
               style={{ ...sI, flex:1, minWidth:"120px" }} />
-            <button onClick={()=>del(c.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+            <button onClick={()=>del(ct.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
           </div>
           <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
             {/* Salary — editable, pre-filled by occupation */}
             <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-              <input type="number" min={0} value={c.salary}
-                onChange={e=>upd(c.id,{salary:parseFloat(e.target.value)||0})}
+              <input type="number" min={0} value={ct.salary}
+                onChange={e=>upd(ct.id,{salary:parseFloat(e.target.value)||0})}
                 style={{ ...sI, width:"80px" }} />
               <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cr/mo</span>
             </div>
-            <button onClick={()=>upd(c.id,{paid:!c.paid})}
-              style={{ background:"none", border:`1px solid ${c.paid?"#224422":"#442222"}`,
-                color:c.paid?GREEN:"#cc5555",
+            <button onClick={()=>upd(ct.id,{paid:!ct.paid})}
+              style={{ background:"none", border:`1px solid ${ct.paid?"#224422":"#442222"}`,
+                color:ct.paid?GREEN:"#cc5555",
                 fontFamily:MONO, fontSize:"10px", padding:"3px 12px", cursor:"pointer" }}>
-              {c.paid ? "✓ PAID" : "UNPAID"}
+              {ct.paid ? "✓ PAID" : "UNPAID"}
             </button>
-            {c.paid && <span style={{ color:GREEN_MID, fontSize:"10px" }}>⚑ Roll loyalty</span>}
+            {ct.paid && <span style={{ color:GREEN_MID, fontSize:"10px" }}>⚑ Roll loyalty</span>}
           </div>
         </div>
       ))}
@@ -1907,7 +1907,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
 
       {debt.length > 0 && (
         <Section id="debt" title="DEBT OBLIGATIONS" badge={`+${debt.length} MIN STRESS`}>
-          {debt.map(d => (
+          {debt.map(debt_item => (
             <div key={d.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
               fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px" }}>
               <span>{d.creditor || "Unknown creditor"}</span>
@@ -1924,19 +1924,19 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         <Section id="contractors" title="CONTRACTORS" badge={(() => {
           const unpaid = (crew.contractors||[]).filter(c=>!c.paid);
           if (unpaid.length === 0) return null;
-          const total = unpaid.reduce((s,c)=>s+(c.salary||0),0);
+          const total = unpaid.reduce((sum,ct)=>sum+(ct.salary||0),0);
           return `${unpaid.length} UNPAID · ${total.toLocaleString()}cr/mo`;
         })()}>
-          {(crew.contractors || []).map(c => (
-            <div key={c.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
+          {(crew.contractors || []).map(ct => (
+            <div key={ct.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
               fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
               <span style={{ color:GREEN_MID }}>
-                {c.name || c.occupation || "Unnamed"}
-                {c.name && c.occupation &&
-                  <span style={{ color:GREEN_MID, marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
+                {ct.name || ct.occupation || "Unnamed"}
+                {ct.name && ct.occupation &&
+                  <span style={{ color:GREEN_MID, marginLeft:"10px", fontSize:"11px" }}>{ct.occupation}</span>}
               </span>
-              <span style={{ color: c.paid ? GREEN : "#cc7755" }}>
-                {(c.salary||0).toLocaleString()}cr/mo · {c.paid ? "PAID" : "UNPAID"}
+              <span style={{ color: ct.paid ? GREEN : "#cc7755" }}>
+                {(ct.salary||0).toLocaleString()}cr/mo · {ct.paid ? "PAID" : "UNPAID"}
               </span>
             </div>
           ))}
@@ -2411,8 +2411,8 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
           WARDEN TERMINAL
         </div>
         <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "20px" }}>
-          {digits.map((d, i) => (
-            <input key={i} ref={refs[i]} value={d} maxLength={1}
+          {digits.map((digit, i) => (
+            <input key={i} ref={refs[i]} value={digit} maxLength={1}
               inputMode="numeric" pattern="[0-9]*" autoComplete="off"
               onChange={(e) => { if (!locked) handleKey(i, e.target.value); }}
               onPaste={handlePaste}
@@ -2566,12 +2566,12 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
   const [editCycle, setEditCycle] = useState("");
 
   const startEdit = (i) => {
-    const h = headlines[i];
+    const editTarget = headlines[i];
     setEditingIdx(i);
-    setEditHL(h.headline);
-    setEditSub(h.subtext || "");
-    setEditYear(String(h.date?.year ?? date.year));
-    setEditCycle(String(h.date?.cycle ?? date.cycle));
+    setEditHL(editTarget.headline);
+    setEditSub(editTarget.subtext || "");
+    setEditYear(String(editTarget.date?.year ?? date.year));
+    setEditCycle(String(editTarget.date?.cycle ?? date.cycle));
   };
 
   const saveEdit = () => {
@@ -2713,7 +2713,7 @@ function AddCorpRow({ onAdd, inputStyle }) {
           <div style={lbl}>VOLATILITY</div>
           <select value={vol} onChange={e => setVol(e.target.value)}
             style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
-            {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
+            {VOLATILITY_STEPS.map(vol => <option key={vol} value={vol}>{vol}</option>)}
           </select>
         </div>
       </div>
@@ -2986,14 +2986,14 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       return clean;
     });
     // Determine which collapses trigger mergers vs normal delist
-    const collapsingWithMerger = bankruptcy.filter((b) => b.collapses && b.triggersMerger);
-    const collapsingNormal = bankruptcy.filter((b) => b.collapses && !b.triggersMerger);
+    const collapsingWithMerger = bankruptcy.filter((bk) => bk.collapses && bk.triggersMerger);
+    const collapsingNormal = bankruptcy.filter((bk) => bk.collapses && !bk.triggersMerger);
     // Apply mergers for early-trigger collapses
     let updatedMergers = [...mergers];
     let autoHeadlines = [];
-    const mergerNames = new Set(collapsingWithMerger.map((b) => b.triggersMerger));
+    const mergerNames = new Set(collapsingWithMerger.map((bk) => bk.triggersMerger));
     for (const mName of mergerNames) {
-      const merger = mergers.find((m) => m.name === mName);
+      const merger = mergers.find((mg) => mg.name === mName);
       if (merger) {
         working = applyMerger(working, merger);
         updatedMergers = updatedMergers.map((m) => m.name === mName ? { ...m, triggered: true } : m);
@@ -3001,15 +3001,15 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       }
     }
     // Auto-push OmniCorp acquisition headlines for normal collapses
-    collapsingNormal.forEach((b, idx) => {
-      const match = OMNICORP_HEADLINES.find((h) => h.company === b.name);
+    collapsingNormal.forEach((bk, idx) => {
+      const match = OMNICORP_HEADLINES.find((omniH) => omniH.company === bk.name);
       if (match) autoHeadlines.push({ ...match, date: { ...date }, id: Date.now() + autoHeadlines.length + idx + 100 });
     });
     // Normal collapses: halve price, mark is_delisting
     const omniGain = collapsingNormal.reduce((sum, b) => sum + b.price, 0);
     working = working.map((s) => {
-      const b = collapsingNormal.find((b) => b.name === s.name);
-      if (b) {
+      const bk = collapsingNormal.find((bk2) => bk2.name === s.name);
+      if (bk) {
         const halved = Math.max(1, Math.floor(s.price / 2));
         return { ...s, is_delisting: true, price: halved, change: halved - s.price };
       }
@@ -3064,17 +3064,17 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
     // ── Catalogs: auto-INELIGIBLE for collapsed/merged companies ──
     const nowInactive = new Set([
-      ...collapsingNormal.map(b => b.name),
-      ...collapsingWithMerger.map(b => b.name),
+      ...collapsingNormal.map(bk => bk.name),
+      ...collapsingWithMerger.map(bk => bk.name),
     ]);
     if (nowInactive.size > 0) {
       const newCatalogs = { ...catalogs };
       for (const name of nowInactive) {
         if (newCatalogs[name] && newCatalogs[name].status !== "ineligible") {
-          const reason = collapsingWithMerger.find(b => b.name === name) ? "Merged" : "Company collapsed";
+          const reason = collapsingWithMerger.find(bk => bk.name === name) ? "Merged" : "Company collapsed";
           newCatalogs[name] = { ...newCatalogs[name], status: "ineligible", ineligibleReason: reason };
         } else if (!newCatalogs[name]) {
-          const reason = collapsingWithMerger.find(b => b.name === name) ? "Merged" : "Company collapsed";
+          const reason = collapsingWithMerger.find(bk => bk.name === name) ? "Merged" : "Company collapsed";
           newCatalogs[name] = { status: "ineligible", ineligibleReason: reason, benefits: "", items: [] };
         }
       }
@@ -3523,11 +3523,11 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 )}
                 <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
                   <button onClick={() => {
-                    const collapsingWithMerger = pendingBankruptcy.filter((b) => b.collapses && b.triggersMerger);
-                    const collapsingNormal = pendingBankruptcy.filter((b) => b.collapses && !b.triggersMerger);
+                    const collapsingWithMerger = pendingBankruptcy.filter((bk) => bk.collapses && bk.triggersMerger);
+                    const collapsingNormal = pendingBankruptcy.filter((bk) => bk.collapses && !bk.triggersMerger);
                     let working = [...stocks];
                     let updatedMergers = [...mergers];
-                    const mergerNames = new Set(collapsingWithMerger.map((b) => b.triggersMerger));
+                    const mergerNames = new Set(collapsingWithMerger.map((bk) => bk.triggersMerger));
                     for (const mName of mergerNames) {
                       const merger = mergers.find((m) => m.name === mName);
                       if (merger) {
@@ -3537,7 +3537,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     }
                     const omniGain = collapsingNormal.reduce((sum, b) => sum + b.price, 0);
                     working = working.map((s) => {
-                      const b = collapsingNormal.find((b) => b.name === s.name);
+                      const bk = collapsingNormal.find((bk2) => bk2.name === s.name);
                       if (b) {
                         const halved = Math.max(1, Math.floor(s.price / 2));
                         return { ...s, is_delisting: true, price: halved, change: halved - s.price };
@@ -3900,7 +3900,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <td style={{ padding: "3px 4px" }}>
                           <select value={s.volatility} onChange={(e) => { const next = stocks.map((x, xi) => xi === i ? { ...x, volatility: e.target.value } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
                             style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
-                            {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
+                            {VOLATILITY_STEPS.map(vol => <option key={vol} value={vol}>{vol}</option>)}
                           </select>
                         </td>
                         <td style={{ padding: "3px 4px" }}>
@@ -3964,12 +3964,12 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             <div style={{ color: GREEN_MID, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>SETTINGS</div>
             <div style={{ color: GREEN_MID, fontSize: "11px", marginBottom: "12px" }}>FICTIONAL DATE</div>
             <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap" }}>
-              {["year","cycle"].map((f) => (
-                <div key={f} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.1em" }}>{f.toUpperCase()}</span>
+              {["year","cycle"].map((field) => (
+                <div key={field} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.1em" }}>{field.toUpperCase()}</span>
                   <input
-                    value={date[f]}
-                    onChange={(e) => handleDateInput(f, e.target.value)}
+                    value={date[field]}
+                    onChange={(e) => handleDateInput(field, e.target.value)}
                     style={{ ...inputStyle, width: f === "year" ? "70px" : "50px", textAlign: "center" }}
                   />
                 </div>
@@ -4106,40 +4106,40 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, and catalogs. This cannot be undone."
                         );
                         if (!confirmed) return;
-                        const s = data.stocks;
-                        const h = data.headlines || [];
-                        const hist = data.history || [];
-                        const d = data.date || { year: 2122, cycle: 1 };
-                        const m = data.mergers || INITIAL_MERGERS;
-                        const am = data.alwaysMerge ?? true;
-                        const j = Array.isArray(data.jobs) ? data.jobs : [];
-                        const cr = data.crew && typeof data.crew === "object" && data.crew.profiles != null ? data.crew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] };
-                        const db = Array.isArray(data.debt) ? data.debt : [];
-                        const pf = Array.isArray(data.portfolio) ? data.portfolio : [];
-                        const cat = data.catalogs && typeof data.catalogs === "object" ? data.catalogs : {};
-                        setStocks(sortByPrice(s));
-                        setHeadlines(h);
-                        setHistory(hist);
-                        setDate(d);
-                        setMergers(m);
-                        setAlwaysMerge(am);
-                        setJobs(j);
-                        setCrew(cr);
-                        setDebt(db);
-                        setPortfolio(pf);
-                        setCatalogs(cat);
-                        await wardenSet(KEYS.stocks, s);
-                        await wardenSet(KEYS.headlines, h);
-                        await wardenSet(KEYS.history, hist);
-                        await wardenSet(KEYS.date, d);
-                        await wardenSet(KEYS.mergers, m);
-                        await wardenSet(KEYS.jobs, j);
-                        await wardenSet(KEYS.crew, cr);
-                        await wardenSet(KEYS.debt, db);
-                        await wardenSet(KEYS.portfolio, pf);
-                        await wardenSet(KEYS.catalogs, cat);
-                        await wardenSet(KEYS.settings, { alwaysMerge: am, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
-                        e.target.value = "";
+                        const bkStocks = data.stocks;
+                        const bkHeadlines = data.headlines || [];
+                        const bkHist = data.history || [];
+                        const bkDate = data.date || { year: 2122, cycle: 1 };
+                        const bkMergers = data.mergers || INITIAL_MERGERS;
+                        const bkAlwaysMerge = data.alwaysMerge ?? true;
+                        const bkJobs = Array.isArray(data.jobs) ? data.jobs : [];
+                        const bkCrew = data.crew && typeof data.crew === "object" && data.crew.profiles != null ? data.crew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] };
+                        const bkDebt = Array.isArray(data.debt) ? data.debt : [];
+                        const bkPortfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
+                        const bkCatalogs = data.catalogs && typeof data.catalogs === "object" ? data.catalogs : {};
+                        setStocks(sortByPrice(bkStocks));
+                        setHeadlines(bkHeadlines);
+                        setHistory(bkHist);
+                        setDate(bkDate);
+                        setMergers(bkMergers);
+                        setAlwaysMerge(bkAlwaysMerge);
+                        setJobs(bkJobs);
+                        setCrew(bkCrew);
+                        setDebt(bkDebt);
+                        setPortfolio(bkPortfolio);
+                        setCatalogs(bkCatalogs);
+                            await wardenSet(KEYS.stocks, bkStocks);
+                        await wardenSet(KEYS.headlines, bkHeadlines);
+                        await wardenSet(KEYS.history, bkHist);
+                        await wardenSet(KEYS.date, bkDate);
+                        await wardenSet(KEYS.mergers, bkMergers);
+                        await wardenSet(KEYS.jobs, bkJobs);
+                        await wardenSet(KEYS.crew, bkCrew);
+                        await wardenSet(KEYS.debt, bkDebt);
+                        await wardenSet(KEYS.portfolio, bkPortfolio);
+                        await wardenSet(KEYS.catalogs, bkCatalogs);
+                        await wardenSet(KEYS.settings, { alwaysMerge: bkAlwaysMerge, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
+                        ev.target.value = "";
                         alert("Backup restored successfully.");
                       } catch {
                         alert("Failed to parse backup file.");
@@ -4331,31 +4331,31 @@ export default function StonksApp({ roomCode = "stonks" }) {
 
   useEffect(() => {
     (async () => {
-      const s = await safeGet(KEYS.stocks, INITIAL_STOCKS);
-      const h = await safeGet(KEYS.headlines, []);
-      const hist = await safeGet(KEYS.history, []);
-      const d = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
-      const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
-      const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
-      const j = await safeGet(KEYS.jobs, []);
-      const cr = await safeGet(KEYS.crew, { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] });
-      const db = await safeGet(KEYS.debt, []);
-      const pf = await safeGet(KEYS.portfolio, []);
-      const cat = await safeGet(KEYS.catalogs, {});
-      setStocks(sortByPrice(s));
-      setHeadlines(h);
-      setHistory(hist);
-      setDate(d);
-      setMergers(m);
-      setAlwaysMerge(sett.alwaysMerge ?? true);
-      setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
-      setJobs(Array.isArray(j) ? j : []);
+      const initStocks = await safeGet(KEYS.stocks, INITIAL_STOCKS);
+      const initHeadlines = await safeGet(KEYS.headlines, []);
+      const initHist = await safeGet(KEYS.history, []);
+      const initDate = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
+      const initMergers = await safeGet(KEYS.mergers, INITIAL_MERGERS);
+      const initSett = await safeGet(KEYS.settings, { alwaysMerge: true });
+      const initJobs = await safeGet(KEYS.jobs, []);
+      const initCrew = await safeGet(KEYS.crew, { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] });
+      const initDebt = await safeGet(KEYS.debt, []);
+      const initPortfolio = await safeGet(KEYS.portfolio, []);
+      const initCatalogs = await safeGet(KEYS.catalogs, {});
+      setStocks(sortByPrice(initStocks));
+      setHeadlines(initHeadlines);
+      setHistory(initHist);
+      setDate(initDate);
+      setMergers(initMergers);
+      setAlwaysMerge(initSett.alwaysMerge ?? true);
+      setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(initSett.rollConfig || {}) });
+      setJobs(Array.isArray(initJobs) ? initJobs : []);
       // Migrate crew from old array format to new object format
-      setCrew(Array.isArray(cr) ? { profiles: cr, contractors: [], shipBalance: 0, shipExpenses: [] }
-             : (cr && typeof cr === "object" && cr.profiles != null ? cr : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }));
-      setDebt(Array.isArray(db) ? db : []);
-      setPortfolio(Array.isArray(pf) ? pf : []);
-      setCatalogs(cat && typeof cat === "object" ? cat : {});
+      setCrew(Array.isArray(initCrew) ? { profiles: initCrew, contractors: [], shipBalance: 0, shipExpenses: [] }
+             : (initCrew && typeof initCrew === "object" && initCrew.profiles != null ? initCrew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }));
+      setDebt(Array.isArray(initDebt) ? initDebt : []);
+      setPortfolio(Array.isArray(initPortfolio) ? initPortfolio : []);
+      setCatalogs(initCatalogs && typeof initCatalogs === "object" ? initCatalogs : {});
       setLoaded(true);
     })();
   }, []);
