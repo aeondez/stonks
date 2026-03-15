@@ -1530,7 +1530,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
               <span style={{ color:GREEN_MID, flex:1 }}>{e.label}</span>
               <span style={{ color:e.amount>=0?GREEN:"#cc5555", whiteSpace:"nowrap" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
               <button onClick={() => {
-                const next = { ...crew, shipBalance: shipBalance - e.amount,
+                const next = { ...crew,
                   shipExpenses: shipExpenses.filter(tx => tx.id !== e.id) };
                 setCrew(next); wardenSet(KEYS.crew, next);
               }} style={{ background:"none", border:"none", color:GREEN_DARK, cursor:"pointer",
@@ -2193,24 +2193,29 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                 <span>ALL VALUES IN CREDITS (cr)</span>
                 <span>● LIVE FEED</span>
               </div>
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                 <button onClick={() => { setShowHistory(!showHistory); setShowPortfolio(false); }}
                   style={{ background: "none", border: `1px solid ${showHistory ? GREEN_MID : GREEN_DARK}`,
                     color: showHistory ? GREEN_MID : GREEN_DARK, cursor: "pointer", fontFamily: MONO,
-                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
+                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px",
+                    whiteSpace: "nowrap", flex: "1 0 auto" }}>
                   {showHistory ? "[ HIDE HISTORY ]" : "[ HISTORY ]"}
                 </button>
                 <button onClick={() => { setShowPortfolio(!showPortfolio); setShowHistory(false); }}
                   style={{ background: "none", border: `1px solid ${showPortfolio ? GREEN_MID : GREEN_DARK}`,
                     color: showPortfolio ? GREEN_MID : GREEN_DARK, cursor: "pointer", fontFamily: MONO,
-                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1,
-                    whiteSpace: "nowrap", overflow: "hidden" }}>
-                  {showPortfolio ? "[ HIDE PORTFOLIO ]" : "[ PORTFOLIO ]"}{(portfolio.length > 0 || (crew?.shipBalance || 0) !== 0) && !showPortfolio ? <span style={{ color: GREEN_MID, marginLeft: "4px" }}>●</span> : null}
+                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px",
+                    whiteSpace: "nowrap", flex: "1 0 auto" }}>
+                  {showPortfolio ? "[ HIDE PORTFOLIO ]" : "[ PORTFOLIO ]"}
+                  {(portfolio.length > 0 || (crew?.shipBalance || 0) !== 0) && !showPortfolio && (
+                    <span style={{ color: GREEN_MID, marginLeft: "4px" }}>●</span>
+                  )}
                 </button>
                 <button onClick={onSwitchGame}
                   style={{ background: "none", border: `1px solid ${GREEN_DARK}`,
                     color: GREEN_DARK, cursor: "pointer", fontFamily: MONO,
-                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", minWidth: "110px" }}>
+                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px",
+                    whiteSpace: "nowrap" }}>
                   [ SWITCH GAME ]
                 </button>
               </div>
