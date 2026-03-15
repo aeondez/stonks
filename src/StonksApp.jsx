@@ -337,24 +337,24 @@ const THEMES = {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const BG = "var(--c-bg, #060807)";
-const GREEN = "var(--c-primary, #44ff88)";
-const GREEN_DIM = "var(--c-primary-dim, #b8ddb8)";
-const GREEN_DARK = "var(--c-primary-dark, #4a7a4a)";
-const GREEN_MID = "var(--c-primary-mid, #5a9a5a)";
+var BG = "var(--c-bg, #060807)";
+var GREEN = "var(--c-primary, #44ff88)";
+var GREEN_DIM = "var(--c-primary-dim, #b8ddb8)";
+var GREEN_DARK = "var(--c-primary-dark, #4a7a4a)";
+var GREEN_MID = "var(--c-primary-mid, #5a9a5a)";
 // Derived shades used for inactive/muted player UI elements
 const GREEN_FAINT  = "var(--c-primary-dark, #4a7a4a)";   // same as DARK — borders, inactive text
-const GREEN_SUBTLE = "color-mix(in srgb, var(--c-primary-dark, #4a7a4a) 55%, transparent)"; // very dim
-const AMBER = "#ffdd77";
-const RED = "#ff4455";
-const HEADER_GREEN = "var(--c-header, #e8ffe8)";
-const MONO = "'Share Tech Mono', 'Courier New', monospace";
+var GREEN_SUBTLE = "color-mix(in srgb, var(--c-primary-dark, #4a7a4a) 55%, transparent)"; // very dim
+var AMBER = "#ffdd77";
+var RED = "#ff4455";
+var HEADER_GREEN = "var(--c-header, #e8ffe8)";
+var MONO = "'Share Tech Mono', 'Courier New', monospace";
 
-const healthColor = (h) => ({
+var healthColor = (h) => ({
   Good: "var(--c-primary, #44ff88)", OK: "var(--c-primary-dim, #aaffcc)", Bad: "#ff8844", Bankrupt: "#ff4455"
 }[h] || "#888");
 
-const volColor = (v) => ({
+var volColor = (v) => ({
   High: "#ff8844", Medium: "var(--c-primary-dim, #aaffcc)", Low: "var(--c-primary, #44ff88)"
 }[v] || "#888");
 
