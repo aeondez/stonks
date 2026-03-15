@@ -8,16 +8,7 @@ export default defineConfig({
       '/api': 'http://localhost:3001',
     }
   },
-  esbuild: {
-    // Keep syntax/whitespace minification but disable identifier renaming.
-    // Identifier renaming is what causes TDZ crashes when the minifier
-    // assigns the same short name to two variables in overlapping scopes.
-    minifyIdentifiers: false,
-    minifySyntax: true,
-    minifyWhitespace: true,
-  },
   build: {
-    // Use esbuild (default, fast) but override identifier mangling above.
-    minify: 'esbuild',
+    minify: false,
   },
 })
