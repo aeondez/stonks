@@ -342,6 +342,9 @@ const GREEN = "var(--c-primary, #44ff88)";
 const GREEN_DIM = "var(--c-primary-dim, #b8ddb8)";
 const GREEN_DARK = "var(--c-primary-dark, #4a7a4a)";
 const GREEN_MID = "var(--c-primary-mid, #5a9a5a)";
+// Derived shades used for inactive/muted player UI elements
+const GREEN_FAINT  = "var(--c-primary-dark, #4a7a4a)";   // same as DARK — borders, inactive text
+const GREEN_SUBTLE = "color-mix(in srgb, var(--c-primary-dark, #4a7a4a) 55%, transparent)"; // very dim
 const AMBER = "#ffdd77";
 const RED = "#ff4455";
 const HEADER_GREEN = "var(--c-header, #e8ffe8)";
@@ -415,11 +418,11 @@ function renderJobContent(job) {
         </div>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 16px", fontSize: "10px" }}>
-        <div><span style={{ color: "#3a5a3a" }}>PAYOUT: </span><span style={{ color: HEADER_GREEN }}>{t.payout || "NEGOTIABLE"}</span></div>
-        <div><span style={{ color: "#3a5a3a" }}>HAZARD: </span><span style={{ color: (t.hazard >= 4) ? "#ff8844" : (t.hazard >= 2) ? AMBER : GREEN_DIM }}>{hazardLabel}</span></div>
-        <div><span style={{ color: "#3a5a3a" }}>TRANSPORT: </span>{yn(t.transport)}</div>
-        <div><span style={{ color: "#3a5a3a" }}>NDA: </span>{yn(t.nda)}</div>
-        <div><span style={{ color: "#3a5a3a" }}>SALVAGE: </span>{yn(t.salvage)}</div>
+        <div><span style={{ color: GREEN_DARK }}>PAYOUT: </span><span style={{ color: HEADER_GREEN }}>{t.payout || "NEGOTIABLE"}</span></div>
+        <div><span style={{ color: GREEN_DARK }}>HAZARD: </span><span style={{ color: (t.hazard >= 4) ? "#ff8844" : (t.hazard >= 2) ? AMBER : GREEN_DIM }}>{hazardLabel}</span></div>
+        <div><span style={{ color: GREEN_DARK }}>TRANSPORT: </span>{yn(t.transport)}</div>
+        <div><span style={{ color: GREEN_DARK }}>NDA: </span>{yn(t.nda)}</div>
+        <div><span style={{ color: GREEN_DARK }}>SALVAGE: </span>{yn(t.salvage)}</div>
       </div>
     </div>
   );
@@ -646,7 +649,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
       if (corp && !corp.is_omnicorp && !corp.is_collapsed && !["OK","Good"].includes(corp.health)) {
         const bumped = stocks.map(s => s.name === job.company ? { ...s, ...bumpHealth(s) } : s);
         setStocks(bumped); wardenSet(KEYS.stocks, bumped);
-        showToast(`JOB COMPLETE — ${job.company.split(" ")[0]} HEALTH ↑`, "#66aa88");
+        showToast(`JOB COMPLETE — ${job.company.split(" ")[0]} HEALTH ↑`, GREEN_MID);
       } else {
         showToast(`JOB COMPLETED — ${job.company}`);
       }
@@ -728,7 +731,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
         <div style={{ color: "#6688aa", fontSize: "10px", letterSpacing: "0.2em" }}>JOB BOARD</div>
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          <span style={{ color: "#334455", fontSize: "9px", letterSpacing: "0.1em" }}>ROTATION:</span>
+          <span style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.1em" }}>ROTATION:</span>
           {["random","bespoke"].map(m => (
             <button key={m} onClick={() => {
               const next = { ...rollConfig, drawMode: m };
@@ -778,11 +781,11 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
               <JobCard job={job} isOmniCorp={job.company === omniName} />
               <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
                 <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#445566")}>EDIT</button>
-                <button onClick={() => completeJob(job)} style={jBtnStyle("#446644")}>
+                <button onClick={() => completeJob(job)} style={jBtnStyle(GREEN_DARK)}>
                   COMPLETE{rollConfig.bumpOnComplete ? " + ▲" : ""}
                 </button>
                 {rollConfig.bumpOnComplete && (
-                  <button onClick={() => completeJob(job, true)} style={jBtnStyle("#2a4a3a")} title="Complete without health bump">
+                  <button onClick={() => completeJob(job, true)} style={jBtnStyle(GREEN_DARK)} title="Complete without health bump">
                     NO BUMP
                   </button>
                 )}
@@ -800,7 +803,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
           ))}
           <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
             <button onClick={() => { setEditTarget("active"); setEditingId("new"); }}
-              style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
+              style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
               + NEW JOB TO BOARD
             </button>
@@ -821,7 +824,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
               <JobCard job={job} isOmniCorp={job.company === omniName} />
               <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
                 <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#445566")}>EDIT</button>
-                <button onClick={() => promoteToActive(job)} style={jBtnStyle("#446644")}>▶ PROMOTE TO BOARD</button>
+                <button onClick={() => promoteToActive(job)} style={jBtnStyle(GREEN_DARK)}>▶ PROMOTE TO BOARD</button>
                 <button onClick={() => {
                   const next = jobs.map(j => j.id === job.id ? { ...j, frozen: !j.frozen } : j);
                   saveJobs(next);
@@ -834,7 +837,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
           ))}
           <div style={{ marginTop: "8px" }}>
             <button onClick={() => { setEditTarget("pool"); setEditingId("new"); }}
-              style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
+              style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
               + NEW JOB TO POOL
             </button>
@@ -866,7 +869,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                 <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
                   <button onClick={() => uncompleteJob(job)} style={jBtnStyle("#4466aa")}>↩ MARK INCOMPLETE</button>
                   {!isRevoked && <button onClick={() => revokeJob(job)} style={jBtnStyle("#664422")}>REVOKE</button>}
-                  {isRevoked && <button onClick={() => completeJob(job, true)} style={jBtnStyle("#446644")}>MARK COMPLETE</button>}
+                  {isRevoked && <button onClick={() => completeJob(job, true)} style={jBtnStyle(GREEN_DARK)}>MARK COMPLETE</button>}
                   <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
                 </div>
               </div>
@@ -963,7 +966,7 @@ function PlayerJobBoard({ jobs, stocks }) {
 
 function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, catalogs }) {
   catalogs = catalogs || {};
-  const STATUS_COLORS = { hidden:"transparent", unlocked:"#44cc88", revoked:"#cc5555", ineligible:AMBER };
+  const STATUS_COLORS = { hidden:"transparent", unlocked:GREEN, revoked:"#cc5555", ineligible:AMBER };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
       {stocks.map((s, i) => {
@@ -1047,7 +1050,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                         {cat.status.toUpperCase()}{isIneligible && cat.ineligibleReason ? ` — ${cat.ineligibleReason}` : ""}
                       </div>
                       {!isIneligible && cat.benefits && (
-                        <div style={{ color: isRevoked ? "#555" : "#5a8a5a", fontSize: "10px", lineHeight: 1.6, marginBottom: "8px",
+                        <div style={{ color: isRevoked ? "#555" : GREEN_MID, fontSize: "10px", lineHeight: 1.6, marginBottom: "8px",
                           textDecoration: isRevoked ? "line-through" : "none", opacity: isRevoked ? 0.5 : 1 }}>
                           {cat.benefits}
                         </div>
@@ -1175,7 +1178,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
   const lbl = (t) => <div style={{ color: "#445566", fontSize: "10px", marginBottom: "3px", letterSpacing: "0.08em" }}>{t}</div>;
 
   return (
-    <div>
+    <div style={{ overflowX: "hidden" }}>
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "14px" }}>
         <div>{lbl("LINK TO JOB")}
           <select value={selJobId} onChange={e => setSelJobId(e.target.value)} style={{ ...sI, minWidth: "200px" }}>
@@ -1211,7 +1214,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
         <div>{lbl("NEGOTIATION (stepper)")}
           <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
             <button onClick={() => setNegoPct(p => Math.max(-25, p-5))} style={{ ...sI, padding: "2px 8px", cursor: "pointer" }}>−</button>
-            <span style={{ color: negoPct < 0 ? "#cc5555" : negoPct > 0 ? "#44cc88" : "#6688aa", minWidth: "36px", textAlign: "center", fontSize: "13px" }}>{negoPct > 0 ? "+" : ""}{negoPct}%</span>
+            <span style={{ color: negoPct < 0 ? "#cc5555" : negoPct > 0 ? GREEN : "#6688aa", minWidth: "36px", textAlign: "center", fontSize: "13px" }}>{negoPct > 0 ? "+" : ""}{negoPct}%</span>
             <button onClick={() => setNegoPct(p => Math.min(25, p+5))} style={{ ...sI, padding: "2px 8px", cursor: "pointer" }}>+</button>
           </div>
         </div>
@@ -1273,18 +1276,20 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
                 <input value={p.role} onChange={e=>updateProfile(p.id,{role:e.target.value})} placeholder="Class / Role" style={{ ...sI, width:"110px" }} />
                 <button onClick={()=>removeProfile(p.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
               </div>
-              <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center", rowGap:"10px" }}>
-                {[["trained","T",500],["expert","E",1000],["master","M",2000]].map(([field,lbl2,rate]) => (
-                  <div key={field} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-                    <span style={{ color:"#445566", fontSize:"10px" }}>{lbl2}</span>
-                    <button onClick={()=>updateProfile(p.id,{[field]:Math.max(0,(p[field]||0)-1)})} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"11px", padding:"1px 6px", cursor:"pointer" }}>−</button>
-                    <span style={{ color:"#aabbcc", minWidth:"20px", textAlign:"center", fontSize:"12px" }}>{p[field]||0}</span>
-                    <button onClick={()=>updateProfile(p.id,{[field]:(p[field]||0)+1})} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"11px", padding:"1px 6px", cursor:"pointer" }}>+</button>
-                    <span style={{ color:"#334455", fontSize:"9px" }}>×{rate.toLocaleString()}</span>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"6px", marginBottom:"8px" }}>
+                {[["trained","TRAINED",500],["expert","EXPERT",1000],["master","MASTER",2000]].map(([field,lbl2,rate]) => (
+                  <div key={field} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"4px",
+                    border:"1px solid #1a2a3a", padding:"6px 2px", background:"rgba(0,5,15,0.3)", minWidth:0 }}>
+                    <span style={{ color:"#6688aa", fontSize:"9px", letterSpacing:"0.06em", textAlign:"center" }}>{lbl2}<br/>×{rate>=1000?(rate/1000)+"k":rate}</span>
+                    <div style={{ display:"flex", alignItems:"center", gap:"3px" }}>
+                      <button onClick={()=>updateProfile(p.id,{[field]:Math.max(0,(p[field]||0)-1)})} style={{ background:"none", border:"1px solid #1a2a3a", color:"#6688aa", fontFamily:MONO, fontSize:"13px", width:"28px", height:"28px", cursor:"pointer", padding:0, lineHeight:1 }}>−</button>
+                      <span style={{ color:"#aabbcc", minWidth:"22px", textAlign:"center", fontSize:"14px" }}>{p[field]||0}</span>
+                      <button onClick={()=>updateProfile(p.id,{[field]:(p[field]||0)+1})} style={{ background:"none", border:"1px solid #1a2a3a", color:"#6688aa", fontFamily:MONO, fontSize:"13px", width:"28px", height:"28px", cursor:"pointer", padding:0, lineHeight:1 }}>+</button>
+                    </div>
                   </div>
                 ))}
-                <span style={{ color:"#6688aa", fontSize:"11px" }}>= <span style={{ color:"#aabbcc" }}>{calc.salary.toLocaleString()}cr/mo</span></span>
               </div>
+              <div style={{ color:"#6688aa", fontSize:"11px", marginBottom:"4px" }}>= <span style={{ color:"#aabbcc" }}>{calc.salary.toLocaleString()}cr/mo</span></div>
               <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center" }}>
                 <select value={p.disposition} onChange={e=>updateProfile(p.id,{disposition:e.target.value})} style={sI}>
                   {DISPOSITION_OPTS.map(d=><option key={d}>{d}</option>)}
@@ -1433,10 +1438,10 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
               <span style={{ color:"#445566" }}>Grant: <span style={{ color:"#6688aa" }}>{(h.grantPrice||0).toLocaleString()}cr</span></span>
               <span style={{ color:"#445566" }}>Now: <span style={{ color:"#88bbff" }}>{cur.toLocaleString()}cr</span></span>
               <span style={{ color:"#445566" }}>Value: <span style={{ color:"#aaccee" }}>{val.toLocaleString()}cr</span></span>
-              <span style={{ color: gl>=0?"#44cc88":"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
+              <span style={{ color: gl>=0?GREEN:"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
               {locked
                 ? <span style={{ color:AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios!==1?"s":""} locked
-                    <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:"#448844" }}>UNLOCK</button>
+                    <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:GREEN_DARK }}>UNLOCK</button>
                   </span>
                 : <span style={{ color: GREEN }}>● AVAILABLE</span>}
             </div>
@@ -1479,7 +1484,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, wardenSet, KEYS }) {
       <div style={{ display:"flex", gap:"8px", marginBottom:"14px", flexWrap:"wrap", alignItems:"center", rowGap:"8px" }}>
         <input value={txLabel} onChange={e=>setTxLabel(e.target.value)} placeholder="Label (optional)" style={{ ...sI, flex:1, minWidth:"110px" }} />
         <input type="number" min={0} value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Amount (cr)" style={{ ...sI, width:"110px" }} />
-        <button onClick={()=>transact("deposit")} style={{ background:"none", border:`1px solid #224422`, color:"#44cc88", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>+ DEPOSIT</button>
+        <button onClick={()=>transact("deposit")} style={{ background:"none", border:`1px solid #224422`, color:GREEN, fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>+ DEPOSIT</button>
         <button onClick={()=>transact("withdraw")} style={{ background:"none", border:`1px solid #442222`, color:"#cc5555", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>− WITHDRAW</button>
       </div>
       {shipExpenses.length > 0 && (
@@ -1488,7 +1493,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, wardenSet, KEYS }) {
           {[...shipExpenses].reverse().slice(0,10).map(e => (
             <div key={e.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid #0a1520`, fontSize:"11px" }}>
               <span style={{ color:"#6688aa" }}>{e.label}</span>
-              <span style={{ color:e.amount>=0?"#44cc88":"#cc5555" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
+              <span style={{ color:e.amount>=0?GREEN:"#cc5555" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
             </div>
           ))}
         </div>
@@ -1500,7 +1505,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, wardenSet, KEYS }) {
           <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"10px" }}>
             <tbody>{BANKRUPTCY.map(([r,c]) => (
               <tr key={r} style={{ borderTop:`1px solid #0a1520` }}>
-                <td style={{ padding:"5px 8px 5px 0", color:r.includes("Critical S")?"#44cc88":r.includes("Success")?"#88bb88":r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td>
+                <td style={{ padding:"5px 8px 5px 0", color:r.includes("Critical S")?GREEN:r.includes("Success")?"#88bb88":r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td>
                 <td style={{ padding:"5px 0", color:"#8899aa", lineHeight:1.5 }}>{c}</td>
               </tr>
             ))}</tbody>
@@ -1577,15 +1582,15 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
             </div>
             <button onClick={()=>upd(c.id,{paid:!c.paid})}
               style={{ background:"none", border:`1px solid ${c.paid?"#224422":"#442222"}`,
-                color:c.paid?"#44cc88":"#cc5555",
+                color:c.paid?GREEN:"#cc5555",
                 fontFamily:MONO, fontSize:"10px", padding:"3px 12px", cursor:"pointer" }}>
               {c.paid ? "✓ PAID" : "UNPAID"}
             </button>
-            {c.paid && <span style={{ color:"#44aa66", fontSize:"10px" }}>⚑ Roll loyalty</span>}
+            {c.paid && <span style={{ color:GREEN_MID, fontSize:"10px" }}>⚑ Roll loyalty</span>}
           </div>
         </div>
       ))}
-      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>+ ADD CONTRACTOR</button>
+      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:GREEN_MID, fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>+ ADD CONTRACTOR</button>
     </div>
   );
 }
@@ -1595,7 +1600,7 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
   const cat = catalogs[selCo] || { status:"hidden", ineligibleReason:"", benefits:"", items:[] };
   const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
   const STATUS_OPTS = ["hidden","unlocked","revoked","ineligible"];
-  const STATUS_COLORS = { hidden:"#334455", unlocked:"#44cc88", revoked:"#cc5555", ineligible:AMBER };
+  const STATUS_COLORS = { hidden:"#334455", unlocked:GREEN, revoked:"#cc5555", ineligible:AMBER };
   const upd = (patch) => { const next={...catalogs,[selCo]:{...cat,...patch}}; setCatalogs(next); wardenSet(KEYS.catalogs,next); };
   const addItem = () => upd({ items:[...(cat.items||[]),{id:Date.now(),name:"",price:"",notes:""}] });
   const updItem = (id,p) => upd({ items:(cat.items||[]).map(it=>it.id===id?{...it,...p}:it) });
@@ -1640,7 +1645,7 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
             <button onClick={()=>delItem(it.id)} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
         ))}
-        <button onClick={addItem} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>+ ADD ITEM</button>
+        <button onClick={addItem} style={{ background:"none", border:`1px solid #1a2a3a`, color:GREEN_MID, fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>+ ADD ITEM</button>
       </div>
     </div>
   );
@@ -1742,10 +1747,10 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   const TD = { padding:"7px 8px", color:GREEN_MID, fontSize:"12px", borderTop:`1px solid rgba(68,100,68,0.2)` };
 
   const Stepper = ({ value, onChange, min=0 }) => (
-    <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
-      <button onClick={()=>onChange(v=>Math.max(min,v-1))} style={stepBtn}>−</button>
-      <span style={valDisplay}>{value}</span>
-      <button onClick={()=>onChange(v=>v+1)} style={stepBtn}>+</button>
+    <div style={{ display:"flex", alignItems:"center", gap:"4px", justifyContent:"center" }}>
+      <button onClick={()=>onChange(v=>Math.max(min,v-1))} style={{ ...stepBtn, minWidth:"40px", minHeight:"40px" }}>−</button>
+      <span style={{ ...valDisplay, minWidth:"28px" }}>{value}</span>
+      <button onClick={()=>onChange(v=>v+1)} style={{ ...stepBtn, minWidth:"40px", minHeight:"40px" }}>+</button>
     </div>
   );
 
@@ -1799,10 +1804,11 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         </div>
         <div style={{ marginBottom:"16px" }}>
           <span style={lbl}>SKILL TIERS</span>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"8px" }}>
             {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([label,val,set,rate]) => (
-              <div key={label} style={{ display:"flex", flexDirection:"column", gap:"4px" }}>
-                <span style={{ color:GREEN_MID, fontSize:"11px", letterSpacing:"0.1em" }}>
+              <div key={label} style={{ display:"flex", flexDirection:"column", gap:"4px", alignItems:"center",
+                border:`1px solid ${GREEN_DARK}`, padding:"8px 4px", background:"rgba(0,20,0,0.2)", minWidth:0 }}>
+                <span style={{ color:GREEN_MID, fontSize:"11px", letterSpacing:"0.1em", textAlign:"center" }}>
                   {label} <span style={{ color:GREEN_DARK }}>×{rate >= 1000 ? (rate/1000)+"k" : rate}</span>
                 </span>
                 <Stepper value={val} onChange={set} />
@@ -1893,9 +1899,9 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
               <span style={{ color:GREEN_MID }}>
                 {c.name || c.occupation || "Unnamed"}
                 {c.name && c.occupation &&
-                  <span style={{ color:"#4a8a6a", marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
+                  <span style={{ color:GREEN_MID, marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
               </span>
-              <span style={{ color: c.paid ? "#44cc88" : "#cc7755" }}>
+              <span style={{ color: c.paid ? GREEN : "#cc7755" }}>
                 {(c.salary||0).toLocaleString()}cr/mo · {c.paid ? "PAID" : "UNPAID"}
               </span>
             </div>
@@ -2615,7 +2621,7 @@ function AddCorpRow({ onAdd, inputStyle }) {
   };
   if (!open) return (
     <button onClick={() => setOpen(true)}
-      style={{ background: "none", border: `1px solid #336644`, color: "#66aa88",
+      style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
         fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer", marginTop: "10px" }}>
       + ADD CORPORATION
     </button>
@@ -2624,7 +2630,7 @@ function AddCorpRow({ onAdd, inputStyle }) {
   const field = { display: "flex", flexDirection: "column" };
   return (
     <div style={{ marginTop: "12px", padding: "12px", border: `1px solid #1a2a3a`, background: "rgba(0,10,20,0.4)" }}>
-      <div style={{ color: "#66aa88", fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>NEW CORPORATION</div>
+      <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>NEW CORPORATION</div>
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "10px" }}>
         <div style={field}>
           <div style={lbl}>NAME *</div>
@@ -2658,8 +2664,8 @@ function AddCorpRow({ onAdd, inputStyle }) {
       </div>
       <div style={{ display: "flex", gap: "10px" }}>
         <button onClick={submit} disabled={!name.trim()}
-          style={{ background: "none", border: `1px solid ${name.trim() ? "#336644" : "#1a2a1a"}`,
-            color: name.trim() ? "#66aa88" : "#334433",
+          style={{ background: "none", border: `1px solid ${name.trim() ? GREEN_DARK : "#1a2a1a"}`,
+            color: name.trim() ? GREEN_MID : "#334433",
             fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px",
             cursor: name.trim() ? "pointer" : "not-allowed" }}>
           CONFIRM
@@ -2820,7 +2826,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   }, [alwaysMerge, rollConfig, wardenSet, KEYS]);
 
   const [toast, setToast] = useState(null);
-  const showToast = (msg, color = "#44ff88") => {
+  const showToast = (msg, color = GREEN) => {
     setToast({ msg, color });
     clearTimeout(window._toastTimer);
     window._toastTimer = setTimeout(() => setToast(null), 2800);
@@ -2837,7 +2843,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     }));
     setStocks(next);
     wardenSet(KEYS.stocks, next);
-    showToast(`MARKET ${marketEventDir.toUpperCase()} APPLIED — ${marketEventPct}%`, marketEventDir === "crash" ? "#ff4455" : "#44ff88");
+    showToast(`MARKET ${marketEventDir.toUpperCase()} APPLIED — ${marketEventPct}%`, marketEventDir === "crash" ? "#ff4455" : GREEN);
   };
 
   const handleVarianceRoll = () => {
@@ -3184,8 +3190,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     {["full","targeted"].map(m => (
                       <button key={m} onClick={() => { setVarianceMode(m); setPendingVariance(null); }}
                         style={{ background: varianceMode === m ? "rgba(68,170,100,0.1)" : "none",
-                          border: `1px solid ${varianceMode === m ? "#336644" : "#1a2a3a"}`,
-                          color: varianceMode === m ? "#66aa88" : "#445566",
+                          border: `1px solid ${varianceMode === m ? GREEN_DARK : "#1a2a3a"}`,
+                          color: varianceMode === m ? GREEN_MID : "#445566",
                           fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
                           padding: "4px 12px", cursor: "pointer" }}>
                         {m === "full" ? "ALL CORPS" : "SELECT CORPS"}
@@ -3198,8 +3204,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
                         <button onClick={toggleAllTargets}
                           style={{ background: allTargeted ? "rgba(68,170,100,0.1)" : "none",
-                            border: `1px solid ${allTargeted ? "#336644" : "#2a3a2a"}`,
-                            color: allTargeted ? "#66aa88" : "#4a6a4a",
+                            border: `1px solid ${allTargeted ? GREEN_DARK : "#2a3a2a"}`,
+                            color: allTargeted ? GREEN_MID : GREEN_DARK,
                             fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
                             padding: "3px 10px", cursor: "pointer" }}>
                           {allTargeted ? "✓ DESELECT ALL" : "SELECT ALL"}
@@ -3218,8 +3224,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                               setTargetedSelection(next);
                             }}
                               style={{ background: sel ? "rgba(68,170,100,0.08)" : "none",
-                                border: `1px solid ${sel ? "#336644" : "#1a2a3a"}`,
-                                color: sel ? "#66aa88" : "#445566",
+                                border: `1px solid ${sel ? GREEN_DARK : "#1a2a3a"}`,
+                                color: sel ? GREEN_MID : "#445566",
                                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.05em",
                                 padding: "3px 10px", cursor: "pointer",
                                 textTransform: "uppercase" }}>
@@ -3236,8 +3242,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                       onClick={handleVarianceRoll}
                       disabled={varianceMode === "targeted" && targetedSelection.size === 0}
                       style={{ background: "none",
-                        border: `1px solid ${varianceMode === "targeted" && targetedSelection.size === 0 ? "#1a2a1a" : "#336644"}`,
-                        color: varianceMode === "targeted" && targetedSelection.size === 0 ? "#2a3a2a" : "#66aa88",
+                        border: `1px solid ${varianceMode === "targeted" && targetedSelection.size === 0 ? "#1a2a1a" : GREEN_DARK}`,
+                        color: varianceMode === "targeted" && targetedSelection.size === 0 ? "#2a3a2a" : GREEN_MID,
                         fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px",
                         cursor: varianceMode === "targeted" && targetedSelection.size === 0 ? "not-allowed" : "pointer" }}>
                       ROLL VARIANCE{varianceMode === "targeted" && targetedSelection.size > 0 ? ` (${targetedSelection.size})` : ""}
@@ -3616,7 +3622,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               <button onClick={() => {
                 const next = [...mergers, { name: "New Merger", partner1: "Company A", partner2: "Company B", industry: "Combined", triggered: false }];
                 setMergers(next); wardenSet(KEYS.mergers, next);
-              }} style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
+              }} style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "4px 12px", cursor: "pointer", marginTop: "4px" }}>
                 + ADD MERGER
               </button>
@@ -3756,7 +3762,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                             <button onClick={() => handleBumpHealth()}
                               disabled={["OK","Good"].includes(s.health)}
                               style={{ background: "none", border: `1px solid ${["OK","Good"].includes(s.health) ? "#1a2a1a" : "#1a3a2a"}`,
-                                color: ["OK","Good"].includes(s.health) ? "#1a3a1a" : "#4a8a5a",
+                                color: ["OK","Good"].includes(s.health) ? "#1a3a1a" : GREEN_MID,
                                 fontFamily: MONO, fontSize: "10px", padding: "3px 8px",
                                 cursor: ["OK","Good"].includes(s.health) ? "default" : "pointer",
                                 letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
@@ -3959,8 +3965,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   setRollConfig(next); saveSettings({ rollConfig: next });
                 }}
                   style={{ background: rollConfig.bumpOnComplete ? "rgba(68,170,100,0.1)" : "none",
-                    border: `1px solid ${rollConfig.bumpOnComplete ? "#336644" : "#1a2a3a"}`,
-                    color: rollConfig.bumpOnComplete ? "#66aa88" : "#6688aa",
+                    border: `1px solid ${rollConfig.bumpOnComplete ? GREEN_DARK : "#1a2a3a"}`,
+                    color: rollConfig.bumpOnComplete ? GREEN_MID : "#6688aa",
                     fontFamily: MONO, fontSize: "10px", letterSpacing: "0.12em",
                     padding: "5px 12px", cursor: "pointer" }}>
                   {rollConfig.bumpOnComplete ? "ON" : "OFF"}
