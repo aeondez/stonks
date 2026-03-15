@@ -1,13 +1,13 @@
 import { useState, useRef } from "react";
 
-const GATE_MONO = "'Share Tech Mono', 'Courier New', monospace";
-const GATE_BG = "#060807";
-const GATE_GREEN = "#44ff88";
-const GATE_GREEN_DIM = "#b8ddb8";
-const GATE_GREEN_MID = "#5a9a5a";
-const GATE_GREEN_DARK = "#3a5a3a";
-const GATE_RED = "#ff4455";
-const GATE_AMBER = "#ffcc44";
+var GATE_MONO = "'Share Tech Mono', 'Courier New', monospace";
+var GATE_BG = "#060807";
+var GATE_GREEN = "#44ff88";
+var GATE_GREEN_DIM = "#b8ddb8";
+var GATE_GREEN_MID = "#5a9a5a";
+var GATE_GREEN_DARK = "#3a5a3a";
+var GATE_RED = "#ff4455";
+var GATE_AMBER = "#ffcc44";
 
 export default function RoomGate() {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);

@@ -195,10 +195,10 @@ function computeBankruptcyCheck(stocks, mergers = [], alwaysMerge = true) {
     const collapses = bankruptRoll >= 7;
     let triggersMerger = null;
     if (collapses && alwaysMerge) {
-      const mFound = mergers.find((mr) => !mr.triggered &&
-        getMergerStatus(mr, stocks) === "pending" &&
-        (mr.partner1 === s.name || mr.partner2 === s.name));
-      if (mFound) triggersMerger = mFound.name;
+      const m = mergers.find((m) => !m.triggered &&
+        getMergerStatus(m, stocks) === "pending" &&
+        (m.partner1 === s.name || m.partner2 === s.name));
+      if (m) triggersMerger = m.name;
     }
     return { ...s, bankruptRoll, collapses, triggersMerger };
   });
@@ -342,9 +342,6 @@ var GREEN = "var(--c-primary, #44ff88)";
 var GREEN_DIM = "var(--c-primary-dim, #b8ddb8)";
 var GREEN_DARK = "var(--c-primary-dark, #4a7a4a)";
 var GREEN_MID = "var(--c-primary-mid, #5a9a5a)";
-// Derived shades used for inactive/muted player UI elements
-const GREEN_FAINT  = "var(--c-primary-dark, #4a7a4a)";   // same as DARK — borders, inactive text
-var GREEN_SUBTLE = "color-mix(in srgb, var(--c-primary-dark, #4a7a4a) 55%, transparent)"; // very dim
 var AMBER = "#ffdd77";
 var RED = "#ff4455";
 var HEADER_GREEN = "var(--c-header, #e8ffe8)";
@@ -479,7 +476,7 @@ function JobEditor({ job, stocks, onSave, onCancel }) {
 
   const canSave = company && (mode === "freeform" ? freeContent.trim() : (tmpl.jobType?.trim()));
 
-  const selStyle = { background: BG, border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+  const selStyle = { background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
     fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%" };
   const inStyle = { background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
     fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%", boxSizing: "border-box", outline: "none" };
@@ -495,7 +492,7 @@ function JobEditor({ job, stocks, onSave, onCancel }) {
       <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
         {["template","freeform"].map(m => (
           <button key={m} onClick={() => setMode(m)}
-            style={{ background: mode === m ? "rgba(68,200,68,0.08)" : "none",
+            style={{ background: mode === m ? "rgba(68,136,255,0.1)" : "none",
               border: `1px solid ${mode === m ? "#4488ff" : "#1a2a3a"}`,
               color: mode === m ? "#88bbff" : GREEN_DARK,
               fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
@@ -551,7 +548,7 @@ function JobEditor({ job, stocks, onSave, onCancel }) {
                 <div>
                   <div style={labelStyle}>HAZARD PAY</div>
                   <select value={tmpl.hazard ?? 0} onChange={e => setTmpl(p => ({...p, hazard: parseInt(e.target.value)}))} style={selStyle}>
-                    {HAZARD_LABELS.map((lbl2, i) => <option key={i} value={i}>{lbl2}</option>)}
+                    {HAZARD_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
                   </select>
                 </div>
                 <div>
@@ -590,7 +587,7 @@ function JobEditor({ job, stocks, onSave, onCancel }) {
           {company !== omniName && (
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button onClick={() => setFrozen(f => !f)}
-                style={{ background: frozen ? "rgba(68,200,68,0.08)" : "none",
+                style={{ background: frozen ? "rgba(68,136,255,0.1)" : "none",
                   border: `1px solid ${frozen ? "#4488cc" : "#1a2a3a"}`,
                   color: frozen ? "#88ccff" : GREEN_DARK,
                   fontFamily: MONO, fontSize: "10px", padding: "3px 10px", cursor: "pointer" }}>
@@ -710,7 +707,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
 
   const tabBtn = (id, label, count) => (
     <button key={id} onClick={() => setSubPanel(id)}
-      style={{ background: subPanel === id ? "rgba(68,200,68,0.08)" : "none",
+      style={{ background: subPanel === id ? "rgba(68,136,255,0.08)" : "none",
         border: `1px solid ${subPanel === id ? "#2a3a5a" : "#1a2a3a"}`,
         color: subPanel === id ? "#7799bb" : GREEN_DARK,
         fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
@@ -731,14 +728,14 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
         <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.2em" }}>JOB BOARD</div>
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          <span style={{ color: GREEN_MID, fontSize: "9px", letterSpacing: "0.1em" }}>ROTATION:</span>
+          <span style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.1em" }}>ROTATION:</span>
           {["random","bespoke"].map(m => (
             <button key={m} onClick={() => {
               const next = { ...rollConfig, drawMode: m };
               setRollConfig(next);
               wardenSet(KEYS.settings, { alwaysMerge: alwaysMerge ?? true, rollConfig: next });
             }}
-              style={{ background: drawMode === m ? "rgba(68,200,68,0.08)" : "none",
+              style={{ background: drawMode === m ? "rgba(68,136,255,0.1)" : "none",
                 border: `1px solid ${drawMode === m ? "#4488ff" : "#1a2a3a"}`,
                 color: drawMode === m ? "#88bbff" : GREEN_DARK,
                 fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
@@ -785,7 +782,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                   COMPLETE{rollConfig.bumpOnComplete ? " + ▲" : ""}
                 </button>
                 {rollConfig.bumpOnComplete && (
-                  <button onClick={() => completeJob(job, true)} style={jBtnStyle(GREEN_DARK)} title="Complete without health bump">
+                  <button onClick={() => completeJob(job, true)} style={jBtnStyle("#2a4a3a")} title="Complete without health bump">
                     NO BUMP
                   </button>
                 )}
@@ -803,7 +800,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
           ))}
           <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
             <button onClick={() => { setEditTarget("active"); setEditingId("new"); }}
-              style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
+              style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
               + NEW JOB TO BOARD
             </button>
@@ -837,7 +834,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
           ))}
           <div style={{ marginTop: "8px" }}>
             <button onClick={() => { setEditTarget("pool"); setEditingId("new"); }}
-              style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
+              style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
               + NEW JOB TO POOL
             </button>
@@ -979,10 +976,10 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
 
         // Build price history for this stock from history snapshots
         const priceHistory = history
-          .filter(entry => entry.stocks)
-          .map(entry => {
-            const snap = entry.stocks.find(x => x.name === s.name);
-            return snap ? { price: snap.price, date: entry.date } : null;
+          .filter(h => h.stocks)
+          .map(h => {
+            const snap = h.stocks.find(x => x.name === s.name);
+            return snap ? { price: snap.price, date: h.date } : null;
           })
           .filter(Boolean)
           .slice(-10); // last 10 entries
@@ -1028,11 +1025,11 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                   <div style={{ color: GREEN_DARK, fontSize: "10px" }}>No history recorded yet.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                    {[...priceHistory].reverse().map((ph, idx) => (
+                    {[...priceHistory].reverse().map((h, idx) => (
                       <div key={idx} style={{ display: "flex", justifyContent: "space-between",
                         fontSize: "10px", color: GREEN_DARK, padding: "1px 0" }}>
-                        <span style={{ color: GREEN_DARK }}>CYC {String(ph.date?.cycle ?? "?").padStart(2,"0")}</span>
-                        <span style={{ color: HEADER_GREEN }}>{ph.price.toLocaleString()}cr</span>
+                        <span style={{ color: GREEN_DARK }}>CYC {String(h.date?.cycle ?? "?").padStart(2,"0")}</span>
+                        <span style={{ color: HEADER_GREEN }}>{h.price.toLocaleString()}cr</span>
                       </div>
                     ))}
                   </div>
@@ -1050,7 +1047,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                         {cat.status.toUpperCase()}{isIneligible && cat.ineligibleReason ? ` — ${cat.ineligibleReason}` : ""}
                       </div>
                       {!isIneligible && cat.benefits && (
-                        <div style={{ color: isRevoked ? "#555" : GREEN_MID, fontSize: "10px", lineHeight: 1.6, marginBottom: "8px",
+                        <div style={{ color: isRevoked ? "#555" : "#5a8a5a", fontSize: "10px", lineHeight: 1.6, marginBottom: "8px",
                           textDecoration: isRevoked ? "line-through" : "none", opacity: isRevoked ? 0.5 : 1 }}>
                           {cat.benefits}
                         </div>
@@ -1112,7 +1109,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
   const corpStock = stocks.find(s => s.name === jobCorp);
   const currentPrice = corpStock?.price || 0;
   const negoFinal = negoManual !== "" ? (parseFloat(negoManual) || 0) : negoPct;
-  const flatTotal = flatBonuses.reduce((sum, bonus) => sum + (parseFloat(bonus.amount) || 0), 0);
+  const flatTotal = flatBonuses.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
 
   const calcPayout = (p) => {
     const salary = (p.trained || 0) * 500 + (p.expert || 0) * 1000 + (p.master || 0) * 2000;
@@ -1148,7 +1145,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
       const newHoldings = equityProfiles.map(p => {
         const { equityShares } = calcPayout(p);
         return { id: Date.now() + Math.random(), company: jobCorp, shares: equityShares, grantPrice: currentPrice, lockScenarios: 1 };
-      }).filter(holding => holding.shares > 0);
+      }).filter(h => h.shares > 0);
       if (newHoldings.length > 0) {
         const newPortfolio = [...portfolio, ...newHoldings];
         setPortfolio(newPortfolio); wardenSet(KEYS.portfolio, newPortfolio);
@@ -1205,7 +1202,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
         </div>
         <div>{lbl("HAZARD")}
           <select value={hazard} onChange={e => setHazard(e.target.value)} style={sI}>
-            {HAZARD_OPTS.map(opt => <option key={opt}>{opt}</option>)}
+            {HAZARD_OPTS.map(h => <option key={h}>{h}</option>)}
           </select>
         </div>
       </div>
@@ -1228,10 +1225,10 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 
       <div style={{ marginBottom: "14px" }}>
         {lbl("FLAT BONUSES")}
-        {flatBonuses.map((bonus, i) => (
-          <div key={bonus.id} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "center" }}>
-            <input value={bonus.label} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,label:e.target.value}:x))} placeholder="Label" style={{ ...sI, flex: 1 }} />
-            <input type="number" value={bonus.amount} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,amount:e.target.value}:x))} placeholder="cr" style={{ ...sI, width: "80px" }} />
+        {flatBonuses.map((b, i) => (
+          <div key={b.id} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "center" }}>
+            <input value={b.label} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,label:e.target.value}:x))} placeholder="Label" style={{ ...sI, flex: 1 }} />
+            <input type="number" value={b.amount} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,amount:e.target.value}:x))} placeholder="cr" style={{ ...sI, width: "80px" }} />
             <span style={{ color: GREEN_DARK, fontSize: "10px" }}>cr</span>
             <button onClick={() => setFlatBonuses(f=>f.filter((_,j)=>j!==i))} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
@@ -1242,12 +1239,12 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
         {lbl("PAYMENT MODE")}
-        {["cash","equity"].map(payType => (
+        {["cash","equity"].map(t => (
           <button key={t} onClick={() => setGlobalPayType(t)}
             style={{ ...sI, padding:"3px 10px", cursor:"pointer", fontSize:"10px",
               color: globalPayType === t ? "#88ccff" : GREEN_DARK,
               borderColor: globalPayType === t ? "#336699" : "#1a2a3a" }}>
-            {payType.toUpperCase()}
+            {t.toUpperCase()}
           </button>
         ))}
         {rollConfig.crewPaymentMode === "per" && <span style={{ color:GREEN_DARK, fontSize:"10px" }}>per-crew override active (set per row below)</span>}
@@ -1270,26 +1267,24 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
         {profiles.map(p => {
           const calc = calcPayout(p);
           return (
-            <div key={p.id} style={{ border:`1px solid #1a2a3a`, padding:"12px", marginBottom:"8px", overflowX:"hidden" }}>
+            <div key={p.id} style={{ border:`1px solid #1a2a3a`, padding:"12px", marginBottom:"8px" }}>
               <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center" }}>
                 <input value={p.name} onChange={e=>updateProfile(p.id,{name:e.target.value})} placeholder="Name" style={{ ...sI, width:"130px" }} />
                 <input value={p.role} onChange={e=>updateProfile(p.id,{role:e.target.value})} placeholder="Class / Role" style={{ ...sI, width:"110px" }} />
                 <button onClick={()=>removeProfile(p.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"6px", marginBottom:"8px" }}>
-                {[["trained","TRAINED",500],["expert","EXPERT",1000],["master","MASTER",2000]].map(([field,lbl2,rate]) => (
-                  <div key={field} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"4px",
-                    border:"1px solid #1a2a3a", padding:"6px 2px", background:"rgba(0,5,15,0.3)", minWidth:0 }}>
-                    <span style={{ color:"#6688aa", fontSize:"9px", letterSpacing:"0.06em", textAlign:"center" }}>{lbl2}<br/>×{rate>=1000?(rate/1000)+"k":rate}</span>
-                    <div style={{ display:"flex", alignItems:"center", gap:"3px" }}>
-                      <button onClick={()=>updateProfile(p.id,{[field]:Math.max(0,(p[field]||0)-1)})} style={{ background:"none", border:"1px solid #1a2a3a", color:"#6688aa", fontFamily:MONO, fontSize:"13px", width:"28px", height:"28px", cursor:"pointer", padding:0, lineHeight:1 }}>−</button>
-                      <span style={{ color:"#aabbcc", minWidth:"22px", textAlign:"center", fontSize:"14px" }}>{p[field]||0}</span>
-                      <button onClick={()=>updateProfile(p.id,{[field]:(p[field]||0)+1})} style={{ background:"none", border:"1px solid #1a2a3a", color:"#6688aa", fontFamily:MONO, fontSize:"13px", width:"28px", height:"28px", cursor:"pointer", padding:0, lineHeight:1 }}>+</button>
-                    </div>
+              <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center" }}>
+                {[["trained","T",500],["expert","E",1000],["master","M",2000]].map(([field,lbl2,rate]) => (
+                  <div key={field} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+                    <span style={{ color:GREEN_DARK, fontSize:"10px" }}>{lbl2}</span>
+                    <button onClick={()=>updateProfile(p.id,{[field]:Math.max(0,(p[field]||0)-1)})} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"11px", padding:"1px 6px", cursor:"pointer" }}>−</button>
+                    <span style={{ color:"#aabbcc", minWidth:"20px", textAlign:"center", fontSize:"12px" }}>{p[field]||0}</span>
+                    <button onClick={()=>updateProfile(p.id,{[field]:(p[field]||0)+1})} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"11px", padding:"1px 6px", cursor:"pointer" }}>+</button>
+                    <span style={{ color:GREEN_DARK, fontSize:"9px" }}>×{rate.toLocaleString()}</span>
                   </div>
                 ))}
+                <span style={{ color:"#6688aa", fontSize:"11px" }}>= <span style={{ color:"#aabbcc" }}>{calc.salary.toLocaleString()}cr/mo</span></span>
               </div>
-              <div style={{ color:"#6688aa", fontSize:"11px", marginBottom:"4px" }}>= <span style={{ color:"#aabbcc" }}>{calc.salary.toLocaleString()}cr/mo</span></div>
               <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center" }}>
                 <select value={p.disposition} onChange={e=>updateProfile(p.id,{disposition:e.target.value})} style={sI}>
                   {DISPOSITION_OPTS.map(d=><option key={d}>{d}</option>)}
@@ -1331,7 +1326,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
           <div style={{ color:"#aabbcc", fontSize:"13px", marginBottom:"2px" }}>{ledger.company} — {ledger.jobName}</div>
           <div style={{ color:GREEN_DARK, fontSize:"10px", marginBottom:"12px" }}>
             {ledger.months}mo · HAZARD {ledger.hazard} · {ledger.jumps} JUMPS · NEGO {ledger.negotiation > 0 ? "+" : ""}{ledger.negotiation}%
-            {ledger.flatBonuses.filter(fb=>fb.label).map(fb => ` · ${fb.label}: ${parseFloat(fb.amount)||0}cr`).join("")}
+            {ledger.flatBonuses.filter(b=>b.label).map(b => ` · ${b.label}: ${parseFloat(b.amount)||0}cr`).join("")}
           </div>
           {ledger.entries.map((e, i) => (
             <div key={i} style={{ borderTop:`1px solid #1a2a3a`, paddingTop:"8px", marginTop:"8px" }}>
@@ -1353,11 +1348,11 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 }
 
 function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
-  const totalOwed = debt.reduce((sum, debt_item) => sum + (parseFloat(debt_item.amount) || 0), 0);
+  const totalOwed = debt.reduce((s, d) => s + (parseFloat(d.amount) || 0), 0);
   const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
   const addDebt = () => { const next = [...debt, {id:Date.now(), creditor:"", amount:0, monthlyPayment:0, termMonths:0}]; setDebt(next); wardenSet(KEYS.debt, next); };
-  const upd = (id, p) => { const next = debt.map(debt_item=>debt_item.id===id?{...debt_item,...p}:debt_item); setDebt(next); wardenSet(KEYS.debt, next); };
-  const del = (id) => { const next = debt.filter(debt_item=>debt_item.id!==id); setDebt(next); wardenSet(KEYS.debt, next); };
+  const upd = (id, p) => { const next = debt.map(d=>d.id===id?{...d,...p}:d); setDebt(next); wardenSet(KEYS.debt, next); };
+  const del = (id) => { const next = debt.filter(d=>d.id!==id); setDebt(next); wardenSet(KEYS.debt, next); };
   return (
     <div>
       {debt.length > 0 && (
@@ -1368,17 +1363,17 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
         </div>
       )}
       {debt.length === 0 && <div style={{ color:GREEN_DARK, fontSize:"11px", padding:"10px 0" }}>No active debts.</div>}
-      {debt.map(debt_item => (
-        <div key={debt_item.id} style={{ border:`1px solid #2a1a1a`, padding:"10px", marginBottom:"8px" }}>
+      {debt.map(d => (
+        <div key={d.id} style={{ border:`1px solid #2a1a1a`, padding:"10px", marginBottom:"8px" }}>
           <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center" }}>
-            <input value={debt_item.creditor} onChange={e=>upd(debt_item.id,{creditor:e.target.value})} placeholder="Creditor name" style={{ ...sI, flex:1, minWidth:"130px" }} />
-            <input type="number" value={debt_item.amount} onChange={e=>upd(debt_item.id,{amount:parseFloat(e.target.value)||0})} placeholder="Amount" style={{ ...sI, width:"90px" }} />
+            <input value={d.creditor} onChange={e=>upd(d.id,{creditor:e.target.value})} placeholder="Creditor name" style={{ ...sI, flex:1, minWidth:"130px" }} />
+            <input type="number" value={d.amount} onChange={e=>upd(d.id,{amount:parseFloat(e.target.value)||0})} placeholder="Amount" style={{ ...sI, width:"90px" }} />
             <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cr</span>
-            <input type="number" value={debt_item.monthlyPayment} onChange={e=>upd(debt_item.id,{monthlyPayment:parseFloat(e.target.value)||0})} placeholder="mo payment" style={{ ...sI, width:"80px" }} />
+            <input type="number" value={d.monthlyPayment} onChange={e=>upd(d.id,{monthlyPayment:parseFloat(e.target.value)||0})} placeholder="mo payment" style={{ ...sI, width:"80px" }} />
             <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cr/mo</span>
-            <input type="number" value={debt_item.termMonths} onChange={e=>upd(debt_item.id,{termMonths:parseInt(e.target.value)||0})} placeholder="mo" style={{ ...sI, width:"55px" }} />
+            <input type="number" value={d.termMonths} onChange={e=>upd(d.id,{termMonths:parseInt(e.target.value)||0})} placeholder="mo" style={{ ...sI, width:"55px" }} />
             <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cycles remaining</span>
-            <button onClick={()=>del(debt_item.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+            <button onClick={()=>del(d.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
         </div>
       ))}
@@ -1392,7 +1387,7 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
 }
 
 function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
-  const totalValue = portfolio.reduce((sum, holding) => { const st = stocks.find(x=>x.name===holding.company); return sum + (st ? st.price * holding.shares : 0); }, 0);
+  const totalValue = portfolio.reduce((s, h) => { const st = stocks.find(x=>x.name===h.company); return s + (st ? st.price * h.shares : 0); }, 0);
   const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
   const btnS = { background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"13px", padding:"2px 9px", cursor:"pointer", lineHeight:1 };
   const add = () => {
@@ -1401,8 +1396,8 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
     const next=[...portfolio,{id:Date.now(),company:co,shares:0,grantPrice:st?.price||0,lockScenarios:0}];
     setPortfolio(next); wardenSet(KEYS.portfolio,next);
   };
-  const upd = (id,p) => { const next=portfolio.map(item=>item.id===id?{...item,...p}:item); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
-  const del = (id) => { const next=portfolio.filter(item=>item.id!==id); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
+  const upd = (id,p) => { const next=portfolio.map(h=>h.id===id?{...h,...p}:h); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
+  const del = (id) => { const next=portfolio.filter(h=>h.id!==id); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
   return (
     <div>
       {portfolio.length > 0 && (
@@ -1411,37 +1406,37 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
         </div>
       )}
       {portfolio.length === 0 && <div style={{ color:GREEN_DARK, fontSize:"11px", padding:"10px 0" }}>No holdings. Equity payouts (PAYOUT tab) lock shares here automatically.</div>}
-      {portfolio.map(holding => {
-        const st = stocks.find(x=>x.name===holding.company);
+      {portfolio.map(h => {
+        const st = stocks.find(x=>x.name===h.company);
         const cur = st?.price||0;
-        const val = cur * holding.shares;
-        const gl = (cur - (holding.grantPrice||cur)) * holding.shares;
-        const locked = holding.lockScenarios > 0;
+        const val = cur * h.shares;
+        const gl = (cur - (h.grantPrice||cur)) * h.shares;
+        const locked = h.lockScenarios > 0;
         return (
-          <div key={holding.id} style={{ border:`1px solid #1a2a3a`, padding:"10px 12px", marginBottom:"8px" }}>
+          <div key={h.id} style={{ border:`1px solid #1a2a3a`, padding:"10px 12px", marginBottom:"8px" }}>
             <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"6px" }}>
-              <select value={holding.company} onChange={e=>{
+              <select value={h.company} onChange={e=>{
                 const ns=stocks.find(s=>s.name===e.target.value);
-                upd(holding.id,{company:e.target.value,grantPrice:ns?.price||holding.grantPrice});
+                upd(h.id,{company:e.target.value,grantPrice:ns?.price||h.grantPrice});
               }} style={{ ...sI, flex:1, minWidth:"140px" }}>
                 {stocks.filter(s=>!s.is_collapsed).map(s=><option key={s.name}>{s.name}</option>)}
               </select>
               <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-                <button onClick={()=>upd(holding.id,{shares:Math.max(0,(holding.shares||0)-1)})} style={btnS}>−</button>
-                <span style={{ color:"#aabbcc", minWidth:"32px", textAlign:"center", fontSize:"13px" }}>{holding.shares||0}</span>
-                <button onClick={()=>upd(holding.id,{shares:(holding.shares||0)+1})} style={btnS}>+</button>
+                <button onClick={()=>upd(h.id,{shares:Math.max(0,(h.shares||0)-1)})} style={btnS}>−</button>
+                <span style={{ color:"#aabbcc", minWidth:"32px", textAlign:"center", fontSize:"13px" }}>{h.shares||0}</span>
+                <button onClick={()=>upd(h.id,{shares:(h.shares||0)+1})} style={btnS}>+</button>
                 <span style={{ color:GREEN_DARK, fontSize:"10px", marginLeft:"2px" }}>shares</span>
               </div>
-              <button onClick={()=>del(holding.id)} style={{ ...sI, padding:"2px 7px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+              <button onClick={()=>del(h.id)} style={{ ...sI, padding:"2px 7px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
             </div>
             <div style={{ display:"flex", gap:"16px", flexWrap:"wrap", fontSize:"11px" }}>
-              <span style={{ color:GREEN_DARK }}>Grant: <span style={{ color:"#6688aa" }}>{(holding.grantPrice||0).toLocaleString()}cr</span></span>
+              <span style={{ color:GREEN_DARK }}>Grant: <span style={{ color:"#6688aa" }}>{(h.grantPrice||0).toLocaleString()}cr</span></span>
               <span style={{ color:GREEN_DARK }}>Now: <span style={{ color:"#88bbff" }}>{cur.toLocaleString()}cr</span></span>
               <span style={{ color:GREEN_DARK }}>Value: <span style={{ color:"#aaccee" }}>{val.toLocaleString()}cr</span></span>
-              <span style={{ color: gl>=0?GREEN:"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
+              <span style={{ color: gl>=0?"#44cc88":"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
               {locked
-                ? <span style={{ color:AMBER }}>🔒 {holding.lockScenarios} scenario{holding.lockScenarios!==1?"s":""} locked
-                    <button onClick={()=>upd(holding.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:GREEN_DARK }}>UNLOCK</button>
+                ? <span style={{ color:AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios!==1?"s":""} locked
+                    <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:"#448844" }}>UNLOCK</button>
                   </span>
                 : <span style={{ color: GREEN }}>● AVAILABLE</span>}
             </div>
@@ -1477,57 +1472,56 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
   ];
   return (
     <div>
-      {/* Account name + ownership settings */}
       <div style={{ marginBottom:"16px", display:"flex", gap:"16px", flexWrap:"wrap", alignItems:"flex-start" }}>
-        <div style={{ flex:"1 1 200px" }}>
+        <div style={{ flex:"1 1 180px" }}>
           <div style={{ color:GREEN_MID, fontSize:"10px", letterSpacing:"0.1em", marginBottom:"5px" }}>ACCOUNT NAME</div>
           <input value={shipName} onChange={e=>upd({shipName:e.target.value})}
             placeholder="Diamond Club, LLC"
             style={{ ...sI, width:"100%", boxSizing:"border-box" }} />
         </div>
-        <div style={{ flex:"1 1 200px" }}>
+        <div style={{ flex:"1 1 180px" }}>
           <div style={{ color:GREEN_MID, fontSize:"10px", letterSpacing:"0.1em", marginBottom:"5px" }}>OWNERSHIP TYPE</div>
           <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
-            {[["company","COMPANY"],["owner","OWNER-OP"],["freelancer","FREELANCER"]].map(([val,lbl]) => (
+            {[["company","COMPANY"],["owner","OWNER-OP"],["freelancer","FREELANCER"]].map(([val,lbl3]) => (
               <button key={val} onClick={() => { const next={...rollConfig,ownershipType:val}; setRollConfig(next); saveSettings({rollConfig:next}); }}
                 style={{ background:ownerType===val?"rgba(68,200,68,0.08)":"none",
                   border:`1px solid ${ownerType===val?GREEN_MID:GREEN_DARK}`,
                   color:ownerType===val?GREEN_MID:GREEN_DARK,
-                  fontFamily:MONO, fontSize:"10px", padding:"4px 8px", cursor:"pointer", whiteSpace:"nowrap" }}>{lbl}</button>
+                  fontFamily:MONO, fontSize:"10px", padding:"4px 8px", cursor:"pointer", whiteSpace:"nowrap" }}>{lbl3}</button>
             ))}
           </div>
         </div>
-        <div style={{ flex:"1 1 200px" }}>
+        <div style={{ flex:"1 1 180px" }}>
           <div style={{ color:GREEN_MID, fontSize:"10px", letterSpacing:"0.1em", marginBottom:"5px" }}>CREW PAYMENT MODE</div>
           <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
-            {[["all","ALL SAME"],["per","PER CREW"]].map(([val,lbl]) => (
+            {[["all","ALL SAME"],["per","PER CREW"]].map(([val,lbl3]) => (
               <button key={val} onClick={() => { const next={...rollConfig,crewPaymentMode:val}; setRollConfig(next); saveSettings({rollConfig:next}); }}
                 style={{ background:(rollConfig.crewPaymentMode||"all")===val?"rgba(68,200,68,0.08)":"none",
                   border:`1px solid ${(rollConfig.crewPaymentMode||"all")===val?GREEN_MID:GREEN_DARK}`,
                   color:(rollConfig.crewPaymentMode||"all")===val?GREEN_MID:GREEN_DARK,
-                  fontFamily:MONO, fontSize:"10px", padding:"4px 8px", cursor:"pointer", whiteSpace:"nowrap" }}>{lbl}</button>
+                  fontFamily:MONO, fontSize:"10px", padding:"4px 8px", cursor:"pointer", whiteSpace:"nowrap" }}>{lbl3}</button>
             ))}
           </div>
         </div>
       </div>
-      <div style={{ padding:"12px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,5,15,0.5)", marginBottom:"16px", display:"inline-block" }}>
+      <div style={{ padding:"12px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,5,0,0.5)", marginBottom:"16px", display:"inline-block" }}>
         <div style={{ color:HEADER_GREEN, fontSize:"22px", fontWeight:"bold" }}>{shipBalance.toLocaleString()}cr</div>
         <div style={{ color:GREEN_MID, fontSize:"10px" }}>{shipName ? shipName.toUpperCase() + " — ACCOUNT BALANCE" : "ACCOUNT BALANCE"}</div>
         <div style={{ color:GREEN_DARK, fontSize:"10px", marginTop:"2px" }}>Ownership: {ownerType === "company" ? "Company / Military" : ownerType === "owner" ? "Owner-Operator" : "Freelancer"}</div>
       </div>
-      <div style={{ display:"flex", gap:"8px", marginBottom:"14px", flexWrap:"wrap", alignItems:"center", rowGap:"8px" }}>
+      <div style={{ display:"flex", gap:"8px", marginBottom:"14px", flexWrap:"wrap", alignItems:"center" }}>
         <input value={txLabel} onChange={e=>setTxLabel(e.target.value)} placeholder="Label (optional)" style={{ ...sI, flex:1, minWidth:"110px" }} />
         <input type="number" min={0} value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Amount (cr)" style={{ ...sI, width:"110px" }} />
-        <button onClick={()=>transact("deposit")} style={{ background:"none", border:`1px solid #224422`, color:GREEN, fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>+ DEPOSIT</button>
+        <button onClick={()=>transact("deposit")} style={{ background:"none", border:`1px solid #224422`, color:"#44cc88", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>+ DEPOSIT</button>
         <button onClick={()=>transact("withdraw")} style={{ background:"none", border:`1px solid #442222`, color:"#cc5555", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>− WITHDRAW</button>
       </div>
       {shipExpenses.length > 0 && (
         <div style={{ marginBottom:"16px" }}>
           <div style={{ color:GREEN_DARK, fontSize:"10px", marginBottom:"6px" }}>RECENT TRANSACTIONS (last 20)</div>
-          {[...shipExpenses].reverse().slice(0,10).map(tx => (
-            <div key={tx.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid #0a1520`, fontSize:"11px" }}>
-              <span style={{ color:"#6688aa" }}>{tx.label}</span>
-              <span style={{ color:tx.amount>=0?GREEN:"#cc5555" }}>{tx.amount>=0?"+":""}{tx.amount.toLocaleString()}cr</span>
+          {[...shipExpenses].reverse().slice(0,10).map(e => (
+            <div key={e.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid #0a1520`, fontSize:"11px" }}>
+              <span style={{ color:"#6688aa" }}>{e.label}</span>
+              <span style={{ color:e.amount>=0?"#44cc88":"#cc5555" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
             </div>
           ))}
         </div>
@@ -1539,7 +1533,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
           <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"10px" }}>
             <tbody>{BANKRUPTCY.map(([r,c]) => (
               <tr key={r} style={{ borderTop:`1px solid #0a1520` }}>
-                <td style={{ padding:"5px 8px 5px 0", color:r.includes("Critical S")?GREEN:r.includes("Success")?"#88bb88":r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td>
+                <td style={{ padding:"5px 8px 5px 0", color:r.includes("Critical S")?"#44cc88":r.includes("Success")?"#88bb88":r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td>
                 <td style={{ padding:"5px 0", color:"#8899aa", lineHeight:1.5 }}>{c}</td>
               </tr>
             ))}</tbody>
@@ -1580,51 +1574,51 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
     const next={...crew,contractors:[...contractors,{id:Date.now(),name:"",occupation:"",salary:0,paid:false}]};
     setCrew(next); wardenSet(KEYS.crew,next);
   };
-  const upd = (id,p) => { const next={...crew,contractors:contractors.map(ct=>ct.id===id?{...ct,...p}:ct)}; setCrew(next); wardenSet(KEYS.crew,next); };
-  const del = (id) => { const next={...crew,contractors:contractors.filter(ct=>ct.id!==id)}; setCrew(next); wardenSet(KEYS.crew,next); };
+  const upd = (id,p) => { const next={...crew,contractors:contractors.map(c=>c.id===id?{...c,...p}:c)}; setCrew(next); wardenSet(KEYS.crew,next); };
+  const del = (id) => { const next={...crew,contractors:contractors.filter(c=>c.id!==id)}; setCrew(next); wardenSet(KEYS.crew,next); };
   return (
     <div>
       <div style={{ color:"#6688aa", fontSize:"10px", marginBottom:"12px", borderBottom:`1px solid #1a2a3a`, paddingBottom:"8px" }}>
         Check Contractor Loyalty if Paid in Full — update in Mothership Companion App.
       </div>
       {contractors.length === 0 && <div style={{ color:GREEN_DARK, fontSize:"11px", padding:"8px 0" }}>No active contractors.</div>}
-      {contractors.map(ct => (
-        <div key={ct.id} style={{ marginBottom:"8px", padding:"10px 12px", border:`1px solid ${ct.paid?"#1a3a2a":"#2a1a1a"}` }}>
+      {contractors.map(c => (
+        <div key={c.id} style={{ marginBottom:"8px", padding:"10px 12px", border:`1px solid ${c.paid?"#1a3a2a":"#2a1a1a"}` }}>
           <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"6px" }}>
             {/* Occupation dropdown — auto-fills salary */}
-            <select value={ct.occupation||""} onChange={e => {
+            <select value={c.occupation||""} onChange={e => {
               const occ = e.target.value;
               const match = CONTRACTOR_TYPES.find(([t]) => t === occ);
-              upd(ct.id, { occupation: occ, salary: match ? match[1] : ct.salary });
+              upd(c.id, { occupation: occ, salary: match ? match[1] : c.salary });
             }} style={{ ...sI, minWidth:"160px" }}>
               <option value="">— Select type —</option>
               {CONTRACTOR_TYPES.map(([t]) => <option key={t}>{t}</option>)}
             </select>
             {/* Freeform name */}
-            <input value={ct.name} onChange={e=>upd(ct.id,{name:e.target.value})}
+            <input value={c.name} onChange={e=>upd(c.id,{name:e.target.value})}
               placeholder="Name (optional)"
               style={{ ...sI, flex:1, minWidth:"120px" }} />
-            <button onClick={()=>del(ct.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+            <button onClick={()=>del(c.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
           </div>
           <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
             {/* Salary — editable, pre-filled by occupation */}
             <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-              <input type="number" min={0} value={ct.salary}
-                onChange={e=>upd(ct.id,{salary:parseFloat(e.target.value)||0})}
+              <input type="number" min={0} value={c.salary}
+                onChange={e=>upd(c.id,{salary:parseFloat(e.target.value)||0})}
                 style={{ ...sI, width:"80px" }} />
               <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cr/mo</span>
             </div>
-            <button onClick={()=>upd(ct.id,{paid:!ct.paid})}
-              style={{ background:"none", border:`1px solid ${ct.paid?"#224422":"#442222"}`,
-                color:ct.paid?GREEN:"#cc5555",
+            <button onClick={()=>upd(c.id,{paid:!c.paid})}
+              style={{ background:"none", border:`1px solid ${c.paid?"#224422":"#442222"}`,
+                color:c.paid?"#44cc88":"#cc5555",
                 fontFamily:MONO, fontSize:"10px", padding:"3px 12px", cursor:"pointer" }}>
-              {ct.paid ? "✓ PAID" : "UNPAID"}
+              {c.paid ? "✓ PAID" : "UNPAID"}
             </button>
-            {ct.paid && <span style={{ color:GREEN_MID, fontSize:"10px" }}>⚑ Roll loyalty</span>}
+            {c.paid && <span style={{ color:"#44aa66", fontSize:"10px" }}>⚑ Roll loyalty</span>}
           </div>
         </div>
       ))}
-      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:GREEN_MID, fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>+ ADD CONTRACTOR</button>
+      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>+ ADD CONTRACTOR</button>
     </div>
   );
 }
@@ -1674,12 +1668,12 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
         {(cat.items||[]).map(it => (
           <div key={it.id} style={{ display:"flex", gap:"6px", marginBottom:"5px", alignItems:"center", flexWrap:"wrap" }}>
             <input value={it.name} onChange={e=>updItem(it.id,{name:e.target.value})} placeholder="Item name" style={{ ...sI, flex:"2 1 100px", minWidth:"80px" }} />
-            <input value={it.price} onChange={e=>updItem(it.id,{price:e.target.value})} placeholder="Price" style={{ ...sI, width:"70px", minWidth:"60px" }} />
+            <input value={it.price} onChange={e=>updItem(it.id,{price:e.target.value})} placeholder="Price" style={{ ...sI, width:"80px" }} />
             <input value={it.notes} onChange={e=>updItem(it.id,{notes:e.target.value})} placeholder="Notes" style={{ ...sI, flex:"3 1 100px", minWidth:"80px" }} />
             <button onClick={()=>delItem(it.id)} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
         ))}
-        <button onClick={addItem} style={{ background:"none", border:`1px solid #1a2a3a`, color:GREEN_MID, fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>+ ADD ITEM</button>
+        <button onClick={addItem} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>+ ADD ITEM</button>
       </div>
     </div>
   );
@@ -1738,20 +1732,9 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   const [negoPct, setNegoPct] = useState(0);
   const [equityCorp, setEquityCorp] = useState("");
   const [open, setOpen] = useState({ checklist:false, debt:false, contractors:false, payout:false, medical:false, shore:false, training:false, repairs:false });
-
-  // Prevent page scroll-to-top when dropdowns or state updates cause re-layout
-  const scrollAnchorRef = useRef(null);
-  const lockScroll = (fn) => {
-    const y = window.scrollY;
-    fn();
-    requestAnimationFrame(() => { window.scrollTo({ top: y, behavior: "instant" }); });
-  };
-
-  const toggle = (k) => {
-    const y = window.scrollY;
-    setOpen(o => ({...o,[k]:!o[k]}));
-    requestAnimationFrame(() => { window.scrollTo({ top: y, behavior: "instant" }); });
-  };
+  const scrollRef = useRef(null);
+  const lockScroll = (fn) => { const y = window.scrollY; fn(); requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "instant" })); };
+  const toggle = (k) => { const y = window.scrollY; setOpen(o=>({...o,[k]:!o[k]})); requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "instant" })); };
 
   const salary = trained*500 + expert*1000 + master*2000;
   const base = salary * months + salary * months * HAZARD_MULT[hazard];
@@ -1805,7 +1788,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   );
 
   return (
-    <div ref={scrollAnchorRef} style={{ color:GREEN_MID, overflowAnchor:"none" }}>
+    <div ref={scrollRef} style={{ color:GREEN_MID, overflowAnchor:"none" }}>
       <Section id="payout" title="PAYOUT CALCULATOR">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
           {[["MONTHS",months,setMonths,1],["JUMPS (×1kcr)",jumps,setJumps,0]].map(([label,val,set,min]) => (
@@ -1820,7 +1803,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
             <span style={lbl}>HAZARD</span>
             <div style={{ position:"relative" }}>
               <select value={hazard} onChange={e=>lockScroll(()=>setHazard(e.target.value))} style={sel}>
-                {HAZARD_OPTS.map(opt=><option key={opt}>{opt}</option>)}
+                {HAZARD_OPTS.map(h=><option key={h}>{h}</option>)}
               </select>
               <span style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", color:GREEN_DARK, pointerEvents:"none", fontSize:"12px" }}>▾</span>
             </div>
@@ -1838,7 +1821,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         </div>
         <div style={{ marginBottom:"16px" }}>
           <span style={lbl}>SKILL TIERS</span>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"8px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"8px" }}>
             {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([label,val,set,rate]) => (
               <div key={label} style={{ display:"flex", flexDirection:"column", gap:"4px", alignItems:"center",
                 border:`1px solid ${GREEN_DARK}`, padding:"8px 4px", background:"rgba(0,20,0,0.2)", minWidth:0 }}>
@@ -1907,13 +1890,13 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
 
       {debt.length > 0 && (
         <Section id="debt" title="DEBT OBLIGATIONS" badge={`+${debt.length} MIN STRESS`}>
-          {debt.map(debt_item => (
-            <div key={debt_item.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
+          {debt.map(d => (
+            <div key={d.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
               fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px" }}>
-              <span>{debt_item.creditor || "Unknown creditor"}</span>
+              <span>{d.creditor || "Unknown creditor"}</span>
               <span style={{ color:"#cc7755" }}>
-                {(parseFloat(debt_item.monthlyPayment)||0).toLocaleString()}cr/mo
-                <span style={{ color:"#664433", marginLeft:"8px" }}>· {debt_item.termMonths} {cycleWord}s left</span>
+                {(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo
+                <span style={{ color:"#664433", marginLeft:"8px" }}>· {d.termMonths} {cycleWord}s left</span>
               </span>
             </div>
           ))}
@@ -1922,21 +1905,21 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
 
       {(crew?.contractors?.length > 0) && (
         <Section id="contractors" title="CONTRACTORS" badge={(() => {
-          const unpaid = (crew.contractors||[]).filter(ct=>!ct.paid);
+          const unpaid = (crew.contractors||[]).filter(c=>!c.paid);
           if (unpaid.length === 0) return null;
-          const total = unpaid.reduce((sum,ct)=>sum+(ct.salary||0),0);
+          const total = unpaid.reduce((s,c)=>s+(c.salary||0),0);
           return `${unpaid.length} UNPAID · ${total.toLocaleString()}cr/mo`;
         })()}>
-          {(crew.contractors || []).map(ct => (
-            <div key={ct.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
+          {(crew.contractors || []).map(c => (
+            <div key={c.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
               fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px", alignItems:"center" }}>
               <span style={{ color:GREEN_MID }}>
-                {ct.name || ct.occupation || "Unnamed"}
-                {ct.name && ct.occupation &&
-                  <span style={{ color:GREEN_MID, marginLeft:"10px", fontSize:"11px" }}>{ct.occupation}</span>}
+                {c.name || c.occupation || "Unnamed"}
+                {c.name && c.occupation &&
+                  <span style={{ color:"#4a8a6a", marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
               </span>
-              <span style={{ color: ct.paid ? GREEN : "#cc7755" }}>
-                {(ct.salary||0).toLocaleString()}cr/mo · {ct.paid ? "PAID" : "UNPAID"}
+              <span style={{ color: c.paid ? GREEN : "#cc7755" }}>
+                {(c.salary||0).toLocaleString()}cr/mo · {c.paid ? "PAID" : "UNPAID"}
               </span>
             </div>
           ))}
@@ -1946,7 +1929,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       <Section id="medical" title="MEDICAL TREATMENTS">
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse", marginBottom:"10px" }}>
-            <thead><tr>{["TREATMENT","COST","EFFECT"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
+            <thead><tr>{["TREATMENT","COST","EFFECT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
             <tbody>{TREATMENTS_TABLE.map(([t,c,e])=>(
               <tr key={t}>
                 <td style={TD}>{t}</td>
@@ -1965,7 +1948,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         <div style={{ color:GREEN_DARK, fontSize:"12px", marginBottom:"10px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
         <div style={{ overflowX:"auto", marginBottom:"12px" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
+            <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
             <tbody>{SHORE_LEAVE_TABLE.map(([p,c,s])=>(
               <tr key={p}><td style={{ ...TD, color:AMBER }}>{p}</td><td style={{ ...TD, color:"#88aacc" }}>{c}</td><td style={{ ...TD, color:HEADER_GREEN }}>{s}</td></tr>
             ))}</tbody>
@@ -1973,7 +1956,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         </div>
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr>{["RESULT","OUTCOME"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
+            <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
             <tbody>{SHORE_LEAVE_RESULTS.map(([r,o])=>(
               <tr key={r}>
                 <td style={{ ...TD, whiteSpace:"nowrap", paddingRight:"16px",
@@ -1986,9 +1969,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       </Section>
 
       <Section id="training" title={`SKILL TRAINING — ${timeUnit.toUpperCase()}`}>
-        <div style={{ color:GREEN_DARK, fontSize:"11px", marginBottom:"10px", fontStyle:"italic" }}>
-          Must meet skill pre-requisites to be eligible for training.
-        </div>
+        <div style={{ color:GREEN_DARK, fontSize:"11px", marginBottom:"10px", fontStyle:"italic" }}>Must meet skill pre-requisites to be eligible for training.</div>
         <div style={{ overflowX:"auto", marginBottom:"14px" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead><tr>{["TIER","DURATION","COST","BONUS"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
@@ -2008,7 +1989,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         </div>
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
-            <thead><tr>{["RESULT","OUTCOME"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
+            <thead><tr>{["RESULT","OUTCOME"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
             <tbody>{MILITARY_RESULTS.map(([r,o])=>(
               <tr key={r}>
                 <td style={{ ...TD, whiteSpace:"nowrap", paddingRight:"16px",
@@ -2031,7 +2012,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           <div style={{ color:GREEN_MID, marginBottom:"10px" }}>OPERATIONAL COSTS</div>
           <div style={{ overflowX:"auto", marginBottom:"12px" }}>
             <table style={{ borderCollapse:"collapse" }}>
-              <thead><tr>{["CLASS","COST / UNIT"].map(col=><th key={col} style={TH}>{col}</th>)}</tr></thead>
+              <thead><tr>{["CLASS","COST / UNIT"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
               <tbody>
                 {[["I","1,000cr (1kcr)"],["II","2,000cr (2kcr)"],["III","5,000cr (5kcr)"],["IV","50,000cr (50kcr)"],["V","100,000cr (100kcr)"]].map(([cls,cost])=>(
                   <tr key={cls}><td style={{ ...TD, paddingRight:"24px" }}>Class-{cls} Fuel</td><td style={{ ...TD, color:"#88aacc" }}>{cost}</td></tr>
@@ -2144,18 +2125,18 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         {/* Headlines */}
         {tab === "ticker" && recentHeadlines.length > 0 && (
           <div style={{ marginBottom: "24px" }}>
-            {recentHeadlines.map((hl, i) => (
+            {recentHeadlines.map((h, i) => (
               <div key={i} style={{ borderLeft: `2px solid ${i === 0 ? GREEN : GREEN_DARK}`,
                 paddingLeft: "12px", marginBottom: "12px", opacity: i === 0 ? 1 : 0.55 }}>
                 <div style={{ color: i === 0 ? HEADER_GREEN : GREEN_DIM, fontSize: "12px",
-                  letterSpacing: "0.08em", fontWeight: "bold" }}>{hl.headline}</div>
-                {hl.subtext && (
+                  letterSpacing: "0.08em", fontWeight: "bold" }}>{h.headline}</div>
+                {h.subtext && (
                   <div style={{ color: GREEN_MID, fontSize: "11px", marginTop: "2px", letterSpacing: "0.04em" }}>
-                    {hl.subtext}
+                    {h.subtext}
                   </div>
                 )}
                 <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "3px" }}>
-                  <FictionDate date={hl.date} />
+                  <FictionDate date={h.date} />
                 </div>
               </div>
             ))}
@@ -2206,22 +2187,13 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
 
             {showPortfolio && (
               <div style={{ marginTop: "16px" }}>
-                {/* Ship / group account balance — shown if a balance exists */}
                 {(crew?.shipBalance || 0) !== 0 && (
                   <div style={{ marginBottom: "16px", padding: "12px 16px",
                     border: `1px solid ${GREEN_DARK}`, background: "rgba(0,20,0,0.2)" }}>
-                    <div style={{ color: GREEN_MID, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "8px" }}>
-                      ACCOUNT BALANCE
-                    </div>
+                    <div style={{ color: GREEN_MID, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "8px" }}>ACCOUNT BALANCE</div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                      <span style={{ color: HEADER_GREEN, fontSize: "22px", fontWeight: "bold" }}>
-                        {(crew.shipBalance).toLocaleString()}cr
-                      </span>
-                      {crew.shipName && (
-                        <span style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.1em" }}>
-                          {crew.shipName.toUpperCase()}
-                        </span>
-                      )}
+                      <span style={{ color: HEADER_GREEN, fontSize: "22px", fontWeight: "bold" }}>{crew.shipBalance.toLocaleString()}cr</span>
+                      {crew.shipName && <span style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.1em" }}>{crew.shipName.toUpperCase()}</span>}
                     </div>
                   </div>
                 )}
@@ -2235,19 +2207,19 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                       borderBottom: `1px solid ${GREEN_DARK}`, paddingBottom: "8px" }}>
                       EQUITY HOLDINGS — {portfolio.length} POSITION{portfolio.length !== 1 ? "S" : ""}
                     </div>
-                    {portfolio.map(holding => {
-                      const st = stocks.find(s => s.name === holding.company);
+                    {portfolio.map(h => {
+                      const st = stocks.find(s => s.name === h.company);
                       const cur = st?.price || 0;
-                      const val = cur * holding.shares;
-                      const gl = (cur - (holding.grantPrice || cur)) * holding.shares;
-                      const locked = holding.lockScenarios > 0;
+                      const val = cur * h.shares;
+                      const gl = (cur - (h.grantPrice || cur)) * h.shares;
+                      const locked = h.lockScenarios > 0;
                       return (
-                        <div key={holding.id} style={{ padding: "10px 0", borderBottom: `1px solid rgba(68,100,68,0.15)`,
+                        <div key={h.id} style={{ padding: "10px 0", borderBottom: `1px solid rgba(68,100,68,0.15)`,
                           display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
                           <div>
-                            <div style={{ color: GREEN_MID, fontSize: "13px" }}>{holding.company}</div>
+                            <div style={{ color: GREEN_MID, fontSize: "13px" }}>{h.company}</div>
                             <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>
-                              {holding.shares} share{holding.shares !== 1 ? "s" : ""} @ {cur.toLocaleString()}cr each
+                              {h.shares} share{h.shares !== 1 ? "s" : ""} @ {cur.toLocaleString()}cr each
                             </div>
                           </div>
                           <div style={{ textAlign: "right" }}>
@@ -2255,7 +2227,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                               {val.toLocaleString()}cr
                             </div>
                             <div style={{ fontSize: "11px" }}>
-                              {locked && <span style={{ color: AMBER }}>🔒 {holding.lockScenarios} scenario{holding.lockScenarios !== 1 ? "s" : ""} locked</span>}
+                              {locked && <span style={{ color: AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios !== 1 ? "s" : ""} locked</span>}
                               {!locked && <span style={{ color: GREEN }}>● AVAILABLE</span>}
                             </div>
                           </div>
@@ -2266,9 +2238,9 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                       fontSize: "12px", color: GREEN_DARK }}>
                       <span>TOTAL VALUE</span>
                       <span style={{ color: HEADER_GREEN, fontWeight: "bold" }}>
-                        {portfolio.reduce((sum, holding) => {
-                          const st = stocks.find(x => x.name === holding.company);
-                          return sum + (st ? st.price * holding.shares : 0);
+                        {portfolio.reduce((s, h) => {
+                          const st = stocks.find(x => x.name === h.company);
+                          return s + (st ? st.price * h.shares : 0);
                         }, 0).toLocaleString()}cr
                       </span>
                     </div>
@@ -2411,8 +2383,8 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
           WARDEN TERMINAL
         </div>
         <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "20px" }}>
-          {digits.map((digit, i) => (
-            <input key={i} ref={refs[i]} value={digit} maxLength={1}
+          {digits.map((d, i) => (
+            <input key={i} ref={refs[i]} value={d} maxLength={1}
               inputMode="numeric" pattern="[0-9]*" autoComplete="off"
               onChange={(e) => { if (!locked) handleKey(i, e.target.value); }}
               onPaste={handlePaste}
@@ -2489,9 +2461,9 @@ function HistoryLog({ history, headlines }) {
   const pastHeadlines = [];
   const seenIds = new Set();
   [...history].reverse().forEach((entry) => {
-    if (entry.headlines) entry.headlines.forEach((hl) => {
-      const key = hl.id || hl.headline;
-      if (!seenIds.has(key)) { seenIds.add(key); pastHeadlines.push({ ...hl, _cycle: entry.date }); }
+    if (entry.headlines) entry.headlines.forEach((h) => {
+      const key = h.id || h.headline;
+      if (!seenIds.has(key)) { seenIds.add(key); pastHeadlines.push({ ...h, _cycle: entry.date }); }
     });
   });
 
@@ -2515,13 +2487,13 @@ function HistoryLog({ history, headlines }) {
       {tab === "news" && (
         pastHeadlines.length === 0
           ? <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "8px 0" }}>NO ARCHIVED HEADLINES</div>
-          : pastHeadlines.map((hl, i) => (
-            <div key={i} style={{ borderLeft: `2px solid ${GREEN_DARK}`,
+          : pastHeadlines.map((h, i) => (
+            <div key={i} style={{ borderLeft: `2px solid ${i === 0 ? GREEN_DARK : "#2a3a2a"}`,
               paddingLeft: "12px", marginBottom: "14px", opacity: i === 0 ? 0.85 : 0.5 }}>
-              <div style={{ color: GREEN_DIM, fontSize: "12px", letterSpacing: "0.05em" }}>{hl.headline}</div>
-              {hl.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{hl.subtext}</div>}
+              <div style={{ color: GREEN_DIM, fontSize: "12px", letterSpacing: "0.05em" }}>{h.headline}</div>
+              {h.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{h.subtext}</div>}
               <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "3px" }}>
-                <FictionDate date={hl.date || hl._cycle} />
+                <FictionDate date={h.date || h._cycle} />
               </div>
             </div>
           ))
@@ -2566,20 +2538,20 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
   const [editCycle, setEditCycle] = useState("");
 
   const startEdit = (i) => {
-    const editTarget = headlines[i];
+    const h = headlines[i];
     setEditingIdx(i);
-    setEditHL(editTarget.headline);
-    setEditSub(editTarget.subtext || "");
-    setEditYear(String(editTarget.date?.year ?? date.year));
-    setEditCycle(String(editTarget.date?.cycle ?? date.cycle));
+    setEditHL(h.headline);
+    setEditSub(h.subtext || "");
+    setEditYear(String(h.date?.year ?? date.year));
+    setEditCycle(String(h.date?.cycle ?? date.cycle));
   };
 
   const saveEdit = () => {
-    const next = headlines.map((hl, i) => i !== editingIdx ? hl : {
-      ...hl,
+    const next = headlines.map((h, i) => i !== editingIdx ? h : {
+      ...h,
       headline: editHL.toUpperCase().trim(),
       subtext: editSub.trim(),
-      date: { year: parseInt(editYear,10) || hl.date?.year, cycle: parseInt(editCycle,10) || hl.date?.cycle },
+      date: { year: parseInt(editYear,10) || h.date?.year, cycle: parseInt(editCycle,10) || h.date?.cycle },
     });
     setHeadlines(next);
     wardenSet(KEYS.headlines, next);
@@ -2601,8 +2573,8 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
       <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.2em", marginBottom: "10px" }}>
         PLAYER FEED — {headlines.length} HEADLINE{headlines.length !== 1 ? "S" : ""}
       </div>
-      {headlines.map((hl, i) => (
-        <div key={hl.id || i} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)`, padding: "8px 0" }}>
+      {headlines.map((h, i) => (
+        <div key={h.id || i} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)`, padding: "8px 0" }}>
           {editingIdx === i ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <input value={editHL} onChange={(e) => setEditHL(e.target.value)}
@@ -2633,10 +2605,10 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
           ) : (
             <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
               <div style={{ flex: 1 }}>
-                <div style={{ color: GREEN_MID, fontSize: "11px" }}>{hl.headline}</div>
-                {hl.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{hl.subtext}</div>}
-                {hl.date && <div style={{ color: GREEN_DARK, fontSize: "9px", marginTop: "3px", letterSpacing: "0.1em" }}>
-                  YEAR {hl.date.year} · CYC {String(hl.date.cycle).padStart(2,"0")}
+                <div style={{ color: GREEN_MID, fontSize: "11px" }}>{h.headline}</div>
+                {h.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{h.subtext}</div>}
+                {h.date && <div style={{ color: GREEN_DARK, fontSize: "9px", marginTop: "3px", letterSpacing: "0.1em" }}>
+                  YEAR {h.date.year} · CYC {String(h.date.cycle).padStart(2,"0")}
                 </div>}
               </div>
               <button onClick={() => startEdit(i)}
@@ -2676,7 +2648,7 @@ function AddCorpRow({ onAdd, inputStyle }) {
   };
   if (!open) return (
     <button onClick={() => setOpen(true)}
-      style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
+      style={{ background: "none", border: `1px solid #336644`, color: GREEN_MID,
         fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer", marginTop: "10px" }}>
       + ADD CORPORATION
     </button>
@@ -2706,14 +2678,14 @@ function AddCorpRow({ onAdd, inputStyle }) {
           <div style={lbl}>HEALTH</div>
           <select value={health} onChange={e => setHealth(e.target.value)}
             style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
-            {HEALTH_STEPS.map(hs => <option key={hs} value={hs}>{hs}</option>)}
+            {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
           </select>
         </div>
         <div style={field}>
           <div style={lbl}>VOLATILITY</div>
           <select value={vol} onChange={e => setVol(e.target.value)}
             style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
-            {VOLATILITY_STEPS.map(vol => <option key={vol} value={vol}>{vol}</option>)}
+            {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
         </div>
       </div>
@@ -2784,7 +2756,7 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
           <div>
             <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>PARTNER 1</div>
             <select value={p1} onChange={e => setP1(e.target.value)}
-              style={{ background: BG, border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+              style={{ background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
                 fontFamily: MONO, fontSize: "11px", padding: "4px 6px", cursor: "pointer" }}>
               <option value="">— select —</option>
               {active.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
@@ -2794,7 +2766,7 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
           <div>
             <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>PARTNER 2</div>
             <select value={p2} onChange={e => setP2(e.target.value)}
-              style={{ background: BG, border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+              style={{ background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
                 fontFamily: MONO, fontSize: "11px", padding: "4px 6px", cursor: "pointer" }}>
               <option value="">— select —</option>
               {active.filter(s => s.name !== p1).map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
@@ -2986,14 +2958,14 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       return clean;
     });
     // Determine which collapses trigger mergers vs normal delist
-    const collapsingWithMerger = bankruptcy.filter((bkruptItem) => bkruptItem.collapses && bkruptItem.triggersMerger);
-    const collapsingNormal = bankruptcy.filter((bkruptItem) => bkruptItem.collapses && !bkruptItem.triggersMerger);
+    const collapsingWithMerger = bankruptcy.filter((b) => b.collapses && b.triggersMerger);
+    const collapsingNormal = bankruptcy.filter((b) => b.collapses && !b.triggersMerger);
     // Apply mergers for early-trigger collapses
     let updatedMergers = [...mergers];
     let autoHeadlines = [];
-    const mergerNames = new Set(collapsingWithMerger.map((bkruptItem) => bkruptItem.triggersMerger));
+    const mergerNames = new Set(collapsingWithMerger.map((b) => b.triggersMerger));
     for (const mName of mergerNames) {
-      const merger = mergers.find((mg) => mg.name === mName);
+      const merger = mergers.find((m) => m.name === mName);
       if (merger) {
         working = applyMerger(working, merger);
         updatedMergers = updatedMergers.map((m) => m.name === mName ? { ...m, triggered: true } : m);
@@ -3001,15 +2973,15 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       }
     }
     // Auto-push OmniCorp acquisition headlines for normal collapses
-    collapsingNormal.forEach((bkruptItem, idx) => {
-      const match = OMNICORP_HEADLINES.find((omniH) => omniH.company === bkruptItem.name);
+    collapsingNormal.forEach((b, idx) => {
+      const match = OMNICORP_HEADLINES.find((h) => h.company === b.name);
       if (match) autoHeadlines.push({ ...match, date: { ...date }, id: Date.now() + autoHeadlines.length + idx + 100 });
     });
     // Normal collapses: halve price, mark is_delisting
     const omniGain = collapsingNormal.reduce((sum, b) => sum + b.price, 0);
     working = working.map((s) => {
-      const collapseEntry = collapsingNormal.find((ce) => ce.name === s.name);
-      if (collapseEntry) {
+      const b = collapsingNormal.find((b) => b.name === s.name);
+      if (b) {
         const halved = Math.max(1, Math.floor(s.price / 2));
         return { ...s, is_delisting: true, price: halved, change: halved - s.price };
       }
@@ -3023,7 +2995,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     const histEntry = { date: { ...date }, stocks: stocks.map(({ healthRoll, volRoll, priceRoll, coinFlip, healthShift, volShift, _skipped, ...rest }) => rest), headlines: headlines.slice(0, 5) };
     const newHistory = [...history, histEntry].slice(-100); // cap at 100 to prevent unbounded growth
     const newHeadlines = autoHeadlines.length > 0 ? [...autoHeadlines, ...headlines] : headlines;
-    if (autoHeadlines.length > 0) autoHeadlines.forEach((hl) => { setLastPublished(hl.headline); clearTimeout(window._lpTimer); window._lpTimer = setTimeout(() => setLastPublished(null), 3500); });
+    if (autoHeadlines.length > 0) autoHeadlines.forEach((h) => { setLastPublished(h.headline); clearTimeout(window._lpTimer); window._lpTimer = setTimeout(() => setLastPublished(null), 3500); });
     setStocks(sorted);
     setMergers(updatedMergers);
     setDate(newDate);
@@ -3057,24 +3029,24 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
     // ── Portfolio: decrement lock counters ──
     if (portfolio.length > 0) {
-      const newPortfolio = portfolio.map(holding => holding.lockScenarios > 0 ? { ...holding, lockScenarios: holding.lockScenarios - 1 } : holding);
+      const newPortfolio = portfolio.map(h => h.lockScenarios > 0 ? { ...h, lockScenarios: h.lockScenarios - 1 } : h);
       setPortfolio(newPortfolio);
       wardenSet(KEYS.portfolio, newPortfolio);
     }
 
     // ── Catalogs: auto-INELIGIBLE for collapsed/merged companies ──
     const nowInactive = new Set([
-      ...collapsingNormal.map(bkruptItem => bkruptItem.name),
-      ...collapsingWithMerger.map(bkruptItem => bkruptItem.name),
+      ...collapsingNormal.map(b => b.name),
+      ...collapsingWithMerger.map(b => b.name),
     ]);
     if (nowInactive.size > 0) {
       const newCatalogs = { ...catalogs };
       for (const name of nowInactive) {
         if (newCatalogs[name] && newCatalogs[name].status !== "ineligible") {
-          const reason = collapsingWithMerger.find(bkruptItem => bkruptItem.name === name) ? "Merged" : "Company collapsed";
+          const reason = collapsingWithMerger.find(b => b.name === name) ? "Merged" : "Company collapsed";
           newCatalogs[name] = { ...newCatalogs[name], status: "ineligible", ineligibleReason: reason };
         } else if (!newCatalogs[name]) {
-          const reason = collapsingWithMerger.find(bkruptItem => bkruptItem.name === name) ? "Merged" : "Company collapsed";
+          const reason = collapsingWithMerger.find(b => b.name === name) ? "Merged" : "Company collapsed";
           newCatalogs[name] = { status: "ineligible", ineligibleReason: reason, benefits: "", items: [] };
         }
       }
@@ -3117,7 +3089,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         <div style={{ borderBottom: `1px solid ${GREEN_DARK}`, paddingBottom: "16px", marginBottom: "24px",
           display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <div>
-            <div style={{ color: GREEN_MID, fontSize: "11px", letterSpacing: "0.3em", marginBottom: "4px", opacity: 0.5 }}>
+            <div style={{ color: GREEN_DIM, fontSize: "11px", letterSpacing: "0.3em", marginBottom: "4px", opacity: 0.5 }}>
               SECTOR FINANCIAL NETWORK — RESTRICTED
             </div>
             <div style={{ color: HEADER_GREEN, fontSize: "20px", letterSpacing: "0.15em", fontWeight: "bold" }}>
@@ -3181,19 +3153,19 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               OMNICORP ACQUISITION TRIGGERS:
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
-              {OMNICORP_HEADLINES.filter((omniHL) => {
-                const protectedBy = MERGER_PROTECTED[omniHL.company];
+              {OMNICORP_HEADLINES.filter((h) => {
+                const protectedBy = MERGER_PROTECTED[h.company];
                 if (!protectedBy) return true; // not a merger partner, always show
                 const merger = mergers.find((m) => m.name === protectedBy);
                 if (!merger) return true; // merger doesn't exist, show
                 // Hide if merger is still pending (both partners alive)
                 return getMergerStatus(merger, stocks) !== "pending";
-              }).map((omniHL) => (
-                <button key={omniHL.company} onClick={() => pushHeadline(omniHL)}
+              }).map((h) => (
+                <button key={h.company} onClick={() => pushHeadline(h)}
                   style={{ background: "rgba(80,60,0,0.2)", border: `1px solid rgba(255,200,0,0.15)`,
                     color: AMBER, fontFamily: MONO, fontSize: "10px", padding: "4px 8px",
                     cursor: "pointer", letterSpacing: "0.08em" }}>
-                  {omniHL.company.toUpperCase()}
+                  {h.company.toUpperCase()}
                 </button>
               ))}
             </div>
@@ -3309,8 +3281,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                              {["COMPANY","VOL","ROLL","COIN","Δ PRICE","NEW PRICE"].map((col) => (
-                                <th key={col} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
+                              {["COMPANY","VOL","ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
+                                <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
@@ -3360,8 +3332,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                              {["COMPANY","OLD HEALTH","H.ROLL","SHIFT","NEW HEALTH"].map((col) => (
-                                <th key={col} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
+                              {["COMPANY","OLD HEALTH","H.ROLL","SHIFT","NEW HEALTH"].map((h) => (
+                                <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
@@ -3401,7 +3373,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   </div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                     <select value={marketEventDir} onChange={e => setMarketEventDir(e.target.value)}
-                      style={{ background: BG, border: `1px solid #3a2a1a`, color: marketEventDir === "crash" ? RED : GREEN,
+                      style={{ background: "rgba(0,10,0,0.6)", border: `1px solid #3a2a1a`, color: marketEventDir === "crash" ? RED : GREEN,
                         fontFamily: MONO, fontSize: "11px", padding: "5px 8px", cursor: "pointer" }}>
                       <option value="crash">CRASH</option>
                       <option value="boom">BOOM</option>
@@ -3434,8 +3406,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                        {["COMPANY","HEALTH","H.ROLL","H.SHIFT","VOL","V.ROLL","V.SHIFT","DIE ROLL","COIN","Δ PRICE","NEW PRICE"].map((col) => (
-                          <th key={col} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
+                        {["COMPANY","HEALTH","H.ROLL","H.SHIFT","VOL","V.ROLL","V.SHIFT","DIE ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
+                          <th key={h} style={{ padding: "6px 8px", textAlign: "left", letterSpacing: "0.08em", color: GREEN_MID, fontWeight: "normal" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -3523,11 +3495,11 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 )}
                 <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
                   <button onClick={() => {
-                    const collapsingWithMerger = pendingBankruptcy.filter((bkruptItem) => bkruptItem.collapses && bkruptItem.triggersMerger);
-                    const collapsingNormal = pendingBankruptcy.filter((bkruptItem) => bkruptItem.collapses && !bkruptItem.triggersMerger);
+                    const collapsingWithMerger = pendingBankruptcy.filter((b) => b.collapses && b.triggersMerger);
+                    const collapsingNormal = pendingBankruptcy.filter((b) => b.collapses && !b.triggersMerger);
                     let working = [...stocks];
                     let updatedMergers = [...mergers];
-                    const mergerNames = new Set(collapsingWithMerger.map((bkruptItem) => bkruptItem.triggersMerger));
+                    const mergerNames = new Set(collapsingWithMerger.map((b) => b.triggersMerger));
                     for (const mName of mergerNames) {
                       const merger = mergers.find((m) => m.name === mName);
                       if (merger) {
@@ -3537,7 +3509,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     }
                     const omniGain = collapsingNormal.reduce((sum, b) => sum + b.price, 0);
                     working = working.map((s) => {
-                      const collapseEntry = collapsingNormal.find((ce) => ce.name === s.name);
+                      const b = collapsingNormal.find((b) => b.name === s.name);
                       if (b) {
                         const halved = Math.max(1, Math.floor(s.price / 2));
                         return { ...s, is_delisting: true, price: halved, change: halved - s.price };
@@ -3625,7 +3597,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             <div style={{ borderTop: `1px solid ${GREEN_DARK}`, paddingTop: "16px", marginTop: "4px", marginBottom: "4px" }}>
               <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>PREDEFINED MERGERS</div>
               {mergers.map((m, i) => {
-                const selectStyle = { background: BG, border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+                const selectStyle = { background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
                   fontFamily: MONO, fontSize: "10px", padding: "2px 5px", cursor: "pointer" };
                 return (
                   <div key={m.name + i} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "10px", flexWrap: "wrap" }}>
@@ -3677,7 +3649,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               <button onClick={() => {
                 const next = [...mergers, { name: "New Merger", partner1: "Company A", partner2: "Company B", industry: "Combined", triggered: false }];
                 setMergers(next); wardenSet(KEYS.mergers, next);
-              }} style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
+              }} style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "4px 12px", cursor: "pointer", marginTop: "4px" }}>
                 + ADD MERGER
               </button>
@@ -3704,8 +3676,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             <div style={{ display: "flex", gap: "4px", marginBottom: "20px", borderBottom: `1px solid ${GREEN_DARK}`, paddingBottom: "12px" }}>
               {[["board","BOARD"],["payout","PAYOUT"]].map(([id, lbl]) => (
                 <button key={id} onClick={() => setJobsTab(id)}
-                  style={{ background: jobsTab === id ? "rgba(68,200,68,0.08)" : "none",
-                    border: `1px solid ${jobsTab === id ? GREEN_DARK : "#1a2a3a"}`,
+                  style={{ background: jobsTab === id ? "rgba(68,136,255,0.12)" : "none",
+                    border: `1px solid ${jobsTab === id ? "#334488" : "#1a2a3a"}`,
                     color: jobsTab === id ? "#88aadd" : GREEN_DARK,
                     fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
                     padding: "4px 12px", cursor: "pointer" }}>
@@ -3746,7 +3718,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   const next = stocks.map(s => ({ ...s, is_omnicorp: s.name === chosen }));
                   setStocks(next); wardenSet(KEYS.stocks, next);
                 }}
-                style={{ background: BG, border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+                style={{ background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
                   fontFamily: MONO, fontSize: "10px", padding: "3px 6px", cursor: "pointer" }}>
                 <option value="">— none —</option>
                 {stocks.filter(s => !s.is_collapsed).map(s => (
@@ -3760,9 +3732,9 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                    {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","HEALTH","VOL","FREEZE"].map((col) => (
-                      <th key={col} style={{ padding: "8px 10px", textAlign: "left", color: GREEN_MID,
-                        fontSize: "10px", letterSpacing: "0.12em", fontWeight: "normal" }}>{col}</th>
+                    {["COMPANY","INDUSTRY","PRICE","Δ","BUMP","HEALTH","VOL","FREEZE"].map((h) => (
+                      <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: GREEN_MID,
+                        fontSize: "10px", letterSpacing: "0.12em", fontWeight: "normal" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -3871,8 +3843,8 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
-                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL",""].map(col => (
-                        <th key={col} style={{ padding: "4px 6px", textAlign: "left", color: GREEN_DARK, fontWeight: "normal", letterSpacing: "0.08em", fontSize: "10px" }}>{col}</th>
+                      {["NAME","INDUSTRY","PRICE","HEALTH","VOL",""].map(h => (
+                        <th key={h} style={{ padding: "4px 6px", textAlign: "left", color: GREEN_DARK, fontWeight: "normal", letterSpacing: "0.08em", fontSize: "10px" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -3894,13 +3866,13 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <td style={{ padding: "3px 4px" }}>
                           <select value={s.health} onChange={(e) => { const next = stocks.map((x, xi) => xi === i ? { ...x, health: e.target.value } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
                             style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
-                            {HEALTH_STEPS.map(hs => <option key={hs} value={hs}>{hs}</option>)}
+                            {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
                           </select>
                         </td>
                         <td style={{ padding: "3px 4px" }}>
                           <select value={s.volatility} onChange={(e) => { const next = stocks.map((x, xi) => xi === i ? { ...x, volatility: e.target.value } : x); setStocks(next); wardenSet(KEYS.stocks, next); }}
                             style={{ ...inputStyle, fontSize: "10px", padding: "2px 4px", cursor: "pointer" }}>
-                            {VOLATILITY_STEPS.map(vol => <option key={vol} value={vol}>{vol}</option>)}
+                            {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
                           </select>
                         </td>
                         <td style={{ padding: "3px 4px" }}>
@@ -3930,9 +3902,9 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "20px", borderBottom: `1px solid ${GREEN_DARK}`, paddingBottom: "12px" }}>
               {[["debt","DEBT"],["portfolio","PORTFOLIO"],["ship","SHIP"],["contractors","CONTRACTORS"]].map(([id, lbl]) => (
                 <button key={id} onClick={() => setSessionTab(id)}
-                  style={{ background: sessionTab === id ? "rgba(68,200,68,0.08)" : "none",
-                    border: `1px solid ${sessionTab === id ? GREEN_MID : GREEN_DARK}`,
-                    color: sessionTab === id ? GREEN_MID : GREEN_DARK,
+                  style={{ background: sessionTab === id ? "rgba(68,136,255,0.12)" : "none",
+                    border: `1px solid ${sessionTab === id ? "#334488" : "#1a2a3a"}`,
+                    color: sessionTab === id ? "#88aadd" : GREEN_DARK,
                     fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
                     padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>
                   {lbl}
@@ -3964,12 +3936,12 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             <div style={{ color: GREEN_MID, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>SETTINGS</div>
             <div style={{ color: GREEN_MID, fontSize: "11px", marginBottom: "12px" }}>FICTIONAL DATE</div>
             <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "8px", flexWrap: "wrap" }}>
-              {["year","cycle"].map((field) => (
-                <div key={field} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.1em" }}>{field.toUpperCase()}</span>
+              {["year","cycle"].map((f) => (
+                <div key={f} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.1em" }}>{f.toUpperCase()}</span>
                   <input
-                    value={date[field]}
-                    onChange={(e) => handleDateInput(field, e.target.value)}
+                    value={date[f]}
+                    onChange={(e) => handleDateInput(f, e.target.value)}
                     style={{ ...inputStyle, width: f === "year" ? "70px" : "50px", textAlign: "center" }}
                   />
                 </div>
@@ -4049,9 +4021,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   ))}
                 </div>
               </div>
-              <div style={{ color: GREEN_DARK, fontSize: "10px" }}>
-                Ship ownership type and crew payment mode are configured in Session → Ship.
-              </div>
+              <div style={{ color: GREEN_DARK, fontSize: "10px" }}>Ship ownership and crew payment mode are in Session → Ship.</div>
             </div>
 
             <div style={{ borderTop: `1px solid ${GREEN_DARK}`, marginTop: "24px", paddingTop: "20px" }}>
@@ -4106,40 +4076,40 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, and catalogs. This cannot be undone."
                         );
                         if (!confirmed) return;
-                        const bkStocks = data.stocks;
-                        const bkHeadlines = data.headlines || [];
-                        const bkHist = data.history || [];
-                        const bkDate = data.date || { year: 2122, cycle: 1 };
-                        const bkMergers = data.mergers || INITIAL_MERGERS;
-                        const bkAlwaysMerge = data.alwaysMerge ?? true;
-                        const bkJobs = Array.isArray(data.jobs) ? data.jobs : [];
-                        const bkCrew = data.crew && typeof data.crew === "object" && data.crew.profiles != null ? data.crew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] };
-                        const bkDebt = Array.isArray(data.debt) ? data.debt : [];
-                        const bkPortfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
-                        const bkCatalogs = data.catalogs && typeof data.catalogs === "object" ? data.catalogs : {};
-                        setStocks(sortByPrice(bkStocks));
-                        setHeadlines(bkHeadlines);
-                        setHistory(bkHist);
-                        setDate(bkDate);
-                        setMergers(bkMergers);
-                        setAlwaysMerge(bkAlwaysMerge);
-                        setJobs(bkJobs);
-                        setCrew(bkCrew);
-                        setDebt(bkDebt);
-                        setPortfolio(bkPortfolio);
-                        setCatalogs(bkCatalogs);
-                            await wardenSet(KEYS.stocks, bkStocks);
-                        await wardenSet(KEYS.headlines, bkHeadlines);
-                        await wardenSet(KEYS.history, bkHist);
-                        await wardenSet(KEYS.date, bkDate);
-                        await wardenSet(KEYS.mergers, bkMergers);
-                        await wardenSet(KEYS.jobs, bkJobs);
-                        await wardenSet(KEYS.crew, bkCrew);
-                        await wardenSet(KEYS.debt, bkDebt);
-                        await wardenSet(KEYS.portfolio, bkPortfolio);
-                        await wardenSet(KEYS.catalogs, bkCatalogs);
-                        await wardenSet(KEYS.settings, { alwaysMerge: bkAlwaysMerge, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
-                        ev.target.value = "";
+                        const s = data.stocks;
+                        const h = data.headlines || [];
+                        const hist = data.history || [];
+                        const d = data.date || { year: 2122, cycle: 1 };
+                        const m = data.mergers || INITIAL_MERGERS;
+                        const am = data.alwaysMerge ?? true;
+                        const j = Array.isArray(data.jobs) ? data.jobs : [];
+                        const cr = data.crew && typeof data.crew === "object" && data.crew.profiles != null ? data.crew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] };
+                        const db = Array.isArray(data.debt) ? data.debt : [];
+                        const pf = Array.isArray(data.portfolio) ? data.portfolio : [];
+                        const cat = data.catalogs && typeof data.catalogs === "object" ? data.catalogs : {};
+                        setStocks(sortByPrice(s));
+                        setHeadlines(h);
+                        setHistory(hist);
+                        setDate(d);
+                        setMergers(m);
+                        setAlwaysMerge(am);
+                        setJobs(j);
+                        setCrew(cr);
+                        setDebt(db);
+                        setPortfolio(pf);
+                        setCatalogs(cat);
+                        await wardenSet(KEYS.stocks, s);
+                        await wardenSet(KEYS.headlines, h);
+                        await wardenSet(KEYS.history, hist);
+                        await wardenSet(KEYS.date, d);
+                        await wardenSet(KEYS.mergers, m);
+                        await wardenSet(KEYS.jobs, j);
+                        await wardenSet(KEYS.crew, cr);
+                        await wardenSet(KEYS.debt, db);
+                        await wardenSet(KEYS.portfolio, pf);
+                        await wardenSet(KEYS.catalogs, cat);
+                        await wardenSet(KEYS.settings, { alwaysMerge: am, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
+                        e.target.value = "";
                         alert("Backup restored successfully.");
                       } catch {
                         alert("Failed to parse backup file.");
@@ -4233,7 +4203,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {confirmDialog && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex",
             alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <div style={{ background: BG, border: `1px solid ${confirmDialog.danger ? "#663333" : "#1a2a3a"}`,
+            <div style={{ background: "rgba(0,10,0,0.6)", border: `1px solid ${confirmDialog.danger ? "#663333" : "#1a2a3a"}`,
               padding: "32px 40px", fontFamily: MONO, textAlign: "center", maxWidth: "400px" }}>
               <div style={{ color: confirmDialog.danger ? "#cc5555" : HEADER_GREEN,
                 fontSize: "13px", letterSpacing: "0.1em", marginBottom: "12px" }}>{confirmDialog.msg}</div>
@@ -4331,31 +4301,31 @@ export default function StonksApp({ roomCode = "stonks" }) {
 
   useEffect(() => {
     (async () => {
-      const initStocks = await safeGet(KEYS.stocks, INITIAL_STOCKS);
-      const initHeadlines = await safeGet(KEYS.headlines, []);
-      const initHist = await safeGet(KEYS.history, []);
-      const initDate = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
-      const initMergers = await safeGet(KEYS.mergers, INITIAL_MERGERS);
-      const initSett = await safeGet(KEYS.settings, { alwaysMerge: true });
-      const initJobs = await safeGet(KEYS.jobs, []);
-      const initCrew = await safeGet(KEYS.crew, { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] });
-      const initDebt = await safeGet(KEYS.debt, []);
-      const initPortfolio = await safeGet(KEYS.portfolio, []);
-      const initCatalogs = await safeGet(KEYS.catalogs, {});
-      setStocks(sortByPrice(initStocks));
-      setHeadlines(initHeadlines);
-      setHistory(initHist);
-      setDate(initDate);
-      setMergers(initMergers);
-      setAlwaysMerge(initSett.alwaysMerge ?? true);
-      setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(initSett.rollConfig || {}) });
-      setJobs(Array.isArray(initJobs) ? initJobs : []);
+      const s = await safeGet(KEYS.stocks, INITIAL_STOCKS);
+      const h = await safeGet(KEYS.headlines, []);
+      const hist = await safeGet(KEYS.history, []);
+      const d = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
+      const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
+      const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
+      const j = await safeGet(KEYS.jobs, []);
+      const cr = await safeGet(KEYS.crew, { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] });
+      const db = await safeGet(KEYS.debt, []);
+      const pf = await safeGet(KEYS.portfolio, []);
+      const cat = await safeGet(KEYS.catalogs, {});
+      setStocks(sortByPrice(s));
+      setHeadlines(h);
+      setHistory(hist);
+      setDate(d);
+      setMergers(m);
+      setAlwaysMerge(sett.alwaysMerge ?? true);
+      setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
+      setJobs(Array.isArray(j) ? j : []);
       // Migrate crew from old array format to new object format
-      setCrew(Array.isArray(initCrew) ? { profiles: initCrew, contractors: [], shipBalance: 0, shipExpenses: [] }
-             : (initCrew && typeof initCrew === "object" && initCrew.profiles != null ? initCrew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }));
-      setDebt(Array.isArray(initDebt) ? initDebt : []);
-      setPortfolio(Array.isArray(initPortfolio) ? initPortfolio : []);
-      setCatalogs(initCatalogs && typeof initCatalogs === "object" ? initCatalogs : {});
+      setCrew(Array.isArray(cr) ? { profiles: cr, contractors: [], shipBalance: 0, shipExpenses: [] }
+             : (cr && typeof cr === "object" && cr.profiles != null ? cr : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }));
+      setDebt(Array.isArray(db) ? db : []);
+      setPortfolio(Array.isArray(pf) ? pf : []);
+      setCatalogs(cat && typeof cat === "object" ? cat : {});
       setLoaded(true);
     })();
   }, []);
