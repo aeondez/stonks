@@ -1031,8 +1031,8 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                     {[...priceHistory].reverse().map((ph, idx) => (
                       <div key={idx} style={{ display: "flex", justifyContent: "space-between",
                         fontSize: "10px", color: GREEN_DARK, padding: "1px 0" }}>
-                        <span style={{ color: GREEN_DARK }}>CYC {String(h.date?.cycle ?? "?").padStart(2,"0")}</span>
-                        <span style={{ color: HEADER_GREEN }}>{h.price.toLocaleString()}cr</span>
+                        <span style={{ color: GREEN_DARK }}>CYC {String(ph.date?.cycle ?? "?").padStart(2,"0")}</span>
+                        <span style={{ color: HEADER_GREEN }}>{ph.price.toLocaleString()}cr</span>
                       </div>
                     ))}
                   </div>
@@ -1402,7 +1402,7 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
     setPortfolio(next); wardenSet(KEYS.portfolio,next);
   };
   const upd = (id,p) => { const next=portfolio.map(item=>item.id===id?{...item,...p}:item); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
-  const del = (id) => { const next=portfolio.filter(h=>h.id!==id); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
+  const del = (id) => { const next=portfolio.filter(item=>item.id!==id); setPortfolio(next); wardenSet(KEYS.portfolio,next); };
   return (
     <div>
       {portfolio.length > 0 && (
@@ -1435,7 +1435,7 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
               <button onClick={()=>del(holding.id)} style={{ ...sI, padding:"2px 7px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
             </div>
             <div style={{ display:"flex", gap:"16px", flexWrap:"wrap", fontSize:"11px" }}>
-              <span style={{ color:GREEN_DARK }}>Grant: <span style={{ color:"#6688aa" }}>{(h.grantPrice||0).toLocaleString()}cr</span></span>
+              <span style={{ color:GREEN_DARK }}>Grant: <span style={{ color:"#6688aa" }}>{(holding.grantPrice||0).toLocaleString()}cr</span></span>
               <span style={{ color:GREEN_DARK }}>Now: <span style={{ color:"#88bbff" }}>{cur.toLocaleString()}cr</span></span>
               <span style={{ color:GREEN_DARK }}>Value: <span style={{ color:"#aaccee" }}>{val.toLocaleString()}cr</span></span>
               <span style={{ color: gl>=0?GREEN:"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
@@ -1524,10 +1524,10 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
       {shipExpenses.length > 0 && (
         <div style={{ marginBottom:"16px" }}>
           <div style={{ color:GREEN_DARK, fontSize:"10px", marginBottom:"6px" }}>RECENT TRANSACTIONS (last 20)</div>
-          {[...shipExpenses].reverse().slice(0,10).map(e => (
-            <div key={e.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid #0a1520`, fontSize:"11px" }}>
-              <span style={{ color:"#6688aa" }}>{e.label}</span>
-              <span style={{ color:e.amount>=0?GREEN:"#cc5555" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
+          {[...shipExpenses].reverse().slice(0,10).map(tx => (
+            <div key={tx.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid #0a1520`, fontSize:"11px" }}>
+              <span style={{ color:"#6688aa" }}>{tx.label}</span>
+              <span style={{ color:tx.amount>=0?GREEN:"#cc5555" }}>{tx.amount>=0?"+":""}{tx.amount.toLocaleString()}cr</span>
             </div>
           ))}
         </div>
@@ -2245,9 +2245,9 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                         <div key={holding.id} style={{ padding: "10px 0", borderBottom: `1px solid rgba(68,100,68,0.15)`,
                           display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
                           <div>
-                            <div style={{ color: GREEN_MID, fontSize: "13px" }}>{h.company}</div>
+                            <div style={{ color: GREEN_MID, fontSize: "13px" }}>{holding.company}</div>
                             <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>
-                              {h.shares} share{h.shares !== 1 ? "s" : ""} @ {cur.toLocaleString()}cr each
+                              {holding.shares} share{holding.shares !== 1 ? "s" : ""} @ {cur.toLocaleString()}cr each
                             </div>
                           </div>
                           <div style={{ textAlign: "right" }}>
@@ -2602,7 +2602,7 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
         PLAYER FEED — {headlines.length} HEADLINE{headlines.length !== 1 ? "S" : ""}
       </div>
       {headlines.map((hl, i) => (
-        <div key={h.id || i} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)`, padding: "8px 0" }}>
+        <div key={hl.id || i} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)`, padding: "8px 0" }}>
           {editingIdx === i ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <input value={editHL} onChange={(e) => setEditHL(e.target.value)}
@@ -2633,10 +2633,10 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
           ) : (
             <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
               <div style={{ flex: 1 }}>
-                <div style={{ color: GREEN_MID, fontSize: "11px" }}>{h.headline}</div>
-                {h.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{h.subtext}</div>}
-                {h.date && <div style={{ color: GREEN_DARK, fontSize: "9px", marginTop: "3px", letterSpacing: "0.1em" }}>
-                  YEAR {h.date.year} · CYC {String(h.date.cycle).padStart(2,"0")}
+                <div style={{ color: GREEN_MID, fontSize: "11px" }}>{hl.headline}</div>
+                {hl.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{hl.subtext}</div>}
+                {hl.date && <div style={{ color: GREEN_DARK, fontSize: "9px", marginTop: "3px", letterSpacing: "0.1em" }}>
+                  YEAR {hl.date.year} · CYC {String(hl.date.cycle).padStart(2,"0")}
                 </div>}
               </div>
               <button onClick={() => startEdit(i)}
