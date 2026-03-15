@@ -7,5 +7,22 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:3001',
     }
-  }
+  },
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        passes: 2,
+      },
+      mangle: {
+        // Keep variable names that start with uppercase (React components)
+        // but rename local vars using a safe reserved-words-safe approach
+        reserved: [],
+        toplevel: false,
+      },
+      format: {
+        comments: false,
+      },
+    },
+  },
 })

@@ -2986,12 +2986,12 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       return clean;
     });
     // Determine which collapses trigger mergers vs normal delist
-    const collapsingWithMerger = bankruptcy.filter((bk) => bk.collapses && bk.triggersMerger);
-    const collapsingNormal = bankruptcy.filter((bk) => bk.collapses && !bk.triggersMerger);
+    const collapsingWithMerger = bankruptcy.filter((bkruptItem) => bkruptItem.collapses && bkruptItem.triggersMerger);
+    const collapsingNormal = bankruptcy.filter((bkruptItem) => bkruptItem.collapses && !bkruptItem.triggersMerger);
     // Apply mergers for early-trigger collapses
     let updatedMergers = [...mergers];
     let autoHeadlines = [];
-    const mergerNames = new Set(collapsingWithMerger.map((bk) => bk.triggersMerger));
+    const mergerNames = new Set(collapsingWithMerger.map((bkruptItem) => bkruptItem.triggersMerger));
     for (const mName of mergerNames) {
       const merger = mergers.find((mg) => mg.name === mName);
       if (merger) {
@@ -3001,15 +3001,15 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       }
     }
     // Auto-push OmniCorp acquisition headlines for normal collapses
-    collapsingNormal.forEach((bk, idx) => {
-      const match = OMNICORP_HEADLINES.find((omniH) => omniH.company === bk.name);
+    collapsingNormal.forEach((bkruptItem, idx) => {
+      const match = OMNICORP_HEADLINES.find((omniH) => omniH.company === bkruptItem.name);
       if (match) autoHeadlines.push({ ...match, date: { ...date }, id: Date.now() + autoHeadlines.length + idx + 100 });
     });
     // Normal collapses: halve price, mark is_delisting
     const omniGain = collapsingNormal.reduce((sum, b) => sum + b.price, 0);
     working = working.map((s) => {
-      const bk = collapsingNormal.find((bk2) => bk2.name === s.name);
-      if (bk) {
+      const collapseEntry = collapsingNormal.find((ce) => ce.name === s.name);
+      if (collapseEntry) {
         const halved = Math.max(1, Math.floor(s.price / 2));
         return { ...s, is_delisting: true, price: halved, change: halved - s.price };
       }
@@ -3064,17 +3064,17 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
 
     // ── Catalogs: auto-INELIGIBLE for collapsed/merged companies ──
     const nowInactive = new Set([
-      ...collapsingNormal.map(bk => bk.name),
-      ...collapsingWithMerger.map(bk => bk.name),
+      ...collapsingNormal.map(bkruptItem => bkruptItem.name),
+      ...collapsingWithMerger.map(bkruptItem => bkruptItem.name),
     ]);
     if (nowInactive.size > 0) {
       const newCatalogs = { ...catalogs };
       for (const name of nowInactive) {
         if (newCatalogs[name] && newCatalogs[name].status !== "ineligible") {
-          const reason = collapsingWithMerger.find(bk => bk.name === name) ? "Merged" : "Company collapsed";
+          const reason = collapsingWithMerger.find(bkruptItem => bkruptItem.name === name) ? "Merged" : "Company collapsed";
           newCatalogs[name] = { ...newCatalogs[name], status: "ineligible", ineligibleReason: reason };
         } else if (!newCatalogs[name]) {
-          const reason = collapsingWithMerger.find(bk => bk.name === name) ? "Merged" : "Company collapsed";
+          const reason = collapsingWithMerger.find(bkruptItem => bkruptItem.name === name) ? "Merged" : "Company collapsed";
           newCatalogs[name] = { status: "ineligible", ineligibleReason: reason, benefits: "", items: [] };
         }
       }
@@ -3523,11 +3523,11 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 )}
                 <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
                   <button onClick={() => {
-                    const collapsingWithMerger = pendingBankruptcy.filter((bk) => bk.collapses && bk.triggersMerger);
-                    const collapsingNormal = pendingBankruptcy.filter((bk) => bk.collapses && !bk.triggersMerger);
+                    const collapsingWithMerger = pendingBankruptcy.filter((bkruptItem) => bkruptItem.collapses && bkruptItem.triggersMerger);
+                    const collapsingNormal = pendingBankruptcy.filter((bkruptItem) => bkruptItem.collapses && !bkruptItem.triggersMerger);
                     let working = [...stocks];
                     let updatedMergers = [...mergers];
-                    const mergerNames = new Set(collapsingWithMerger.map((bk) => bk.triggersMerger));
+                    const mergerNames = new Set(collapsingWithMerger.map((bkruptItem) => bkruptItem.triggersMerger));
                     for (const mName of mergerNames) {
                       const merger = mergers.find((m) => m.name === mName);
                       if (merger) {
@@ -3537,7 +3537,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     }
                     const omniGain = collapsingNormal.reduce((sum, b) => sum + b.price, 0);
                     working = working.map((s) => {
-                      const bk = collapsingNormal.find((bk2) => bk2.name === s.name);
+                      const collapseEntry = collapsingNormal.find((ce) => ce.name === s.name);
                       if (b) {
                         const halved = Math.max(1, Math.floor(s.price / 2));
                         return { ...s, is_delisting: true, price: halved, change: halved - s.price };
