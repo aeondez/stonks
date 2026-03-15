@@ -8,21 +8,16 @@ export default defineConfig({
       '/api': 'http://localhost:3001',
     }
   },
+  esbuild: {
+    // Keep syntax/whitespace minification but disable identifier renaming.
+    // Identifier renaming is what causes TDZ crashes when the minifier
+    // assigns the same short name to two variables in overlapping scopes.
+    minifyIdentifiers: false,
+    minifySyntax: true,
+    minifyWhitespace: true,
+  },
   build: {
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        passes: 2,
-      },
-      mangle: {
-        // Keep variable names that start with uppercase (React components)
-        // but rename local vars using a safe reserved-words-safe approach
-        reserved: [],
-        toplevel: false,
-      },
-      format: {
-        comments: false,
-      },
-    },
+    // Use esbuild (default, fast) but override identifier mangling above.
+    minify: 'esbuild',
   },
 })
