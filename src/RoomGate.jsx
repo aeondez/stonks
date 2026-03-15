@@ -1,13 +1,13 @@
 import { useState, useRef } from "react";
 
-const MONO = "'Share Tech Mono', 'Courier New', monospace";
-const BG = "#060807";
-const GREEN = "#44ff88";
-const GREEN_DIM = "#b8ddb8";
-const GREEN_MID = "#5a9a5a";
-const GREEN_DARK = "#3a5a3a";
-const RED = "#ff4455";
-const AMBER = "#ffcc44";
+const GATE_MONO = "'Share Tech Mono', 'Courier New', monospace";
+const GATE_BG = "#060807";
+const GATE_GREEN = "#44ff88";
+const GATE_GREEN_DIM = "#b8ddb8";
+const GATE_GREEN_MID = "#5a9a5a";
+const GATE_GREEN_DARK = "#3a5a3a";
+const GATE_RED = "#ff4455";
+const GATE_AMBER = "#ffcc44";
 
 export default function RoomGate() {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
@@ -77,15 +77,15 @@ export default function RoomGate() {
 
   const boxStyle = {
     width: "42px", height: "52px", background: "transparent",
-    border: `1px solid ${GREEN_DARK}`, color: GREEN,
-    fontFamily: MONO, fontSize: "22px", textAlign: "center", outline: "none",
+    border: `1px solid ${GATE_GREEN_DARK}`, color: GATE_GREEN,
+    fontFamily: GATE_MONO, fontSize: "22px", textAlign: "center", outline: "none",
     letterSpacing: 0, boxSizing: "border-box",
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, display: "flex",
+    <div style={{ minHeight: "100vh", background: GATE_BG, display: "flex",
       alignItems: "center", justifyContent: "center",
-      fontFamily: MONO, padding: "20px", position: "relative", overflow: "hidden" }}>
+      fontFamily: GATE_MONO, padding: "20px", position: "relative", overflow: "hidden" }}>
 
       {/* Scanlines */}
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none",
@@ -100,7 +100,7 @@ export default function RoomGate() {
           fontWeight: "bold", textShadow: "0 0 20px rgba(140,255,140,0.3)", marginBottom: "8px" }}>
           CORPORATE TICKER
         </div>
-        <div style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.2em", marginBottom: "48px" }}>
+        <div style={{ color: GATE_GREEN_DARK, fontSize: "10px", letterSpacing: "0.2em", marginBottom: "48px" }}>
           ● LIVE MARKET FEED
         </div>
 
@@ -117,12 +117,12 @@ export default function RoomGate() {
                   if (e.key === "Enter") joinGame();
                   if (e.key === "Backspace" && !d && i > 0) { refs[i-1].current?.focus(); }
                 }}
-                style={{ ...boxStyle, borderColor: error ? RED : GREEN_DARK }} />
+                style={{ ...boxStyle, borderColor: error ? GATE_RED : GATE_GREEN_DARK }} />
             ))}
           </div>
           <button onClick={joinGame}
             style={{ display: "block", width: "100%", background: "none",
-              border: `1px solid ${GREEN_DARK}`, color: GREEN_DIM, fontFamily: MONO,
+              border: `1px solid ${GATE_GREEN_DARK}`, color: GATE_GREEN_DIM, fontFamily: GATE_MONO,
               fontSize: "12px", letterSpacing: "0.2em", padding: "14px",
               cursor: "pointer" }}>
             JOIN GAME
@@ -130,16 +130,16 @@ export default function RoomGate() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
-          <div style={{ flex: 1, height: "1px", background: GREEN_DARK, opacity: 0.4 }} />
-          <span style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.2em" }}>WARDEN</span>
-          <div style={{ flex: 1, height: "1px", background: GREEN_DARK, opacity: 0.4 }} />
+          <div style={{ flex: 1, height: "1px", background: GATE_GREEN_DARK, opacity: 0.4 }} />
+          <span style={{ color: GATE_GREEN_DARK, fontSize: "10px", letterSpacing: "0.2em" }}>WARDEN</span>
+          <div style={{ flex: 1, height: "1px", background: GATE_GREEN_DARK, opacity: 0.4 }} />
         </div>
 
         {/* CREATE section — collapsed behind key */}
         {!showCreate ? (
           <button onClick={() => setShowCreate(true)}
             style={{ display: "block", width: "100%", background: "none",
-              border: `1px solid #1a3a1a`, color: "#4a7a4a", fontFamily: MONO,
+              border: `1px solid #1a3a1a`, color: "#4a7a4a", fontFamily: GATE_MONO,
               fontSize: "11px", letterSpacing: "0.2em", padding: "12px",
               cursor: "pointer" }}>
             CREATE NEW GAME
@@ -156,28 +156,28 @@ export default function RoomGate() {
               type="password"
               placeholder="enter key"
               style={{ width: "100%", background: "transparent",
-                border: `1px solid ${GREEN_DARK}`, color: "#e8ffe8",
-                fontFamily: MONO, fontSize: "13px", textAlign: "center",
+                border: `1px solid ${GATE_GREEN_DARK}`, color: "#e8ffe8",
+                fontFamily: GATE_MONO, fontSize: "13px", textAlign: "center",
                 letterSpacing: "0.1em", padding: "12px", outline: "none",
                 boxSizing: "border-box", marginBottom: "8px" }}
             />
             {keyError && (
-              <div style={{ color: RED, fontSize: "10px", letterSpacing: "0.1em", marginBottom: "8px" }}>
+              <div style={{ color: GATE_RED, fontSize: "10px", letterSpacing: "0.1em", marginBottom: "8px" }}>
                 {keyError}
               </div>
             )}
             <div style={{ display: "flex", gap: "8px" }}>
               <button onClick={createGame} disabled={creating}
                 style={{ flex: 1, background: creating ? "rgba(68,255,136,0.05)" : "none",
-                  border: `1px solid ${creating ? GREEN_MID : GREEN_DARK}`,
-                  color: creating ? GREEN_MID : GREEN_DIM,
-                  fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em",
+                  border: `1px solid ${creating ? GATE_GREEN_MID : GATE_GREEN_DARK}`,
+                  color: creating ? GATE_GREEN_MID : GATE_GREEN_DIM,
+                  fontFamily: GATE_MONO, fontSize: "11px", letterSpacing: "0.15em",
                   padding: "12px", cursor: creating ? "default" : "pointer" }}>
                 {creating ? "GENERATING..." : "CREATE"}
               </button>
               <button onClick={() => { setShowCreate(false); setCreationKey(""); setKeyError(""); }}
                 style={{ background: "none", border: `1px solid #1a2a1a`, color: "#3a5a3a",
-                  fontFamily: MONO, fontSize: "11px", padding: "12px 16px", cursor: "pointer" }}>
+                  fontFamily: GATE_MONO, fontSize: "11px", padding: "12px 16px", cursor: "pointer" }}>
                 CANCEL
               </button>
             </div>
@@ -185,7 +185,7 @@ export default function RoomGate() {
         )}
 
         {error && (
-          <div style={{ color: RED, fontSize: "11px", letterSpacing: "0.1em", marginTop: "12px" }}>
+          <div style={{ color: GATE_RED, fontSize: "11px", letterSpacing: "0.1em", marginTop: "12px" }}>
             {error}
           </div>
         )}
