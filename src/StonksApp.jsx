@@ -714,7 +714,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
     <button key={id} onClick={() => setSubPanel(id)}
       style={{ background: subPanel === id ? "rgba(68,136,255,0.08)" : "none",
         border: `1px solid ${subPanel === id ? "#2a3a5a" : "#1a2a3a"}`,
-        color: subPanel === id ? "#7799bb" : GREEN_DARK,
+        color: subPanel === id ? GREEN_MID : GREEN_DARK,
         fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
         padding: "4px 12px", cursor: "pointer" }}>
       {label} {count != null ? `(${count})` : ""}
@@ -787,7 +787,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                   COMPLETE{rollConfig.bumpOnComplete ? " + ▲" : ""}
                 </button>
                 {rollConfig.bumpOnComplete && (
-                  <button onClick={() => completeJob(job, true)} style={jBtnStyle("#2a4a3a")} title="Complete without health bump">
+                  <button onClick={() => completeJob(job, true)} style={jBtnStyle(GREEN_DARK)} title="Complete without health bump">
                     NO BUMP
                   </button>
                 )}
@@ -1052,7 +1052,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                         {cat.status.toUpperCase()}{isIneligible && cat.ineligibleReason ? ` — ${cat.ineligibleReason}` : ""}
                       </div>
                       {!isIneligible && cat.benefits && (
-                        <div style={{ color: isRevoked ? "#555" : "#5a8a5a", fontSize: "10px", lineHeight: 1.6, marginBottom: "8px",
+                        <div style={{ color: isRevoked ? GREEN_DARK : GREEN_MID, fontSize: "10px", lineHeight: 1.6, marginBottom: "8px",
                           textDecoration: isRevoked ? "line-through" : "none", opacity: isRevoked ? 0.5 : 1 }}>
                           {cat.benefits}
                         </div>
@@ -1066,7 +1066,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                               opacity: isRevoked ? 0.4 : 1,
                               textDecoration: isRevoked ? "line-through" : "none" }}>
                               <span style={{ flex: 2, color: isRevoked ? "#444" : GREEN_DIM }}>{it.name}</span>
-                              <span style={{ color: isRevoked ? "#444" : "#4a8aaa", whiteSpace: "nowrap" }}>{it.price}</span>
+                              <span style={{ color: isRevoked ? GREEN_DARK : GREEN_MID, whiteSpace: "nowrap" }}>{it.price}</span>
                               {it.notes && <span style={{ flex: 2, color: GREEN_DARK }}>{it.notes}</span>}
                             </div>
                           ))}
@@ -1176,7 +1176,8 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
     showToast("LEDGER GENERATED");
   };
 
-  const sI = { background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN, fontFamily: MONO, fontSize: "11px", padding: "4px 8px" };
+  const sI = { background: "rgba(0,0,0,0.8)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN, fontFamily: MONO, fontSize: "11px", padding: "4px 8px",
+    WebkitAppearance: "none", appearance: "none" };
   const lbl = (t) => <div style={{ color: GREEN_DARK, fontSize: "10px", marginBottom: "3px", letterSpacing: "0.08em" }}>{t}</div>;
 
   return (
@@ -1194,14 +1195,14 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
         <div>{lbl("MONTHS")}
           <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
             <button onClick={()=>setMonths(m=>Math.max(1,m-1))} style={{ ...sI, padding:"2px 8px", cursor:"pointer" }}>−</button>
-            <span style={{ color:"#aabbcc", minWidth:"28px", textAlign:"center" }}>{months}</span>
+            <span style={{ color:HEADER_GREEN, minWidth:"28px", textAlign:"center" }}>{months}</span>
             <button onClick={()=>setMonths(m=>m+1)} style={{ ...sI, padding:"2px 8px", cursor:"pointer" }}>+</button>
           </div>
         </div>
         <div>{lbl("JUMPS (×1kcr)")}
           <div style={{ display:"flex", alignItems:"center", gap:"4px" }}>
             <button onClick={()=>setJumps(j=>Math.max(0,j-1))} style={{ ...sI, padding:"2px 8px", cursor:"pointer" }}>−</button>
-            <span style={{ color:"#aabbcc", minWidth:"28px", textAlign:"center" }}>{jumps}</span>
+            <span style={{ color:HEADER_GREEN, minWidth:"28px", textAlign:"center" }}>{jumps}</span>
             <button onClick={()=>setJumps(j=>j+1)} style={{ ...sI, padding:"2px 8px", cursor:"pointer" }}>+</button>
           </div>
         </div>
@@ -1261,7 +1262,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             {Object.keys(CLASS_TEMPLATES).map(cls => (
               <button key={cls} onClick={() => addProfile(cls)}
-                style={{ ...sI, padding:"2px 8px", cursor:"pointer", fontSize:"9px", color:"#4a7a8a", letterSpacing:"0.08em" }}>
+                style={{ ...sI, padding:"2px 8px", cursor:"pointer", fontSize:"9px", color:GREEN_MID, letterSpacing:"0.08em" }}>
                 + {cls.toUpperCase()}
               </button>
             ))}
@@ -1335,10 +1336,10 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
           </div>
           {ledger.entries.map((e, i) => (
             <div key={i} style={{ borderTop:`1px solid #1a2a3a`, paddingTop:"8px", marginTop:"8px" }}>
-              <div style={{ color:"#ccddee", fontSize:"11px", letterSpacing:"0.05em" }}>
+              <div style={{ color:HEADER_GREEN, fontSize:"11px", letterSpacing:"0.05em" }}>
                 {e.name} <span style={{ color:GREEN_DARK }}>— {e.role}</span>
               </div>
-              <div style={{ color:"#7799bb", fontSize:"11px", marginTop:"3px", letterSpacing:"0.02em" }}>{e.disposition}</div>
+              <div style={{ color:GREEN_MID, fontSize:"11px", marginTop:"3px", letterSpacing:"0.02em" }}>{e.disposition}</div>
               {e.payType === "equity" && (
                 <div style={{ color:"#8888cc", fontSize:"10px", marginTop:"2px" }}>
                   Equity split: {e.equityCash.toLocaleString()}cr cash + {e.equityShares} shares (locked 1 scenario)
@@ -1354,7 +1355,8 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 
 function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
   const totalOwed = debt.reduce((s, d) => s + (parseFloat(d.amount) || 0), 0);
-  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const sI = { background:"rgba(0,0,0,0.8)", border:`1px solid ${GREEN_DARK}`, color:HEADER_GREEN, fontFamily:MONO, fontSize:"11px", padding:"4px 8px",
+    WebkitAppearance:"none", appearance:"none" };
   const addDebt = () => { const next = [...debt, {id:Date.now(), creditor:"", amount:0, monthlyPayment:0, termMonths:0}]; setDebt(next); wardenSet(KEYS.debt, next); };
   const upd = (id, p) => { const next = debt.map(d=>d.id===id?{...d,...p}:d); setDebt(next); wardenSet(KEYS.debt, next); };
   const del = (id) => { const next = debt.filter(d=>d.id!==id); setDebt(next); wardenSet(KEYS.debt, next); };
@@ -1393,7 +1395,8 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
 
 function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
   const totalValue = portfolio.reduce((s, h) => { const st = stocks.find(x=>x.name===h.company); return s + (st ? st.price * h.shares : 0); }, 0);
-  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const sI = { background:"rgba(0,0,0,0.8)", border:`1px solid ${GREEN_DARK}`, color:HEADER_GREEN, fontFamily:MONO, fontSize:"11px", padding:"4px 8px",
+    WebkitAppearance:"none", appearance:"none" };
   const btnS = { background:"none", border:`1px solid #1a2a3a`, color:"#6688aa", fontFamily:MONO, fontSize:"13px", padding:"2px 9px", cursor:"pointer", lineHeight:1 };
   const add = () => {
     const co = stocks.find(s=>!s.is_collapsed)?.name || "";
@@ -1437,11 +1440,11 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
             <div style={{ display:"flex", gap:"16px", flexWrap:"wrap", fontSize:"11px" }}>
               <span style={{ color:GREEN_DARK }}>Grant: <span style={{ color:"#6688aa" }}>{(h.grantPrice||0).toLocaleString()}cr</span></span>
               <span style={{ color:GREEN_DARK }}>Now: <span style={{ color:"#88bbff" }}>{cur.toLocaleString()}cr</span></span>
-              <span style={{ color:GREEN_DARK }}>Value: <span style={{ color:"#aaccee" }}>{val.toLocaleString()}cr</span></span>
-              <span style={{ color: gl>=0?"#44cc88":"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
+              <span style={{ color:GREEN_DARK }}>Value: <span style={{ color:HEADER_GREEN }}>{val.toLocaleString()}cr</span></span>
+              <span style={{ color: gl>=0?GREEN:"#cc5555" }}>G/L: {gl>=0?"+":""}{gl.toLocaleString()}cr</span>
               {locked
                 ? <span style={{ color:AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios!==1?"s":""} locked
-                    <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:"#448844" }}>UNLOCK</button>
+                    <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:GREEN_MID }}>UNLOCK</button>
                   </span>
                 : <span style={{ color: GREEN }}>● AVAILABLE</span>}
             </div>
@@ -1459,7 +1462,8 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
   const shipName = crew.shipName || "";
   const [amount, setAmount] = useState("");
   const [txLabel, setTxLabel] = useState("");
-  const sI = { background:"transparent", border:`1px solid ${GREEN_DARK}`, color:HEADER_GREEN, fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const sI = { background:"rgba(0,0,0,0.8)", border:`1px solid ${GREEN_DARK}`, color:HEADER_GREEN, fontFamily:MONO, fontSize:"11px", padding:"4px 8px",
+    WebkitAppearance:"none", appearance:"none" };
   const upd = (patch) => { const next={...crew,...patch}; setCrew(next); wardenSet(KEYS.crew, next); };
   const transact = (type) => {
     const val = parseFloat(amount)||0; if (!val) return;
@@ -1574,7 +1578,8 @@ const CONTRACTOR_TYPES = [
 
 function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
   const contractors = crew.contractors || [];
-  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const sI = { background:"rgba(0,0,0,0.8)", border:`1px solid ${GREEN_DARK}`, color:HEADER_GREEN, fontFamily:MONO, fontSize:"11px", padding:"4px 8px",
+    WebkitAppearance:"none", appearance:"none" };
   const add = () => {
     const next={...crew,contractors:[...contractors,{id:Date.now(),name:"",occupation:"",salary:0,paid:false}]};
     setCrew(next); wardenSet(KEYS.crew,next);
@@ -1588,14 +1593,14 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
       </div>
       {contractors.length === 0 && <div style={{ color:GREEN_DARK, fontSize:"11px", padding:"8px 0" }}>No active contractors.</div>}
       {contractors.map(c => (
-        <div key={c.id} style={{ marginBottom:"8px", padding:"10px 12px", border:`1px solid ${c.paid?"#1a3a2a":"#2a1a1a"}` }}>
+        <div key={c.id} style={{ marginBottom:"8px", padding:"10px 12px", border:`1px solid ${c.paid?GREEN_DARK:"#2a1a1a"}` }}>
           <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center", marginBottom:"6px" }}>
             {/* Occupation dropdown — auto-fills salary */}
             <select value={c.occupation||""} onChange={e => {
               const occ = e.target.value;
               const match = CONTRACTOR_TYPES.find(([t]) => t === occ);
               upd(c.id, { occupation: occ, salary: match ? match[1] : c.salary });
-            }} style={{ ...sI, minWidth:"160px" }}>
+            }} style={{ ...sI, minWidth:"160px", WebkitAppearance:"none", appearance:"none" }}>
               <option value="">— Select type —</option>
               {CONTRACTOR_TYPES.map(([t]) => <option key={t}>{t}</option>)}
             </select>
@@ -1614,16 +1619,16 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
               <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cr/mo</span>
             </div>
             <button onClick={()=>upd(c.id,{paid:!c.paid})}
-              style={{ background:"none", border:`1px solid ${c.paid?"#224422":"#442222"}`,
+              style={{ background:"none", border:`1px solid ${c.paid?GREEN_DARK:"#442222"}`,
                 color:c.paid?"#44cc88":"#cc5555",
                 fontFamily:MONO, fontSize:"10px", padding:"3px 12px", cursor:"pointer" }}>
               {c.paid ? "✓ PAID" : "UNPAID"}
             </button>
-            {c.paid && <span style={{ color:"#44aa66", fontSize:"10px" }}>⚑ Roll loyalty</span>}
+            {c.paid && <span style={{ color:GREEN_MID, fontSize:"10px" }}>⚑ Roll loyalty</span>}
           </div>
         </div>
       ))}
-      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>+ ADD CONTRACTOR</button>
+      <button onClick={add} style={{ background:"none", border:`1px solid #1a2a3a`, color:GREEN_MID, fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>+ ADD CONTRACTOR</button>
     </div>
   );
 }
@@ -1631,7 +1636,8 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
 function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
   const [selCo, setSelCo] = useState(stocks.find(s=>!s.is_collapsed)?.name || "");
   const cat = catalogs[selCo] || { status:"hidden", ineligibleReason:"", benefits:"", items:[] };
-  const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
+  const sI = { background:"rgba(0,0,0,0.8)", border:`1px solid ${GREEN_DARK}`, color:HEADER_GREEN, fontFamily:MONO, fontSize:"11px", padding:"4px 8px",
+    WebkitAppearance:"none", appearance:"none" };
   const STATUS_OPTS = ["hidden","unlocked","revoked","ineligible"];
   const STATUS_COLORS = { hidden:GREEN_DARK, unlocked:GREEN, revoked:"#cc5555", ineligible:AMBER };
   const upd = (patch) => { const next={...catalogs,[selCo]:{...cat,...patch}}; setCatalogs(next); wardenSet(KEYS.catalogs,next); };
@@ -1641,7 +1647,7 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
   return (
     <div>
       <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:"14px", flexWrap:"wrap" }}>
-        <select value={selCo} onChange={e=>setSelCo(e.target.value)} style={{ ...sI, minWidth:"160px" }}>
+        <select value={selCo} onChange={e=>setSelCo(e.target.value)} style={{ ...sI, minWidth:"160px", WebkitAppearance:"none", appearance:"none" }}>
           {stocks.filter(s=>!s.is_collapsed).map(s=><option key={s.name}>{s.name}</option>)}
         </select>
         <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
@@ -1678,7 +1684,7 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
             <button onClick={()=>delItem(it.id)} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
         ))}
-        <button onClick={addItem} style={{ background:"none", border:`1px solid #1a2a3a`, color:"#4a6a5a", fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>+ ADD ITEM</button>
+        <button onClick={addItem} style={{ background:"none", border:`1px solid #1a2a3a`, color:GREEN_MID, fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>+ ADD ITEM</button>
       </div>
     </div>
   );
@@ -1827,7 +1833,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
         <div style={{ marginBottom:"16px" }}>
           <span style={lbl}>SKILL TIERS</span>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"8px" }}>
-            {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([label,val,set,rate]) => (
+            {[["Trained",trained,setTrained,500],["Expert",expert,setExpert,1000],["Master",master,setMaster,2000]].map(([label,val,set,rate]) => (
               <div key={label} style={{ display:"flex", flexDirection:"column", gap:"4px", alignItems:"center",
                 border:`1px solid ${GREEN_DARK}`, padding:"8px 4px", background:"rgba(0,0,0,0.2)", minWidth:0 }}>
                 <span style={{ color:GREEN_MID, fontSize:"11px", letterSpacing:"0.1em", textAlign:"center" }}>
@@ -1921,7 +1927,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
               <span style={{ color:GREEN_MID }}>
                 {c.name || c.occupation || "Unnamed"}
                 {c.name && c.occupation &&
-                  <span style={{ color:"#4a8a6a", marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
+                  <span style={{ color:GREEN_MID, marginLeft:"10px", fontSize:"11px" }}>{c.occupation}</span>}
               </span>
               <span style={{ color: c.paid ? GREEN : "#cc7755" }}>
                 {(c.salary||0).toLocaleString()}cr/mo · {c.paid ? "PAID" : "UNPAID"}
@@ -2071,7 +2077,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
               textShadow: `0 0 20px ${GREEN}33` }}>
               CORPORATE TICKER
             </div>
-            <div style={{ color: "#c8ffc8", fontSize: "10px", letterSpacing: "0.2em", marginTop: "4px", opacity: 0.5 }}>
+            <div style={{ color: GREEN_DIM, fontSize: "10px", letterSpacing: "0.2em", marginTop: "4px", opacity: 0.5 }}>
               SFN MARKET DATA
             </div>
           </div>
@@ -2282,7 +2288,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         {/* Hidden warden link */}
         <div style={{ marginTop: "16px", textAlign: "center" }}>
           <button onClick={onWardenAccess}
-            style={{ background: "none", border: "none", color: "#1a2a1a", cursor: "pointer",
+            style={{ background: "none", border: "none", color: GREEN_DARK, opacity: 0.3, cursor: "pointer",
               fontFamily: MONO, fontSize: "9px", letterSpacing: "0.15em" }}>
             WARDEN ACCESS
           </button>
@@ -2290,7 +2296,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         {/* Honeypot — looks like a system terminal to a curious hacker */}
         <div style={{ marginTop: "4px", textAlign: "center" }}>
           <button onClick={() => onHoneypot && onHoneypot()}
-            style={{ background: "none", border: "none", color: "#0d1a0d", cursor: "pointer",
+            style={{ background: "none", border: "none", color: GREEN_DARK, opacity: 0.15, cursor: "pointer",
               fontFamily: MONO, fontSize: "8px", letterSpacing: "0.1em" }}>
             [SYS] MARKET_DAEMON v2.1 — TERMINAL ACCESS
           </button>
@@ -2381,7 +2387,7 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
       justifyContent: "center", fontFamily: MONO }}>
       <Scanlines />
       <div style={{ zIndex: 1, textAlign: "center" }}>
-        <div style={{ color: "#444", fontSize: "11px", letterSpacing: "0.3em", marginBottom: "8px" }}>
+        <div style={{ color: GREEN_DARK, fontSize: "11px", letterSpacing: "0.3em", marginBottom: "8px" }}>
           SECTOR FINANCIAL NETWORK
         </div>
         <div style={{ color: GREEN_DIM, fontSize: "18px", letterSpacing: "0.2em", marginBottom: "40px" }}>
@@ -2418,13 +2424,13 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
             CANCEL
           </button>
         </div>
-        <div style={{ color: "#1e2e1e", fontSize: "10px", marginTop: "32px", letterSpacing: "0.1em" }}>
+        <div style={{ color: GREEN_DARK, opacity: 0.4, fontSize: "10px", marginTop: "32px", letterSpacing: "0.1em" }}>
           DEFAULT PIN: {DEFAULT_PIN}
         </div>
         {/* Recovery passphrase — invisible trigger */}
         <div style={{ marginTop: "24px" }}>
           <button onClick={() => { setShowRecovery(r => !r); setRecoveryError(false); }}
-            style={{ background: "none", border: "none", color: "#0a140a",
+            style={{ background: "none", border: "none", color: GREEN_DARK, opacity: 0.3,
               fontFamily: MONO, fontSize: "8px", letterSpacing: "0.1em", cursor: "pointer" }}>
             EMERGENCY OVERRIDE
           </button>
@@ -2438,13 +2444,13 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
               onKeyDown={e => { if (e.key === "Enter") submitRecovery(); }}
               placeholder="recovery passphrase"
               autoComplete="off"
-              style={{ background: "transparent", border: `1px solid ${recoveryError ? RED : "#1a2a1a"}`,
+              style={{ background: "transparent", border: `1px solid ${recoveryError ? RED : GREEN_DARK}`,
                 color: GREEN_DIM, fontFamily: MONO, fontSize: "11px", padding: "8px 12px",
                 outline: "none", width: "220px", textAlign: "center" }}
             />
             {recoveryError && <div style={{ color: RED, fontSize: "10px", letterSpacing: "0.1em" }}>INVALID PASSPHRASE</div>}
             <button onClick={submitRecovery}
-              style={{ background: "none", border: `1px solid #1a2a1a`, color: GREEN_MID,
+              style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
                 padding: "6px 16px", cursor: "pointer" }}>
               OVERRIDE
@@ -2682,14 +2688,16 @@ function AddCorpRow({ onAdd, inputStyle }) {
         <div style={field}>
           <div style={lbl}>HEALTH</div>
           <select value={health} onChange={e => setHealth(e.target.value)}
-            style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
+            style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer",
+                              WebkitAppearance: "none", appearance: "none" }}>
             {HEALTH_STEPS.map(h => <option key={h} value={h}>{h}</option>)}
           </select>
         </div>
         <div style={field}>
           <div style={lbl}>VOLATILITY</div>
           <select value={vol} onChange={e => setVol(e.target.value)}
-            style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer" }}>
+            style={{ ...inputStyle, fontSize: "10px", padding: "3px 4px", cursor: "pointer",
+                              WebkitAppearance: "none", appearance: "none" }}>
             {VOLATILITY_STEPS.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
         </div>
@@ -2697,13 +2705,13 @@ function AddCorpRow({ onAdd, inputStyle }) {
       <div style={{ display: "flex", gap: "10px" }}>
         <button onClick={submit} disabled={!name.trim()}
           style={{ background: "none", border: `1px solid ${name.trim() ? GREEN_DARK : "#1a2a1a"}`,
-            color: name.trim() ? GREEN_MID : "#334433",
+            color: name.trim() ? GREEN_MID : GREEN_DARK,
             fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px",
             cursor: name.trim() ? "pointer" : "not-allowed" }}>
           CONFIRM
         </button>
         <button onClick={() => setOpen(false)}
-          style={{ background: "none", border: `1px solid #2a2a2a`, color: "#555",
+          style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_DARK,
             fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em", padding: "5px 14px", cursor: "pointer" }}>
           CANCEL
         </button>
@@ -2814,7 +2822,7 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
             EXECUTE MERGER
           </button>
           <button onClick={() => setOpen(false)}
-            style={{ background: "none", border: `1px solid #2a2a2a`, color: "#555",
+            style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_DARK,
               fontFamily: MONO, fontSize: "11px", letterSpacing: "0.12em", padding: "7px 18px", cursor: "pointer" }}>
             CANCEL
           </button>
@@ -3204,7 +3212,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             {!pendingAdvance ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div>
-                  <div style={{ color: "#4a5a6a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                  <div style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
                     FULL ADVANCE — advances the date, rolls health + volatility + price for all corps, triggers bankruptcy checks
                   </div>
                   <button onClick={handleAdvanceRoll}
@@ -3297,7 +3305,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                                 opacity: s._skipped ? 0.3 : 1 }}>
                                 <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : "#aabbcc", fontSize: "10px", textTransform: "uppercase" }}>{s.name.split(" ")[0]}</td>
                                 <td style={{ padding: "6px 8px", color: volColor(s.volatility) }}>{s.volatility}</td>
-                                <td style={{ padding: "6px 8px", color: "#ccc" }}>{s._skipped ? "—" : s.priceRoll}</td>
+                                <td style={{ padding: "6px 8px", color: GREEN_DIM }}>{s._skipped ? "—" : s.priceRoll}</td>
                                 <td style={{ padding: "6px 8px", color: s.coinFlip === "up" ? GREEN : s.coinFlip === "down" ? RED : "#333" }}>{s._skipped ? "—" : (s.coinFlip ?? "—")}</td>
                                 <td style={{ padding: "6px 8px", color: s.change > 0 ? GREEN : s.change < 0 ? RED : "#555", fontWeight: "bold" }}>{s._skipped ? "—" : (s.change > 0 ? "+" : "") + s.change}</td>
                                 <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : HEADER_GREEN, fontWeight: "bold" }}>{s.price.toLocaleString()}cr</td>
@@ -3313,7 +3321,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           CONFIRM & PUBLISH
                         </button>
                         <button onClick={() => setPendingVariance(null)}
-                          style={{ background: "none", border: `1px solid #3a3a3a`, color: "#666",
+                          style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_DARK,
                             fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
                           CANCEL
                         </button>
@@ -3322,12 +3330,12 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   )}
                 </div>
                 <div>
-                  <div style={{ color: "#4a5a6a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                  <div style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
                     HEALTH SHIFT — health movement only, no price or volatility changes
                   </div>
                   {!pendingHealthShift ? (
                     <button onClick={handleHealthRoll}
-                      style={{ background: "none", border: `1px solid #334466`, color: "#6688bb",
+                      style={{ background: "none", border: `1px solid #334466`, color: GREEN_MID,
                         fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
                       ROLL HEALTH
                     </button>
@@ -3349,7 +3357,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                                 <tr key={s.name} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)` }}>
                                   <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : "#aabbcc", fontSize: "10px", textTransform: "uppercase" }}>{s.name.split(" ")[0]}</td>
                                   <td style={{ padding: "6px 8px", color: healthColor(origHealth) }}>{origHealth}</td>
-                                  <td style={{ padding: "6px 8px", color: "#ccc" }}>{s.healthRoll}</td>
+                                  <td style={{ padding: "6px 8px", color: GREEN_DIM }}>{s.healthRoll}</td>
                                   <td style={{ padding: "6px 8px", color: s.healthShift > 0 ? GREEN : s.healthShift < 0 ? RED : "#555" }}>{shiftLabel(s.healthShift)}</td>
                                   <td style={{ padding: "6px 8px", color: healthColor(s.health), fontWeight: "bold" }}>{s.health}</td>
                                 </tr>
@@ -3365,7 +3373,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           CONFIRM & PUBLISH
                         </button>
                         <button onClick={() => setPendingHealthShift(null)}
-                          style={{ background: "none", border: `1px solid #3a3a3a`, color: "#666",
+                          style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_DARK,
                             fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
                           CANCEL
                         </button>
@@ -3373,7 +3381,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     </div>
                   )}
                 </div>                <div>
-                  <div style={{ color: "#5a4a3a", fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
+                  <div style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.12em", marginBottom: "8px" }}>
                     MARKET EVENT — apply a percentage shift to all active, unfrozen stocks at once
                   </div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
@@ -3386,7 +3394,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <input value={marketEventPct} inputMode="numeric"
                         onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1 && v <= 99) setMarketEventPct(v); }}
-                        style={{ background: "transparent", border: `1px solid #2a2a2a`, color: "#ccc",
+                        style={{ background: "transparent", border: `1px solid #2a2a2a`, color: GREEN_DIM,
                           fontFamily: MONO, fontSize: "11px", width: "50px", padding: "4px 6px", textAlign: "center" }} />
                       <span style={{ color: GREEN_DARK, fontSize: "10px" }}>%</span>
                     </div>
@@ -3396,7 +3404,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         onConfirm: () => { handleMarketEvent(); setConfirmDialog(null); }
                       })}
                       style={{ background: "none",
-                        border: `1px solid ${marketEventDir === "crash" ? "#663333" : "#336633"}`,
+                        border: `1px solid ${marketEventDir === "crash" ? "#663333" : GREEN_DARK}`,
                         color: marketEventDir === "crash" ? RED : GREEN,
                         fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
                       APPLY {marketEventDir.toUpperCase()}
@@ -3421,12 +3429,12 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         <tr key={s.name} style={{ borderBottom: `1px solid rgba(26,42,58,0.4)` }}>
                           <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : "#aabbcc", fontSize: "10px", textTransform: "uppercase" }}>{s.name.split(" ")[0]}</td>
                           <td style={{ padding: "6px 8px", color: healthColor(s.health) }}>{s.health}</td>
-                          <td style={{ padding: "6px 8px", color: "#ccc" }}>{s.healthRoll}</td>
+                          <td style={{ padding: "6px 8px", color: GREEN_DIM }}>{s.healthRoll}</td>
                           <td style={{ padding: "6px 8px", color: s.healthShift > 0 ? GREEN : s.healthShift < 0 ? RED : "#555" }}>{shiftLabel(s.healthShift)}</td>
                           <td style={{ padding: "6px 8px", color: volColor(s.volatility) }}>{s.volatility}</td>
-                          <td style={{ padding: "6px 8px", color: "#ccc" }}>{s.volRoll}</td>
+                          <td style={{ padding: "6px 8px", color: GREEN_DIM }}>{s.volRoll}</td>
                           <td style={{ padding: "6px 8px", color: s.volShift > 0 ? GREEN : s.volShift < 0 ? RED : "#555" }}>{shiftLabel(s.volShift)}</td>
-                          <td style={{ padding: "6px 8px", color: "#ccc" }}>{s.priceRoll}</td>
+                          <td style={{ padding: "6px 8px", color: GREEN_DIM }}>{s.priceRoll}</td>
                           <td style={{ padding: "6px 8px", color: s.coinFlip === "up" ? GREEN : s.coinFlip === "down" ? RED : "#333" }}>{s.coinFlip ?? "—"}</td>
                           <td style={{ padding: "6px 8px", color: s.change > 0 ? GREEN : s.change < 0 ? RED : "#555", fontWeight: "bold" }}>{s.change > 0 ? "+" : ""}{s.change}</td>
                           <td style={{ padding: "6px 8px", color: s.is_omnicorp ? AMBER : HEADER_GREEN, fontWeight: "bold" }}>{s.price.toLocaleString()}cr</td>
@@ -3445,7 +3453,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         padding: "5px 0", borderBottom: `1px solid rgba(26,42,58,0.4)` }}>
                         <span style={{ flex: 1, color: HEADER_GREEN, fontSize: "11px", textTransform: "uppercase" }}>{s.name}</span>
                         <span style={{ color: healthColor(s.health), fontSize: "11px" }}>{s.health}</span>
-                        <span style={{ color: "#ccc", fontSize: "11px" }}>rolled {s.bankruptRoll}</span>
+                        <span style={{ color: GREEN_DIM, fontSize: "11px" }}>rolled {s.bankruptRoll}</span>
                         <span style={{ color: s.collapses ? (s.triggersMerger ? AMBER : RED) : GREEN, fontSize: "11px", fontWeight: "bold" }}>
                           {s.collapses ? (s.triggersMerger ? `⚡ MERGER: ${s.triggersMerger}` : "⚠ COLLAPSE") : "SURVIVES"}
                         </span>
@@ -3460,7 +3468,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     CONFIRM & PUBLISH
                   </button>
                   <button onClick={() => { setPendingAdvance(null); setPanel(null); }}
-                    style={{ background: "none", border: `1px solid #3a3a3a`, color: "#666",
+                    style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_DARK,
                       fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
                     CANCEL
                   </button>
@@ -3486,7 +3494,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     padding: "6px 0", borderBottom: `1px solid ${GREEN_DARK}` }}>
                     <span style={{ flex: 1, color: HEADER_GREEN, fontSize: "11px", textTransform: "uppercase" }}>{s.name}</span>
                     <span style={{ color: healthColor(s.health), fontSize: "11px" }}>{s.health}</span>
-                    <span style={{ color: "#ccc", fontSize: "11px" }}>rolled {s.bankruptRoll}</span>
+                    <span style={{ color: GREEN_DIM, fontSize: "11px" }}>rolled {s.bankruptRoll}</span>
                     <span style={{ color: s.collapses ? (s.triggersMerger ? AMBER : RED) : GREEN, fontSize: "11px", fontWeight: "bold" }}>
                       {s.collapses ? (s.triggersMerger ? `⚡ MERGER: ${s.triggersMerger}` : "⚠ COLLAPSE") : "SURVIVES"}
                     </span>
@@ -3537,7 +3545,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     {pendingBankruptcy.some((s) => s.collapses) ? "CONFIRM COLLAPSES" : "DONE"}
                   </button>
                   <button onClick={() => { setPendingBankruptcy(null); setPanel(null); }}
-                    style={{ background: "none", border: `1px solid #3a3a3a`, color: "#666",
+                    style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_DARK,
                       fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 20px", cursor: "pointer" }}>
                     CANCEL
                   </button>
@@ -4062,7 +4070,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 a.href = url; a.download = `stonks-backup-${Date.now()}.json`; a.click();
                 URL.revokeObjectURL(url);
               }} style={{ ...actionBtn, borderColor: GREEN, color: GREEN }}>⬇ EXPORT BACKUP</button>
-              <label style={{ ...actionBtn, borderColor: "#44aaff", color: "#88ccff", cursor: "pointer",
+              <label style={{ ...actionBtn, cursor: "pointer",
                 display: "inline-block" }}>
                 ⬆ IMPORT BACKUP
                 <input type="file" accept=".json" style={{ display: "none" }}
@@ -4225,7 +4233,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   {confirmDialog.danger ? "YES, RESET EVERYTHING" : "CONFIRM"}
                 </button>
                 <button onClick={() => setConfirmDialog(null)}
-                  style={{ background: "none", border: `1px solid #3a3a3a`, color: "#666",
+                  style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_DARK,
                     fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em", padding: "8px 16px", cursor: "pointer" }}>
                   CANCEL
                 </button>
@@ -4256,8 +4264,9 @@ const btnSmall = {
   fontFamily: MONO, fontSize: "12px", width: "24px", height: "24px", cursor: "pointer", padding: 0
 };
 const inputStyle = {
-  background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
-  fontFamily: MONO, fontSize: "11px", padding: "6px 10px", outline: "none"
+  background: "rgba(0,0,0,0.8)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+  fontFamily: MONO, fontSize: "11px", padding: "6px 10px", outline: "none",
+  WebkitAppearance: "none", appearance: "none"
 };
 const actionBtn = {
   background: "none", border: `1px solid ${GREEN_MID}`, color: GREEN_MID,
