@@ -20,12 +20,18 @@ export default async function handler(req, res) {
   if (count > 5) return res.status(429).json({ error: "rate limited" });
 
   try {
-    const existing = await redis.get(`${room}:headlines`);
+    const [existing, dateData] = await Promise.all([
+      redis.get(`${room}:headlines`),
+      redis.get(`${room}:date`),
+    ]);
     const headlines = Array.isArray(existing) ? existing : [];
+    const roomDate = (dateData && typeof dateData === "object" && dateData.year)
+      ? dateData
+      : { year: 2122, cycle: 1 };
     const entry = {
       headline: "UNAUTHORIZED ACCESS ATTEMPT DETECTED AND LOGGED",
       subtext: "Security incident filed. Stellar Financial Network monitoring team has been notified. Have a nice day.",
-      date: { year: 2122, cycle: 0 },
+      date: roomDate,
       id: Date.now(),
     };
     const next = [entry, ...headlines];

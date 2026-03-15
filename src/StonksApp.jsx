@@ -1489,16 +1489,15 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
             style={{ ...sI, width:"100%", boxSizing:"border-box" }} />
         </div>
         <div style={{ flex:"1 1 180px" }}>
-          <div style={{ color:GREEN_MID, fontSize:"10px", letterSpacing:"0.1em", marginBottom:"5px" }}>OWNERSHIP TYPE</div>
-          <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
-            {[["company","COMPANY"],["owner","OWNER-OP"],["freelancer","FREELANCER"]].map(([val,lbl3]) => (
-              <button key={val} onClick={() => { const next={...rollConfig,ownershipType:val}; setRollConfig(next); saveSettings({rollConfig:next}); }}
-                style={{ background:ownerType===val?"var(--c-active-bg, rgba(68,200,68,0.08))":"none",
-                  border:`1px solid ${ownerType===val?GREEN_MID:GREEN_DARK}`,
-                  color:ownerType===val?GREEN_MID:GREEN_DARK,
-                  fontFamily:MONO, fontSize:"10px", padding:"4px 8px", cursor:"pointer", whiteSpace:"nowrap" }}>{lbl3}</button>
-            ))}
-          </div>
+          <div style={{ color:GREEN_MID, fontSize:"10px", letterSpacing:"0.1em", marginBottom:"5px" }}>OWNER-OPERATOR MODE</div>
+          <button onClick={() => { const next={...rollConfig, ownershipType: ownerType==="owner"?"company":"owner"}; setRollConfig(next); saveSettings({rollConfig:next}); }}
+            style={{ background:ownerType==="owner"?"var(--c-active-bg, rgba(68,200,68,0.08))":"none",
+              border:`1px solid ${ownerType==="owner"?GREEN_MID:GREEN_DARK}`,
+              color:ownerType==="owner"?GREEN_MID:GREEN_DARK,
+              fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>
+            {ownerType==="owner" ? "● ON" : "○ OFF"}
+          </button>
+          <div style={{ color:GREEN_DARK, fontSize:"9px", marginTop:"4px" }}>Shows bankruptcy save table to players</div>
         </div>
         <div style={{ flex:"1 1 180px" }}>
           <div style={{ color:GREEN_MID, fontSize:"10px", letterSpacing:"0.1em", marginBottom:"5px" }}>CREW PAYMENT MODE</div>
@@ -1516,21 +1515,26 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
       <div style={{ padding:"12px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,0,0,0.5)", marginBottom:"16px", display:"inline-block" }}>
         <div style={{ color:HEADER_GREEN, fontSize:"22px", fontWeight:"bold" }}>{shipBalance.toLocaleString()}cr</div>
         <div style={{ color:GREEN_MID, fontSize:"10px" }}>{shipName ? shipName.toUpperCase() + " — ACCOUNT BALANCE" : "ACCOUNT BALANCE"}</div>
-        <div style={{ color:GREEN_DARK, fontSize:"10px", marginTop:"2px" }}>Ownership: {ownerType === "company" ? "Company / Military" : ownerType === "owner" ? "Owner-Operator" : "Freelancer"}</div>
       </div>
       <div style={{ display:"flex", gap:"8px", marginBottom:"14px", flexWrap:"wrap", alignItems:"center" }}>
         <input value={txLabel} onChange={e=>setTxLabel(e.target.value)} placeholder="Label (optional)" style={{ ...sI, flex:1, minWidth:"110px" }} />
         <input type="number" min={0} value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Amount (cr)" style={{ ...sI, width:"110px" }} />
-        <button onClick={()=>transact("deposit")} style={{ background:"none", border:`1px solid #224422`, color:"#44cc88", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>+ DEPOSIT</button>
+        <button onClick={()=>transact("deposit")} style={{ background:"none", border:`1px solid ${GREEN_DARK}`, color:GREEN, fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>+ DEPOSIT</button>
         <button onClick={()=>transact("withdraw")} style={{ background:"none", border:`1px solid #442222`, color:"#cc5555", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>− WITHDRAW</button>
       </div>
       {shipExpenses.length > 0 && (
         <div style={{ marginBottom:"16px" }}>
           <div style={{ color:GREEN_DARK, fontSize:"10px", marginBottom:"6px" }}>RECENT TRANSACTIONS (last 20)</div>
-          {[...shipExpenses].reverse().slice(0,10).map(e => (
-            <div key={e.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid rgba(255,255,255,0.07)`, fontSize:"11px" }}>
-              <span style={{ color:GREEN_MID }}>{e.label}</span>
-              <span style={{ color:e.amount>=0?"#44cc88":"#cc5555" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
+          {[...shipExpenses].reverse().map(e => (
+            <div key={e.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"3px 0", borderBottom:`1px solid rgba(255,255,255,0.07)`, fontSize:"11px", gap:"6px" }}>
+              <span style={{ color:GREEN_MID, flex:1 }}>{e.label}</span>
+              <span style={{ color:e.amount>=0?GREEN:"#cc5555", whiteSpace:"nowrap" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
+              <button onClick={() => {
+                const next = { ...crew, shipBalance: shipBalance - e.amount,
+                  shipExpenses: shipExpenses.filter(tx => tx.id !== e.id) };
+                setCrew(next); wardenSet(KEYS.crew, next);
+              }} style={{ background:"none", border:"none", color:GREEN_DARK, cursor:"pointer",
+                fontFamily:MONO, fontSize:"11px", padding:"0 2px", lineHeight:1, flexShrink:0 }}>✕</button>
             </div>
           ))}
         </div>
@@ -2036,6 +2040,25 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           <div style={{ color:GREEN_MID, marginBottom:"4px" }}>AMMO RESUPPLY</div>
           <div>Check after any engagement using ship weapons. Failure = Disadvantage or auto-fail on future Battle Checks.</div>
         </div>
+        {(rollConfig.ownershipType || "company") === "owner" && (
+          <div style={{ marginTop:"16px", borderTop:`1px solid rgba(255,255,255,0.07)`, paddingTop:"14px" }}>
+            <div style={{ color:AMBER, fontSize:"11px", letterSpacing:"0.15em", marginBottom:"6px" }}>BANKRUPTCY SAVE — OWNER-OPERATOR</div>
+            <div style={{ color:GREEN_DARK, fontSize:"12px", marginBottom:"10px" }}>Roll quarterly or annually. Make a Luck Save.</div>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+              <tbody>{[
+                ["Critical Success","Turn a profit. Choose one: 1 Major Upgrade, repair 1d5 Major Repairs, pay each crew 1d5×100kcr, or raise Save by 1d10."],
+                ["Success","Scrape by. Choose one: 1 Minor Upgrade, 1 Minor Repair, pay each crew 2d10 months salary, or raise Save by 1d5."],
+                ["Failure","Fall 1d10mcr in debt to ruthless lenders."],
+                ["Critical Failure","Company collapses. Massive debt to the worst people imaginable."],
+              ].map(([r,c]) => (
+                <tr key={r} style={{ borderTop:`1px solid rgba(255,255,255,0.07)` }}>
+                  <td style={{ padding:"6px 10px 6px 0", color:r.includes("Critical S")?HEADER_GREEN:r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"110px", whiteSpace:"nowrap", verticalAlign:"top" }}>{r}</td>
+                  <td style={{ padding:"6px 0", color:GREEN_DARK, lineHeight:1.5 }}>{c}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
       </Section>
     </div>
   );
@@ -2120,7 +2143,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
           {[
             ["ticker","MARKET"],
             ["jobs", jobs.filter(j=>j.status==="active").length > 0 ? `JOBS (${jobs.filter(j=>j.status==="active").length})` : "JOBS"],
-            ["downtime", debt.length > 0 ? `DOWNTIME (+${debt.length} STRESS)` : "DOWNTIME"],
+            ["downtime", "DOWNTIME"],
           ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ background: tab === id ? "var(--c-active-bg, rgba(68,255,136,0.06))" : "none",
@@ -2129,6 +2152,9 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.2em",
                 padding: "5px 16px", cursor: "pointer" }}>
               {label}
+              {id === "downtime" && debt.length > 0 && (
+                <span style={{ color: "#ff4455", marginLeft: "6px", fontSize: "9px" }}>+{debt.length} STRESS</span>
+              )}
             </button>
           ))}
         </div>
