@@ -1229,7 +1229,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
       <div style={{ marginBottom: "14px" }}>
         {lbl("FLAT BONUSES")}
         {flatBonuses.map((bonus, i) => (
-          <div key={b.id} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "center" }}>
+          <div key={bonus.id} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "center" }}>
             <input value={bonus.label} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,label:e.target.value}:x))} placeholder="Label" style={{ ...sI, flex: 1 }} />
             <input type="number" value={bonus.amount} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,amount:e.target.value}:x))} placeholder="cr" style={{ ...sI, width: "80px" }} />
             <span style={{ color: GREEN_DARK, fontSize: "10px" }}>cr</span>
@@ -1353,11 +1353,11 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
 }
 
 function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
-  const totalOwed = debt.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+  const totalOwed = debt.reduce((sum, debt_item) => sum + (parseFloat(debt_item.amount) || 0), 0);
   const sI = { background:"transparent", border:`1px solid #1a2a3a`, color:"#aabbcc", fontFamily:MONO, fontSize:"11px", padding:"4px 8px" };
   const addDebt = () => { const next = [...debt, {id:Date.now(), creditor:"", amount:0, monthlyPayment:0, termMonths:0}]; setDebt(next); wardenSet(KEYS.debt, next); };
-  const upd = (id, p) => { const next = debt.map(d=>d.id===id?{...d,...p}:d); setDebt(next); wardenSet(KEYS.debt, next); };
-  const del = (id) => { const next = debt.filter(d=>d.id!==id); setDebt(next); wardenSet(KEYS.debt, next); };
+  const upd = (id, p) => { const next = debt.map(debt_item=>debt_item.id===id?{...debt_item,...p}:debt_item); setDebt(next); wardenSet(KEYS.debt, next); };
+  const del = (id) => { const next = debt.filter(debt_item=>debt_item.id!==id); setDebt(next); wardenSet(KEYS.debt, next); };
   return (
     <div>
       {debt.length > 0 && (
@@ -1580,8 +1580,8 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
     const next={...crew,contractors:[...contractors,{id:Date.now(),name:"",occupation:"",salary:0,paid:false}]};
     setCrew(next); wardenSet(KEYS.crew,next);
   };
-  const upd = (id,p) => { const next={...crew,contractors:contractors.map(c=>c.id===id?{...c,...p}:c)}; setCrew(next); wardenSet(KEYS.crew,next); };
-  const del = (id) => { const next={...crew,contractors:contractors.filter(c=>c.id!==id)}; setCrew(next); wardenSet(KEYS.crew,next); };
+  const upd = (id,p) => { const next={...crew,contractors:contractors.map(ct=>ct.id===id?{...ct,...p}:ct)}; setCrew(next); wardenSet(KEYS.crew,next); };
+  const del = (id) => { const next={...crew,contractors:contractors.filter(ct=>ct.id!==id)}; setCrew(next); wardenSet(KEYS.crew,next); };
   return (
     <div>
       <div style={{ color:"#6688aa", fontSize:"10px", marginBottom:"12px", borderBottom:`1px solid #1a2a3a`, paddingBottom:"8px" }}>
@@ -1908,12 +1908,12 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
       {debt.length > 0 && (
         <Section id="debt" title="DEBT OBLIGATIONS" badge={`+${debt.length} MIN STRESS`}>
           {debt.map(debt_item => (
-            <div key={d.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
+            <div key={debt_item.id} style={{ padding:"10px 0", borderBottom:`1px solid rgba(68,100,68,0.15)`,
               fontSize:"13px", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"6px" }}>
-              <span>{d.creditor || "Unknown creditor"}</span>
+              <span>{debt_item.creditor || "Unknown creditor"}</span>
               <span style={{ color:"#cc7755" }}>
-                {(parseFloat(d.monthlyPayment)||0).toLocaleString()}cr/mo
-                <span style={{ color:"#664433", marginLeft:"8px" }}>· {d.termMonths} {cycleWord}s left</span>
+                {(parseFloat(debt_item.monthlyPayment)||0).toLocaleString()}cr/mo
+                <span style={{ color:"#664433", marginLeft:"8px" }}>· {debt_item.termMonths} {cycleWord}s left</span>
               </span>
             </div>
           ))}
@@ -1922,7 +1922,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
 
       {(crew?.contractors?.length > 0) && (
         <Section id="contractors" title="CONTRACTORS" badge={(() => {
-          const unpaid = (crew.contractors||[]).filter(c=>!c.paid);
+          const unpaid = (crew.contractors||[]).filter(ct=>!ct.paid);
           if (unpaid.length === 0) return null;
           const total = unpaid.reduce((sum,ct)=>sum+(ct.salary||0),0);
           return `${unpaid.length} UNPAID · ${total.toLocaleString()}cr/mo`;
