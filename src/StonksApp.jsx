@@ -2203,11 +2203,9 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                 <button onClick={() => { setShowPortfolio(!showPortfolio); setShowHistory(false); }}
                   style={{ background: "none", border: `1px solid ${showPortfolio ? GREEN_MID : GREEN_DARK}`,
                     color: showPortfolio ? GREEN_MID : GREEN_DARK, cursor: "pointer", fontFamily: MONO,
-                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
-                  {showPortfolio ? "[ HIDE PORTFOLIO ]" : "[ PORTFOLIO ]"}
-                  {(portfolio.length > 0 || (crew?.shipBalance || 0) !== 0) && !showPortfolio && (
-                    <span style={{ color: GREEN_MID, marginLeft: "6px" }}>●</span>
-                  )}
+                    fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1,
+                    whiteSpace: "nowrap", overflow: "hidden" }}>
+                  {showPortfolio ? "[ HIDE PORTFOLIO ]" : "[ PORTFOLIO ]"}{(portfolio.length > 0 || (crew?.shipBalance || 0) !== 0) && !showPortfolio ? <span style={{ color: GREEN_MID, marginLeft: "4px" }}>●</span> : null}
                 </button>
                 <button onClick={onSwitchGame}
                   style={{ background: "none", border: `1px solid ${GREEN_DARK}`,
