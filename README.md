@@ -25,10 +25,14 @@ Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but u
 - 🏗️ **Contractors** — salary and paid-status tracking with loyalty roll reminders
 - 💳 **Debt tracker** — per-creditor entries with monthly payment and term; reflected as minimum Stress increase in the player Downtime tab
 - 📦 **Portfolio** — equity holdings with grant price, live value, G/L, and scenario-based lock/unlock
-- 🚢 **Ship account** — balance ledger with deposit/withdraw history and bankruptcy save reference table (owner-operator mode)
+- 🚢 **Ship/Group account** — named balance ledger (e.g. "Diamond Club, LLC") with deposit/withdraw history, ownership type, crew payment mode, and bankruptcy save reference table (owner-operator mode)
 
 **Session Tools (Player)**
-- 🗓️ **Downtime tab** — post-session checklist, debt obligations, payout calculator, medical treatment costs, shore leave table, skill training reference, military enlistment, ship repair costs, and fuel calculator
+- 🗓️ **Downtime tab** — post-session checklist, debt obligations, payout calculator, medical treatment costs, shore leave table, skill training reference (no prerequisites column — see note above table), military enlistment, ship repair costs, and fuel calculator
+- 💰 **Account balance** — if the Warden has set a ship/group account balance, it appears at the top of the player's Portfolio section
+
+**Display**
+- 🎨 **Five themes** — GREEN, AMBER, BLUE, MONO, HI-VIS; all UI elements adapt to the selected theme including warden panels and active states
 
 **Infrastructure**
 - 🔒 **Warden dashboard** — PIN-gated, mobile-friendly, tabbed interface
@@ -148,12 +152,58 @@ Room data expires after **90 days of inactivity**. Keep a local backup if your c
 
 ## Warden Settings Reference
 
-| Setting | Options | Effect |
-|---|---|---|
-| Training time unit | Months / Years | Controls duration labels in player Downtime tab |
-| Ship ownership | Company/Military · Owner-Operator · Freelancer | Shows bankruptcy save table in Ship Account when owner-operator |
-| Crew payment mode | All Same / Per Crew | Cash/equity toggle global vs per-crew in Payout tab |
-| Bump on complete | On / Off | Auto-bumps corporation health when a job is marked complete |
+| Setting | Location | Options | Effect |
+|---|---|---|---|
+| Training time unit | Settings | Months / Years | Controls duration labels in player Downtime tab |
+| Ship ownership | Session → Ship | Company/Military · Owner-Operator · Freelancer | Shows bankruptcy save table in Ship Account when owner-operator; also shown in account balance display |
+| Crew payment mode | Session → Ship | All Same / Per Crew | Cash/equity toggle global vs per-crew in Payout tab |
+| Account name | Session → Ship | Free text | Names the account (e.g. "Diamond Club, LLC"); shown to players in Portfolio |
+| Bump on complete | Settings | On / Off | Auto-bumps corporation health when a job is marked complete |
+
+---
+
+## Testing Checklist
+
+After deploying an update, verify the following:
+
+**Player view — Market tab**
+- [ ] Stocks display with correct prices and change indicators
+- [ ] Headlines appear and animate correctly
+- [ ] Clicking a stock expands it to show price history and catalog (if unlocked)
+- [ ] `[ PORTFOLIO ]` button shows `●` dot if account balance or equity holdings exist
+- [ ] Portfolio shows account balance at top (if Warden has set one), followed by equity holdings
+
+**Player view — Jobs tab**
+- [ ] Active contracts display correctly
+- [ ] Completed/revoked contracts toggle works
+
+**Player view — Downtime tab**
+- [ ] Payout calculator: Months, Jumps, Hazard, Negotiation steppers work without scrolling to top
+- [ ] Skill Tiers (T/E/M) grid renders without overflow on narrow screens
+- [ ] Hazard and Corp dropdowns don't cause page jump on change
+- [ ] Training table shows no PREREQ column; prerequisite note appears above table
+- [ ] Debt obligations section appears if Warden has added debts
+
+**Warden view — general**
+- [ ] All five themes (GREEN, AMBER, BLUE, MONO, HI-VIS) are readable; no green-tinted boxes in non-green themes
+- [ ] Warden nav tabs, sub-tabs all use theme colors for active/inactive states
+- [ ] Panel backgrounds are neutral dark, not green-tinted
+
+**Warden — Session → Ship**
+- [ ] Account Name field accepts input and persists
+- [ ] Ownership Type buttons work (COMPANY / OWNER-OP / FREELANCER)
+- [ ] Crew Payment Mode buttons work (ALL SAME / PER CREW)
+- [ ] Deposit and Withdraw update the balance and add to recent transactions
+- [ ] Bankruptcy save table appears when Ownership = OWNER-OP
+
+**Warden — Jobs → Payout**
+- [ ] Crew cards show TRAINED / EXPERT / MASTER tier grid without overflow
+- [ ] Salary calculates correctly
+
+**Warden — Settings**
+- [ ] Training time unit toggle works (note about Ship tab for ownership/payment)
+- [ ] Theme switcher works
+- [ ] Export/Import backup round-trips correctly
 
 ---
 

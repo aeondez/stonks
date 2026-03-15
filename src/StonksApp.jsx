@@ -288,6 +288,7 @@ const THEMES = {
     primaryHeader: "#e8ffe8",
     scanline: "rgba(180,255,180,0.04)",
     accent: "#ffdd77",
+    activeBg: "rgba(68,255,136,0.08)",
   },
   amber: {
     label: "AMBER",
@@ -299,17 +300,19 @@ const THEMES = {
     primaryHeader: "#fff8e0",
     scanline: "rgba(255,220,100,0.04)",
     accent: "#ff8844",
+    activeBg: "rgba(255,200,68,0.10)",
   },
   blue: {
     label: "BLUE",
     bg: "#060810",
     primary: "#44aaff",
     primaryDim: "#88bbdd",
-    primaryDark: GREEN_DARK,
+    primaryDark: "#2a4a6a",
     primaryMid: "#4a7a9a",
     primaryHeader: "#ddeeff",
     scanline: "rgba(100,180,255,0.04)",
     accent: "#ffdd77",
+    activeBg: "rgba(68,170,255,0.10)",
   },
   mono: {
     label: "MONO",
@@ -321,6 +324,7 @@ const THEMES = {
     primaryHeader: "#ffffff",
     scanline: "rgba(255,255,255,0.03)",
     accent: "#ffffff",
+    activeBg: "rgba(200,200,200,0.10)",
   },
   hivisibility: {
     label: "HI-VIS",
@@ -332,6 +336,7 @@ const THEMES = {
     primaryHeader: "#ffffff",
     scanline: "rgba(0,255,0,0.02)",
     accent: "#ffff00",
+    activeBg: "rgba(0,255,0,0.08)",
   },
 };
 
@@ -427,7 +432,7 @@ function renderJobContent(job) {
 
 function JobCard({ job, isOmniCorp, minimal = false }) {
   const borderColor = isOmniCorp ? "rgba(255,200,0,0.3)" : `${GREEN_DARK}`;
-  const bgColor = isOmniCorp ? "rgba(80,60,0,0.12)" : "rgba(0,12,0,0.4)";
+  const bgColor = isOmniCorp ? "rgba(80,60,0,0.12)" : "rgba(0,0,0,0.4)";
   const postedLabel = job.cycle_posted != null ? `CYC ${String(job.cycle_posted).padStart(2,"0")}` : null;
   return (
     <div style={{ border: `1px solid ${borderColor}`, background: bgColor,
@@ -476,7 +481,7 @@ function JobEditor({ job, stocks, onSave, onCancel }) {
 
   const canSave = company && (mode === "freeform" ? freeContent.trim() : (tmpl.jobType?.trim()));
 
-  const selStyle = { background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+  const selStyle = { background: "rgba(0,0,0,0.5)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
     fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%" };
   const inStyle = { background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
     fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%", boxSizing: "border-box", outline: "none" };
@@ -989,8 +994,8 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
             opacity: isVis ? (s.is_collapsed ? 0.3 : 1) : 0,
             transform: isVis ? "translateX(0)" : "translateX(-8px)",
             transition: "opacity 0.3s ease, transform 0.3s ease",
-            border: isExpanded ? `1px solid ${s.is_omnicorp ? "rgba(255,200,0,0.3)" : "rgba(68,200,68,0.15)"}` : "1px solid transparent",
-            background: isExpanded ? "rgba(0,15,0,0.4)" : rowBg,
+            border: isExpanded ? `1px solid ${s.is_omnicorp ? "rgba(255,200,0,0.3)" : "rgba(255,255,255,0.1)"}` : "1px solid transparent",
+            background: isExpanded ? "rgba(0,0,0,0.3)" : rowBg,
           }}>
             {/* Main row */}
             <div
@@ -1014,7 +1019,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
             </div>
             {/* Expanded history */}
             {isExpanded && (
-              <div style={{ padding: "8px 14px 14px", borderTop: `1px solid rgba(68,120,68,0.2)` }}>
+              <div style={{ padding: "8px 14px 14px", borderTop: `1px solid ${GREEN_DARK}` }}>
                 <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "10px", textTransform: "uppercase" }}>
                   {s.industry}
                 </div>
@@ -1042,7 +1047,7 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                   const isRevoked = cat.status === "revoked";
                   const isIneligible = cat.status === "ineligible";
                   return (
-                    <div style={{ marginTop: "12px", borderTop: `1px solid rgba(68,120,68,0.2)`, paddingTop: "10px" }}>
+                    <div style={{ marginTop: "12px", borderTop: `1px solid ${GREEN_DARK}`, paddingTop: "10px" }}>
                       <div style={{ color, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "6px" }}>
                         {cat.status.toUpperCase()}{isIneligible && cat.ineligibleReason ? ` — ${cat.ineligibleReason}` : ""}
                       </div>
@@ -1484,7 +1489,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
           <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
             {[["company","COMPANY"],["owner","OWNER-OP"],["freelancer","FREELANCER"]].map(([val,lbl3]) => (
               <button key={val} onClick={() => { const next={...rollConfig,ownershipType:val}; setRollConfig(next); saveSettings({rollConfig:next}); }}
-                style={{ background:ownerType===val?"rgba(68,200,68,0.08)":"none",
+                style={{ background:ownerType===val?"var(--c-active-bg, rgba(68,200,68,0.08))":"none",
                   border:`1px solid ${ownerType===val?GREEN_MID:GREEN_DARK}`,
                   color:ownerType===val?GREEN_MID:GREEN_DARK,
                   fontFamily:MONO, fontSize:"10px", padding:"4px 8px", cursor:"pointer", whiteSpace:"nowrap" }}>{lbl3}</button>
@@ -1496,7 +1501,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
           <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
             {[["all","ALL SAME"],["per","PER CREW"]].map(([val,lbl3]) => (
               <button key={val} onClick={() => { const next={...rollConfig,crewPaymentMode:val}; setRollConfig(next); saveSettings({rollConfig:next}); }}
-                style={{ background:(rollConfig.crewPaymentMode||"all")===val?"rgba(68,200,68,0.08)":"none",
+                style={{ background:(rollConfig.crewPaymentMode||"all")===val?"var(--c-active-bg, rgba(68,200,68,0.08))":"none",
                   border:`1px solid ${(rollConfig.crewPaymentMode||"all")===val?GREEN_MID:GREEN_DARK}`,
                   color:(rollConfig.crewPaymentMode||"all")===val?GREEN_MID:GREEN_DARK,
                   fontFamily:MONO, fontSize:"10px", padding:"4px 8px", cursor:"pointer", whiteSpace:"nowrap" }}>{lbl3}</button>
@@ -1504,7 +1509,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
           </div>
         </div>
       </div>
-      <div style={{ padding:"12px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,5,0,0.5)", marginBottom:"16px", display:"inline-block" }}>
+      <div style={{ padding:"12px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,0,0,0.5)", marginBottom:"16px", display:"inline-block" }}>
         <div style={{ color:HEADER_GREEN, fontSize:"22px", fontWeight:"bold" }}>{shipBalance.toLocaleString()}cr</div>
         <div style={{ color:GREEN_MID, fontSize:"10px" }}>{shipName ? shipName.toUpperCase() + " — ACCOUNT BALANCE" : "ACCOUNT BALANCE"}</div>
         <div style={{ color:GREEN_DARK, fontSize:"10px", marginTop:"2px" }}>Ownership: {ownerType === "company" ? "Company / Military" : ownerType === "owner" ? "Owner-Operator" : "Freelancer"}</div>
@@ -1519,8 +1524,8 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
         <div style={{ marginBottom:"16px" }}>
           <div style={{ color:GREEN_DARK, fontSize:"10px", marginBottom:"6px" }}>RECENT TRANSACTIONS (last 20)</div>
           {[...shipExpenses].reverse().slice(0,10).map(e => (
-            <div key={e.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid #0a1520`, fontSize:"11px" }}>
-              <span style={{ color:"#6688aa" }}>{e.label}</span>
+            <div key={e.id} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid rgba(255,255,255,0.07)`, fontSize:"11px" }}>
+              <span style={{ color:GREEN_MID }}>{e.label}</span>
               <span style={{ color:e.amount>=0?"#44cc88":"#cc5555" }}>{e.amount>=0?"+":""}{e.amount.toLocaleString()}cr</span>
             </div>
           ))}
@@ -1532,9 +1537,9 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, setRollConfig, saveSettin
           <div style={{ color:GREEN_DARK, fontSize:"10px", marginBottom:"10px" }}>Roll quarterly or annually. Make a Luck Save.</div>
           <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"10px" }}>
             <tbody>{BANKRUPTCY.map(([r,c]) => (
-              <tr key={r} style={{ borderTop:`1px solid #0a1520` }}>
-                <td style={{ padding:"5px 8px 5px 0", color:r.includes("Critical S")?"#44cc88":r.includes("Success")?"#88bb88":r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td>
-                <td style={{ padding:"5px 0", color:"#8899aa", lineHeight:1.5 }}>{c}</td>
+              <tr key={r} style={{ borderTop:`1px solid rgba(255,255,255,0.07)` }}>
+                <td style={{ padding:"5px 8px 5px 0", color:r.includes("Critical S")?"#44cc88":r.includes("Success")?GREEN_MID:r.includes("Critical F")?"#cc3333":"#cc7755", minWidth:"100px", whiteSpace:"nowrap" }}>{r}</td>
+                <td style={{ padding:"5px 0", color:GREEN_DARK, lineHeight:1.5 }}>{c}</td>
               </tr>
             ))}</tbody>
           </table>
@@ -1744,13 +1749,13 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
 
   // Mobile-safe: font-size 16px on all selects/inputs prevents iOS auto-zoom scroll-jump
   const sel = {
-    background:"transparent", border:`1px solid rgba(68,200,68,0.25)`,
+    background:"transparent", border:`1px solid ${GREEN_DARK}`,
     color:GREEN_MID, fontFamily:MONO, fontSize:"16px",
     padding:"10px 12px", minHeight:"44px", width:"100%", boxSizing:"border-box",
     WebkitAppearance:"none", appearance:"none", borderRadius:0,
   };
   const stepBtn = {
-    background:"none", border:`1px solid rgba(68,200,68,0.25)`, color:GREEN_MID,
+    background:"none", border:`1px solid ${GREEN_DARK}`, color:GREEN_MID,
     fontFamily:MONO, fontSize:"20px", lineHeight:1,
     minWidth:"44px", minHeight:"44px", cursor:"pointer",
     display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
@@ -1824,7 +1829,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"8px" }}>
             {[["T",trained,setTrained,500],["E",expert,setExpert,1000],["M",master,setMaster,2000]].map(([label,val,set,rate]) => (
               <div key={label} style={{ display:"flex", flexDirection:"column", gap:"4px", alignItems:"center",
-                border:`1px solid ${GREEN_DARK}`, padding:"8px 4px", background:"rgba(0,20,0,0.2)", minWidth:0 }}>
+                border:`1px solid ${GREEN_DARK}`, padding:"8px 4px", background:"rgba(0,0,0,0.2)", minWidth:0 }}>
                 <span style={{ color:GREEN_MID, fontSize:"11px", letterSpacing:"0.1em", textAlign:"center" }}>
                   {label} <span style={{ color:GREEN_DARK }}>×{rate >= 1000 ? (rate/1000)+"k" : rate}</span>
                 </span>
@@ -1839,7 +1844,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           )}
         </div>
         {salary > 0 && (
-          <div style={{ padding:"14px 16px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,20,0,0.3)" }}>
+          <div style={{ padding:"14px 16px", border:`1px solid ${GREEN_DARK}`, background:"rgba(0,0,0,0.3)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
               <span style={{ color:GREEN_MID, fontSize:"13px" }}>CASH PAYOUT</span>
               <span style={{ color:HEADER_GREEN, fontSize:"22px", fontWeight:"bold" }}>{total.toLocaleString()}cr</span>
@@ -1866,7 +1871,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
                   const equityCash = Math.round(total * 0.5);
                   const shares = price > 0 ? Math.ceil(equityCash * 1.2 / price) : 0;
                   return price > 0 ? (
-                    <div style={{ marginTop:"10px", padding:"10px 12px", background:"rgba(68,200,68,0.05)", border:`1px solid rgba(68,200,68,0.15)` }}>
+                    <div style={{ marginTop:"10px", padding:"10px 12px", background:"rgba(255,255,255,0.04)", border:`1px solid rgba(68,200,68,0.15)` }}>
                       <span style={{ color:HEADER_GREEN, fontSize:"20px", fontWeight:"bold" }}>{shares} share{shares!==1?"s":""}</span>
                       <span style={{ color:GREEN_DARK, fontSize:"12px", marginLeft:"10px" }}>@ {price.toLocaleString()}cr each</span>
                     </div>
@@ -2063,7 +2068,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
           display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           <div>
             <div style={{ color: HEADER_GREEN, fontSize: "clamp(15px, 4.5vw, 22px)", letterSpacing: "0.12em", fontWeight: "bold",
-              textShadow: "0 0 20px rgba(140,255,140,0.3)" }}>
+              textShadow: `0 0 20px ${GREEN}33` }}>
               CORPORATE TICKER
             </div>
             <div style={{ color: "#c8ffc8", fontSize: "10px", letterSpacing: "0.2em", marginTop: "4px", opacity: 0.5 }}>
@@ -2088,7 +2093,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         {showQR && (
           <div style={{ marginBottom: "24px", padding: "20px", border: `1px solid ${GREEN_DARK}`,
             display: "flex", flexDirection: "column", alignItems: "center", gap: "12px",
-            background: "rgba(0,20,0,0.6)" }}>
+            background: "rgba(0,0,0,0.6)" }}>
             <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.2em" }}>SCAN TO JOIN</div>
             <div style={{ background: "#fff", padding: "10px", lineHeight: 0 }}>
               <img
@@ -2112,7 +2117,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
             ["downtime", debt.length > 0 ? `DOWNTIME (+${debt.length} STRESS)` : "DOWNTIME"],
           ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
-              style={{ background: tab === id ? "rgba(68,255,136,0.06)" : "none",
+              style={{ background: tab === id ? "var(--c-active-bg, rgba(68,255,136,0.06))" : "none",
                 border: `1px solid ${tab === id ? GREEN_MID : GREEN_DARK}`,
                 color: tab === id ? GREEN_MID : GREEN_DARK,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.2em",
@@ -2189,7 +2194,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
               <div style={{ marginTop: "16px" }}>
                 {(crew?.shipBalance || 0) !== 0 && (
                   <div style={{ marginBottom: "16px", padding: "12px 16px",
-                    border: `1px solid ${GREEN_DARK}`, background: "rgba(0,20,0,0.2)" }}>
+                    border: `1px solid ${GREEN_DARK}`, background: "rgba(0,0,0,0.2)" }}>
                     <div style={{ color: GREEN_MID, fontSize: "9px", letterSpacing: "0.2em", marginBottom: "8px" }}>ACCOUNT BALANCE</div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                       <span style={{ color: HEADER_GREEN, fontSize: "22px", fontWeight: "bold" }}>{crew.shipBalance.toLocaleString()}cr</span>
@@ -2756,7 +2761,7 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
           <div>
             <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>PARTNER 1</div>
             <select value={p1} onChange={e => setP1(e.target.value)}
-              style={{ background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+              style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
                 fontFamily: MONO, fontSize: "11px", padding: "4px 6px", cursor: "pointer" }}>
               <option value="">— select —</option>
               {active.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
@@ -2766,7 +2771,7 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
           <div>
             <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.1em", marginBottom: "3px" }}>PARTNER 2</div>
             <select value={p2} onChange={e => setP2(e.target.value)}
-              style={{ background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+              style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
                 fontFamily: MONO, fontSize: "11px", padding: "4px 6px", cursor: "pointer" }}>
               <option value="">— select —</option>
               {active.filter(s => s.name !== p1).map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
@@ -3105,7 +3110,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["session","SESSION"],["settings","SETTINGS"]].map(([p, label]) => (
             <button key={p} onClick={() => setPanel(panel === p ? null : p)}
-              style={{ background: panel === p ? "rgba(68,200,68,0.08)" : "none",
+              style={{ background: panel === p ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                 border: `1px solid ${panel === p ? GREEN_MID : GREEN_DARK}`,
                 color: panel === p ? GREEN_MID : GREEN_DARK, fontFamily: MONO,
                 fontSize: "11px", letterSpacing: "0.1em", padding: "7px 12px",
@@ -3116,7 +3121,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           <div style={{ display:"flex", gap:"4px", marginLeft:"auto", alignItems:"center" }}>
             {Object.entries(THEMES).map(([key, t]) => (
               <button key={key} onClick={() => setTheme(key)}
-                style={{ background: theme === key ? "rgba(68,200,68,0.08)" : "none",
+                style={{ background: theme === key ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                   border: `1px solid ${theme === key ? GREEN_MID : GREEN_DARK}`,
                   color: theme === key ? GREEN_MID : GREEN_DARK,
                   fontFamily: MONO, fontSize: "9px", letterSpacing: "0.08em",
@@ -3147,7 +3152,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             <input value={headlineSubtext} onChange={(e) => setHeadlineSubtext(e.target.value)}
               placeholder="subtext (optional, lowercase)"
               style={{ width: "100%", background: "transparent", border: `1px solid ${GREEN_DARK}`,
-                color: "#8899aa", fontFamily: MONO, fontSize: "11px", padding: "8px 10px",
+                color: GREEN_DARK, fontFamily: MONO, fontSize: "11px", padding: "8px 10px",
                 marginBottom: "16px", outline: "none", boxSizing: "border-box" }} />
             <div style={{ color: GREEN_MID, fontSize: "11px", letterSpacing: "0.15em", marginBottom: "10px" }}>
               OMNICORP ACQUISITION TRIGGERS:
@@ -3216,7 +3221,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
                     {["full","targeted"].map(m => (
                       <button key={m} onClick={() => { setVarianceMode(m); setPendingVariance(null); }}
-                        style={{ background: varianceMode === m ? "rgba(68,170,100,0.1)" : "none",
+                        style={{ background: varianceMode === m ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                           border: `1px solid ${varianceMode === m ? GREEN_DARK : "#1a2a3a"}`,
                           color: varianceMode === m ? GREEN_MID : GREEN_DARK,
                           fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
@@ -3230,7 +3235,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     <div style={{ marginBottom: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
                         <button onClick={toggleAllTargets}
-                          style={{ background: allTargeted ? "rgba(68,170,100,0.1)" : "none",
+                          style={{ background: allTargeted ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                             border: `1px solid ${allTargeted ? GREEN_DARK : "#2a3a2a"}`,
                             color: allTargeted ? GREEN_MID : GREEN_DARK,
                             fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
@@ -3250,7 +3255,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                               sel ? next.delete(s.name) : next.add(s.name);
                               setTargetedSelection(next);
                             }}
-                              style={{ background: sel ? "rgba(68,170,100,0.08)" : "none",
+                              style={{ background: sel ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                                 border: `1px solid ${sel ? GREEN_DARK : "#1a2a3a"}`,
                                 color: sel ? GREEN_MID : GREEN_DARK,
                                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.05em",
@@ -3278,7 +3283,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   ) : (
                     <div>
                       <div style={{ overflowX: "auto", marginBottom: "12px" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: GREEN_DARK }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
                               {["COMPANY","VOL","ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
@@ -3329,7 +3334,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   ) : (
                     <div>
                       <div style={{ overflowX: "auto", marginBottom: "12px" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: GREEN_DARK }}>
                           <thead>
                             <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
                               {["COMPANY","OLD HEALTH","H.ROLL","SHIFT","NEW HEALTH"].map((h) => (
@@ -3373,7 +3378,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   </div>
                   <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                     <select value={marketEventDir} onChange={e => setMarketEventDir(e.target.value)}
-                      style={{ background: "rgba(0,10,0,0.6)", border: `1px solid #3a2a1a`, color: marketEventDir === "crash" ? RED : GREEN,
+                      style={{ background: "rgba(0,0,0,0.5)", border: `1px solid #3a2a1a`, color: marketEventDir === "crash" ? RED : GREEN,
                         fontFamily: MONO, fontSize: "11px", padding: "5px 8px", cursor: "pointer" }}>
                       <option value="crash">CRASH</option>
                       <option value="boom">BOOM</option>
@@ -3403,7 +3408,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             ) : (
               <>
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: "#8899aa" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", color: GREEN_DARK }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${GREEN_DARK}` }}>
                         {["COMPANY","HEALTH","H.ROLL","H.SHIFT","VOL","V.ROLL","V.SHIFT","DIE ROLL","COIN","Δ PRICE","NEW PRICE"].map((h) => (
@@ -3597,7 +3602,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             <div style={{ borderTop: `1px solid ${GREEN_DARK}`, paddingTop: "16px", marginTop: "4px", marginBottom: "4px" }}>
               <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "12px" }}>PREDEFINED MERGERS</div>
               {mergers.map((m, i) => {
-                const selectStyle = { background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+                const selectStyle = { background: "rgba(0,0,0,0.5)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
                   fontFamily: MONO, fontSize: "10px", padding: "2px 5px", cursor: "pointer" };
                 return (
                   <div key={m.name + i} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "10px", flexWrap: "wrap" }}>
@@ -3718,7 +3723,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   const next = stocks.map(s => ({ ...s, is_omnicorp: s.name === chosen }));
                   setStocks(next); wardenSet(KEYS.stocks, next);
                 }}
-                style={{ background: "rgba(0,10,0,0.6)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+                style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
                   fontFamily: MONO, fontSize: "10px", padding: "3px 6px", cursor: "pointer" }}>
                 <option value="">— none —</option>
                 {stocks.filter(s => !s.is_collapsed).map(s => (
@@ -3991,7 +3996,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   const next = { ...rollConfig, bumpOnComplete: !rollConfig.bumpOnComplete };
                   setRollConfig(next); saveSettings({ rollConfig: next });
                 }}
-                  style={{ background: rollConfig.bumpOnComplete ? "rgba(68,170,100,0.1)" : "none",
+                  style={{ background: rollConfig.bumpOnComplete ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                     border: `1px solid ${rollConfig.bumpOnComplete ? GREEN_DARK : "#1a2a3a"}`,
                     color: rollConfig.bumpOnComplete ? GREEN_MID : "#6688aa",
                     fontFamily: MONO, fontSize: "10px", letterSpacing: "0.12em",
@@ -4014,7 +4019,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                     <button key={val} onClick={() => {
                       const next = { ...rollConfig, trainingTimeUnit: val };
                       setRollConfig(next); saveSettings({ rollConfig: next });
-                    }} style={{ background: (rollConfig.trainingTimeUnit || "months") === val ? "rgba(68,200,68,0.08)" : "none",
+                    }} style={{ background: (rollConfig.trainingTimeUnit || "months") === val ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                       border: `1px solid ${(rollConfig.trainingTimeUnit || "months") === val ? GREEN_MID : GREEN_DARK}`,
                       color: (rollConfig.trainingTimeUnit || "months") === val ? GREEN_MID : GREEN_DARK,
                       fontFamily: MONO, fontSize: "10px", padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>{lbl}</button>
@@ -4203,7 +4208,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {confirmDialog && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex",
             alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <div style={{ background: "rgba(0,10,0,0.6)", border: `1px solid ${confirmDialog.danger ? "#663333" : "#1a2a3a"}`,
+            <div style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${confirmDialog.danger ? "#663333" : "#1a2a3a"}`,
               padding: "32px 40px", fontFamily: MONO, textAlign: "center", maxWidth: "400px" }}>
               <div style={{ color: confirmDialog.danger ? "#cc5555" : HEADER_GREEN,
                 fontSize: "13px", letterSpacing: "0.1em", marginBottom: "12px" }}>{confirmDialog.msg}</div>
@@ -4234,7 +4239,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       </div>
       {toast && (
         <div style={{ position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)",
-          background: "rgba(0,15,0,0.95)", border: `1px solid ${toast.color}`, color: toast.color,
+          background: "rgba(0,0,0,0.92)", border: `1px solid ${toast.color}`, color: toast.color,
           fontFamily: MONO, fontSize: "11px", letterSpacing: "0.15em",
           padding: "10px 20px", zIndex: 200, whiteSpace: "nowrap",
           boxShadow: `0 0 20px ${toast.color}22` }}>
@@ -4280,6 +4285,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
     r.style.setProperty("--c-header",      T.primaryHeader);
     r.style.setProperty("--c-accent",      T.accent);
     r.style.setProperty("--c-scanline",    T.scanline);
+    r.style.setProperty("--c-active-bg",   T.activeBg);
     try { localStorage.setItem("stonks_theme", theme); } catch {}
   }, [theme, T]);
   const KEYS = makeKeys(roomCode);
