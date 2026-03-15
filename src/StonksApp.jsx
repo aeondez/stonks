@@ -910,8 +910,8 @@ function PlayerJobBoard({ jobs, stocks }) {
       {completedJobs.length > 0 && (
         <div style={{ marginTop: "20px" }}>
           <button onClick={() => setShowCompleted(v => !v)}
-            style={{ background: "none", border: `1px solid ${showCompleted ? GREEN_DARK : "#2a3a2a"}`,
-              color: showCompleted ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+            style={{ background: "none", border: `1px solid ${showCompleted ? GREEN_MID : GREEN_DARK}`,
+              color: showCompleted ? GREEN_MID : GREEN_DARK, cursor: "pointer", fontFamily: MONO,
               fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", width: "100%" }}>
             {showCompleted ? "[ HIDE COMPLETED ]" : `[ COMPLETED CONTRACTS (${completedJobs.length}) ]`}
           </button>
@@ -1267,13 +1267,13 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
         {profiles.map(p => {
           const calc = calcPayout(p);
           return (
-            <div key={p.id} style={{ border:`1px solid #1a2a3a`, padding:"12px", marginBottom:"8px" }}>
+            <div key={p.id} style={{ border:`1px solid #1a2a3a`, padding:"12px", marginBottom:"8px", overflowX:"hidden" }}>
               <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center" }}>
                 <input value={p.name} onChange={e=>updateProfile(p.id,{name:e.target.value})} placeholder="Name" style={{ ...sI, width:"130px" }} />
                 <input value={p.role} onChange={e=>updateProfile(p.id,{role:e.target.value})} placeholder="Class / Role" style={{ ...sI, width:"110px" }} />
                 <button onClick={()=>removeProfile(p.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
               </div>
-              <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center" }}>
+              <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center", rowGap:"10px" }}>
                 {[["trained","T",500],["expert","E",1000],["master","M",2000]].map(([field,lbl2,rate]) => (
                   <div key={field} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
                     <span style={{ color:"#445566", fontSize:"10px" }}>{lbl2}</span>
@@ -1438,7 +1438,7 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
                 ? <span style={{ color:AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios!==1?"s":""} locked
                     <button onClick={()=>upd(h.id,{lockScenarios:0})} style={{ ...sI, padding:"0px 5px", cursor:"pointer", fontSize:"9px", marginLeft:"6px", color:"#448844" }}>UNLOCK</button>
                   </span>
-                : <span style={{ color:"#44cc88" }}>● AVAILABLE</span>}
+                : <span style={{ color: GREEN }}>● AVAILABLE</span>}
             </div>
           </div>
         );
@@ -1476,7 +1476,7 @@ function ShipAccountPanel({ crew, setCrew, rollConfig, wardenSet, KEYS }) {
         <div style={{ color:"#445566", fontSize:"10px" }}>SHIP ACCOUNT BALANCE</div>
         <div style={{ color:"#334455", fontSize:"10px", marginTop:"2px" }}>Ownership: {ownerType === "company" ? "Company / Military" : ownerType === "owner" ? "Owner-Operator" : "Freelancer"}</div>
       </div>
-      <div style={{ display:"flex", gap:"8px", marginBottom:"14px", flexWrap:"wrap", alignItems:"center" }}>
+      <div style={{ display:"flex", gap:"8px", marginBottom:"14px", flexWrap:"wrap", alignItems:"center", rowGap:"8px" }}>
         <input value={txLabel} onChange={e=>setTxLabel(e.target.value)} placeholder="Label (optional)" style={{ ...sI, flex:1, minWidth:"110px" }} />
         <input type="number" min={0} value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Amount (cr)" style={{ ...sI, width:"110px" }} />
         <button onClick={()=>transact("deposit")} style={{ background:"none", border:`1px solid #224422`, color:"#44cc88", fontFamily:MONO, fontSize:"10px", padding:"5px 12px", cursor:"pointer" }}>+ DEPOSIT</button>
@@ -1633,10 +1633,10 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
       <div>
         <div style={{ color:"#445566", fontSize:"10px", marginBottom:"8px" }}>CATALOG ITEMS</div>
         {(cat.items||[]).map(it => (
-          <div key={it.id} style={{ display:"flex", gap:"6px", marginBottom:"5px", alignItems:"center" }}>
-            <input value={it.name} onChange={e=>updItem(it.id,{name:e.target.value})} placeholder="Item name" style={{ ...sI, flex:2, minWidth:"100px" }} />
-            <input value={it.price} onChange={e=>updItem(it.id,{price:e.target.value})} placeholder="Price" style={{ ...sI, width:"80px" }} />
-            <input value={it.notes} onChange={e=>updItem(it.id,{notes:e.target.value})} placeholder="Notes" style={{ ...sI, flex:3 }} />
+          <div key={it.id} style={{ display:"flex", gap:"6px", marginBottom:"5px", alignItems:"center", flexWrap:"wrap" }}>
+            <input value={it.name} onChange={e=>updItem(it.id,{name:e.target.value})} placeholder="Item name" style={{ ...sI, flex:"2 1 100px", minWidth:"80px" }} />
+            <input value={it.price} onChange={e=>updItem(it.id,{price:e.target.value})} placeholder="Price" style={{ ...sI, width:"70px", minWidth:"60px" }} />
+            <input value={it.notes} onChange={e=>updItem(it.id,{notes:e.target.value})} placeholder="Notes" style={{ ...sI, flex:"3 1 100px", minWidth:"80px" }} />
             <button onClick={()=>delItem(it.id)} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
           </div>
         ))}
@@ -1699,7 +1699,20 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   const [negoPct, setNegoPct] = useState(0);
   const [equityCorp, setEquityCorp] = useState("");
   const [open, setOpen] = useState({ checklist:false, debt:false, contractors:false, payout:false, medical:false, shore:false, training:false, repairs:false });
-  const toggle = (k) => setOpen(o=>({...o,[k]:!o[k]}));
+
+  // Prevent page scroll-to-top when dropdowns or state updates cause re-layout
+  const scrollAnchorRef = useRef(null);
+  const lockScroll = (fn) => {
+    const y = window.scrollY;
+    fn();
+    requestAnimationFrame(() => { window.scrollTo({ top: y, behavior: "instant" }); });
+  };
+
+  const toggle = (k) => {
+    const y = window.scrollY;
+    setOpen(o => ({...o,[k]:!o[k]}));
+    requestAnimationFrame(() => { window.scrollTo({ top: y, behavior: "instant" }); });
+  };
 
   const salary = trained*500 + expert*1000 + master*2000;
   const base = salary * months + salary * months * HAZARD_MULT[hazard];
@@ -1753,7 +1766,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
   );
 
   return (
-    <div style={{ color:GREEN_MID }}>
+    <div ref={scrollAnchorRef} style={{ color:GREEN_MID, overflowAnchor:"none" }}>
       <Section id="payout" title="PAYOUT CALCULATOR">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
           {[["MONTHS",months,setMonths,1],["JUMPS (×1kcr)",jumps,setJumps,0]].map(([label,val,set,min]) => (
@@ -1767,7 +1780,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           <div>
             <span style={lbl}>HAZARD</span>
             <div style={{ position:"relative" }}>
-              <select value={hazard} onChange={e=>setHazard(e.target.value)} style={sel}>
+              <select value={hazard} onChange={e=>lockScroll(()=>setHazard(e.target.value))} style={sel}>
                 {HAZARD_OPTS.map(h=><option key={h}>{h}</option>)}
               </select>
               <span style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", color:GREEN_DARK, pointerEvents:"none", fontSize:"12px" }}>▾</span>
@@ -1816,7 +1829,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
               <div>
                 <span style={lbl}>+ SHARES FROM CORP</span>
                 <div style={{ position:"relative" }}>
-                  <select value={equityCorp} onChange={e=>setEquityCorp(e.target.value)} style={sel}>
+                  <select value={equityCorp} onChange={e=>lockScroll(()=>setEquityCorp(e.target.value))} style={sel}>
                     <option value="">— select corporation —</option>
                     {(stocks||[]).filter(s=>!s.is_collapsed).map(s=>(
                       <option key={s.name} value={s.name}>{s.name} ({s.price.toLocaleString()}cr)</option>
@@ -2037,9 +2050,9 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
           <div style={{ textAlign: "right", lineHeight: 1.8 }}>
             <FictionDate date={date} yearLabel={yearLabel} cycleLabel={cycleLabel} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
-              <div style={{ color: "#6aaa6a", fontSize: "11px", letterSpacing: "0.2em" }}>● LIVE</div>
+              <div style={{ color: GREEN_MID, fontSize: "11px", letterSpacing: "0.2em" }}>● LIVE</div>
               <button onClick={() => setShowQR(q => !q)}
-                style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: "#6aaa6a",
+                style={{ background: "none", border: `1px solid ${GREEN_DARK}`, color: GREEN_MID,
                   fontFamily: MONO, fontSize: "9px", letterSpacing: "0.15em",
                   padding: "3px 8px", cursor: "pointer" }}>
                 {showQR ? "CLOSE" : "⬛ SHARE"}
@@ -2077,8 +2090,8 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
           ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ background: tab === id ? "rgba(68,255,136,0.06)" : "none",
-                border: `1px solid ${tab === id ? GREEN_DARK : "#2a3a2a"}`,
-                color: tab === id ? GREEN_MID : "#4a7a4a",
+                border: `1px solid ${tab === id ? GREEN_MID : GREEN_DARK}`,
+                color: tab === id ? GREEN_MID : GREEN_DARK,
                 fontFamily: MONO, fontSize: "10px", letterSpacing: "0.2em",
                 padding: "5px 16px", cursor: "pointer" }}>
               {label}
@@ -2122,14 +2135,14 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
                 <button onClick={() => { setShowHistory(!showHistory); setShowPortfolio(false); }}
-                  style={{ background: "none", border: `1px solid ${showHistory ? GREEN_DARK : "#2a3a2a"}`,
-                    color: showHistory ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                  style={{ background: "none", border: `1px solid ${showHistory ? GREEN_MID : GREEN_DARK}`,
+                    color: showHistory ? GREEN_MID : GREEN_DARK, cursor: "pointer", fontFamily: MONO,
                     fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
                   {showHistory ? "[ HIDE HISTORY ]" : "[ HISTORY ]"}
                 </button>
                 <button onClick={() => { setShowPortfolio(!showPortfolio); setShowHistory(false); }}
-                  style={{ background: "none", border: `1px solid ${showPortfolio ? GREEN_DARK : "#2a3a2a"}`,
-                    color: showPortfolio ? GREEN_MID : "#4a7a4a", cursor: "pointer", fontFamily: MONO,
+                  style={{ background: "none", border: `1px solid ${showPortfolio ? GREEN_MID : GREEN_DARK}`,
+                    color: showPortfolio ? GREEN_MID : GREEN_DARK, cursor: "pointer", fontFamily: MONO,
                     fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", flex: 1 }}>
                   {showPortfolio ? "[ HIDE PORTFOLIO ]" : "[ PORTFOLIO ]"}
                   {portfolio.length > 0 && !showPortfolio && (
@@ -2137,7 +2150,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                   )}
                 </button>
                 <button onClick={onSwitchGame}
-                  style={{ background: "none", border: `1px solid #2a3a2a`,
+                  style={{ background: "none", border: `1px solid ${GREEN_DARK}`,
                     color: GREEN_DARK, cursor: "pointer", fontFamily: MONO,
                     fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px", minWidth: "110px" }}>
                   [ SWITCH GAME ]
@@ -2182,7 +2195,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                             </div>
                             <div style={{ fontSize: "11px" }}>
                               {locked && <span style={{ color: AMBER }}>🔒 {h.lockScenarios} scenario{h.lockScenarios !== 1 ? "s" : ""} locked</span>}
-                              {!locked && <span style={{ color: "#44cc88" }}>● available</span>}
+                              {!locked && <span style={{ color: GREEN }}>● AVAILABLE</span>}
                             </div>
                           </div>
                         </div>
@@ -2424,7 +2437,7 @@ function HistoryLog({ history, headlines }) {
   const tabBtn = (id, label) => (
     <button onClick={() => setTab(id)}
       style={{ background: "none", border: "none", borderBottom: tab === id ? `2px solid ${GREEN_MID}` : "2px solid transparent",
-        color: tab === id ? GREEN_MID : "#4a7a4a", fontFamily: MONO, fontSize: "10px",
+        color: tab === id ? GREEN_MID : GREEN_DARK, fontFamily: MONO, fontSize: "10px",
         letterSpacing: "0.15em", padding: "6px 12px", cursor: "pointer" }}>
       {label}
     </button>
@@ -2442,7 +2455,7 @@ function HistoryLog({ history, headlines }) {
         pastHeadlines.length === 0
           ? <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "8px 0" }}>NO ARCHIVED HEADLINES</div>
           : pastHeadlines.map((h, i) => (
-            <div key={i} style={{ borderLeft: `2px solid ${i === 0 ? GREEN_DARK : "#2a3a2a"}`,
+            <div key={i} style={{ borderLeft: `2px solid ${GREEN_DARK}`,
               paddingLeft: "12px", marginBottom: "14px", opacity: i === 0 ? 0.85 : 0.5 }}>
               <div style={{ color: GREEN_DIM, fontSize: "12px", letterSpacing: "0.05em" }}>{h.headline}</div>
               {h.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{h.subtext}</div>}
