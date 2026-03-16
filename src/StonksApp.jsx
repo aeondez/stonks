@@ -1960,9 +1960,6 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
             ))}</tbody>
           </table>
         </div>
-        <div style={{ color:GREEN_DARK, fontSize:"12px", lineHeight:1.7 }}>
-          <span style={{ color:GREEN_MID }}>REST SAVE:</span> Roll 1d100 under worst Save in a safe location. On success, reduce Stress by the ones digit. Advantage from: consensual sex, drug use, heavy drinking, or Wellness Counselor.
-        </div>
       </Section>
 
       <Section id="shore" title="SHORE LEAVE">
@@ -1986,6 +1983,9 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
               </tr>
             ))}</tbody>
           </table>
+        </div>
+        <div style={{ color:GREEN_DARK, fontSize:"12px", lineHeight:1.7, marginTop:"12px" }}>
+          <span style={{ color:GREEN_MID }}>REST SAVE:</span> Roll 1d100 under worst Save in a safe location. On success, reduce Stress by the ones digit. Advantage from: consensual sex, drug use, heavy drinking, or Wellness Counselor.
         </div>
       </Section>
 
