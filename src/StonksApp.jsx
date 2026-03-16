@@ -1061,14 +1061,19 @@ function StockRows({ stocks, history, visible, expandedStock, setExpandedStock, 
                         <div>
                           <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "5px" }}>CATALOG</div>
                           {cat.items.map(it => (
-                            <div key={it.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "4px 8px",
-                              padding: "4px 0", fontSize: "10px",
+                            <div key={it.id} style={{ padding: "5px 0",
                               borderBottom: `1px solid rgba(68,100,68,0.1)`,
                               opacity: isRevoked ? 0.4 : 1,
                               textDecoration: isRevoked ? "line-through" : "none" }}>
-                              <span style={{ color: isRevoked ? GREEN_DARK : GREEN_DIM }}>{it.name}</span>
-                              <span style={{ color: isRevoked ? GREEN_DARK : GREEN_MID, whiteSpace: "nowrap", textAlign: "right" }}>{it.price}</span>
-                              {it.notes && <span style={{ gridColumn: "1 / -1", color: GREEN_DARK, fontSize: "9px", lineHeight: 1.5 }}>{it.notes}</span>}
+                              <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "10px" }}>
+                                <span style={{ color: isRevoked ? GREEN_DARK : GREEN_DIM }}>{it.name}</span>
+                                <span style={{ color: isRevoked ? GREEN_DARK : GREEN_MID, whiteSpace: "nowrap" }}>{it.price}</span>
+                              </div>
+                              {it.notes && (
+                                <div style={{ color: GREEN_DARK, fontSize: "9px", lineHeight: 1.5, marginTop: "2px", wordBreak: "break-word" }}>
+                                  {it.notes}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
