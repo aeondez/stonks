@@ -115,6 +115,38 @@ const INITIAL_CATALOGS = {
   },
 };
 
+// Market cap = sum of all non-collapsed, non-OmniCorp stock prices (whole number)
+const computeMarketCap = (stocks) =>
+  Math.floor(stocks.filter(s => !s.is_collapsed && !s.is_omnicorp).reduce((s, x) => s + (x.price || 0), 0));
+
+const INITIAL_BLACKMARKET = {
+  pool: [
+    { id:"bm-seed-1", status:"pool",
+      content:"ACQUISITION NOTICE\nBobby McGee\nWANTED: Dead or Alive\nCharges: Copyright infringement\nReward: 10kcr — cash only, no questions\nContact: Drop Box 7",
+      notes:"Last known location: August-69 Space Station. Known associate: Sarah McConnor. Rap sheet: petty theft, stowaway. Complication: He wrote the music he is being accused of stealing." },
+    { id:"bm-seed-2", status:"pool",
+      content:"REPOSSESSION NOTICE\nVampire Squid Model Military Stealth Starship\nSerial: VQ-7734-BLACKSITE\nPayout: Standard salvage rate + 2x Hazard Multiplier\nCash only. Proof of recovery required.",
+      notes:"Last known location: departing Rhodes Driveyards HQ. Last registered owner: Sgt. Draper. Threat: 5 marines, pulse rifles, advanced battle dress. Tactical consideration: High ground — ship can ambush from cloaked position. Puzzle: players must conduct ship-to-ship combat while simultaneously boarding to disable." },
+    { id:"bm-seed-3", status:"pool",
+      content:"ASSET ACQUISITION\nPayout: 10% salvage rights\nNDA required.\nInterested parties contact Drop Box 12.",
+      notes:"Target: processed ore ingots, Bortek warehouse to August-69. Moving target. Security: Citadel contracted ex-marines. Lethal force not authorized against union members — Citadel union card grants significant tactical advantage." },
+    { id:"bm-seed-4", status:"pool",
+      content:"URGENT TRANSPORT — DANGEROUS GOODS\nUnstable fissile material. Handle with care.\nPayout: 10kcr + fuel costs covered\nPickup: Gorgon II orbit coordinates (provided on acceptance)\nDelivery: August-69 Docking Bay 12\nTime sensitive.",
+      notes:"Experimental Hayden fuel missing stabilizing additives. Must be strapped to hull as external cargo. Hayden is aware of the theft and will send an interceptor. Detonation risk if evasive maneuvers are too aggressive." },
+    { id:"bm-seed-5", status:"pool",
+      content:"INTERMEDIARY REQUIRED\nOne-time job. Muscle provided.\nPackage and payment ready.\nLocation: Dark side of Phraxis moon. Vacuum environment — bring suits.\nPayout: On completion.\nDrop Box 4.",
+      notes:"Muscle: Blackshield Group hired Murderous Assholes. Package: Koga experimental android prototype, causes 1 Stress/hour proximity. Payment: Cocaine2. Method: android is holding a pulled frag grenade. Problem: a third party arrives to poach the deal." },
+    { id:"bm-seed-6", status:"pool",
+      content:"EVIDENCE RETRIEVAL\nCorporate document recovery, executive level.\nSensitive materials. Discretion required.\nPayout: 50kcr — cash only\nNDA required.\nDrop Box 9.",
+      notes:"Jumpy mid-level exec wants to frame his boss for embezzlement. Players must access a secure corporate data facility to plant fabricated evidence. Complication: crew trips a known alarm on entry. 15-minute window to exit before automated interceptors arrive. Going back to undo the plant means fighting their way out. Walking away means the frame job completes and they don't get paid. The boss has blackmail on the exec — players may discover this mid-job." },
+    { id:"bm-seed-7", status:"pool",
+      content:"DERELICT LOCATED\nClass-II vessel. Transponder dark.\nLast registered: Rhodes Driveyards, 3 years prior.\nCoordinates attached on request.\nFinders keepers. No client. No guaranteed payout.\nDrop Box 2.",
+      notes:"Generate using A Pound of Flesh derelict ship generator." },
+  ],
+  active: [],
+  archive: [],
+};
+
 // Compute merger display status from live stocks; only "triggered" is stored.
 const getMergerStatus = (merger, stocks) => {
   if (merger.triggered) return "triggered";
@@ -292,18 +324,19 @@ function computeHealthOnly(stocks, cfg = DEFAULT_ROLL_CONFIG) {
 // ─── Storage Helpers ──────────────────────────────────────────────────────────
 
 const makeKeys = (prefix) => ({
-  stocks:    `${prefix}:stocks`,
-  headlines: `${prefix}:headlines`,
-  history:   `${prefix}:history`,
-  date:      `${prefix}:date`,
-  pin:       `${prefix}:pin`,
-  mergers:   `${prefix}:mergers`,
-  settings:  `${prefix}:settings`,
-  jobs:      `${prefix}:jobs`,
-  crew:      `${prefix}:crew`,
-  debt:      `${prefix}:debt`,
-  portfolio: `${prefix}:portfolio`,
-  catalogs:  `${prefix}:catalogs`,
+  stocks:      `${prefix}:stocks`,
+  headlines:   `${prefix}:headlines`,
+  history:     `${prefix}:history`,
+  date:        `${prefix}:date`,
+  pin:         `${prefix}:pin`,
+  mergers:     `${prefix}:mergers`,
+  settings:    `${prefix}:settings`,
+  jobs:        `${prefix}:jobs`,
+  crew:        `${prefix}:crew`,
+  debt:        `${prefix}:debt`,
+  portfolio:   `${prefix}:portfolio`,
+  catalogs:    `${prefix}:catalogs`,
+  blackmarket: `${prefix}:blackmarket`,
 });
 
 const safeGet = async (key, fallback) => {
@@ -2161,6 +2194,9 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
             <div style={{ color: GREEN_DIM, fontSize: "10px", letterSpacing: "0.2em", marginTop: "4px", opacity: 0.5 }}>
               SFN MARKET DATA
             </div>
+            <div style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.15em", marginTop: "2px", opacity: 0.6 }}>
+              MKT {computeMarketCap(stocks).toLocaleString()}cr
+            </div>
           </div>
           <div style={{ textAlign: "right", lineHeight: 1.8 }}>
             <FictionDate date={date} yearLabel={yearLabel} cycleLabel={cycleLabel} />
@@ -2390,6 +2426,556 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         </div>
       </div>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
+    </div>
+  );
+}
+
+// ─── Honeypot Terminal ─────────────────────────────────────────────────────────
+
+function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {
+  const [input, setInput] = useState("");
+  const [phase, setPhase] = useState("alert"); // "alert" | "prompt" | "checking" | "denied"
+  const [ticket] = useState(() => Math.floor(Math.random() * 90000) + 10000);
+
+  const handleSubmit = async () => {
+    if (!input.trim()) return;
+    setPhase("checking");
+    try {
+      const r = await fetch("/api/blackmarket-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room: roomCode, guess: input.replace(/[^0-9]/g, "") }),
+      });
+      const data = await r.json();
+      if (data.granted) {
+        onBlackMarket();
+      } else {
+        setInput("");
+        setPhase("denied");
+        setTimeout(() => setPhase("prompt"), 2000);
+      }
+    } catch {
+      setInput("");
+      setPhase("denied");
+      setTimeout(() => setPhase("prompt"), 2000);
+    }
+  };
+
+  const R = "#ff3333"; const RD = "#ff6666"; const RM = "#ff4444";
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#000", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", fontFamily: MONO, padding: "32px" }}>
+      <div style={{ color: R, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px" }}>
+        ██████████████████████████████████<br/>
+        █  SFNET SECURITY MODULE v4.7.2  █<br/>
+        ██████████████████████████████████
+      </div>
+      <div style={{ color: RD, fontSize: "10px", letterSpacing: "0.15em", lineHeight: "2.2",
+        textAlign: "left", maxWidth: "420px", width: "100%" }}>
+        <div style={{ color: RM, marginBottom: "4px" }}>sfnet-sec@daemon-4:~$ <span style={{ color: RD }}>./intrusion_scan --live</span></div>
+        <div>{">"} SCANNING SESSION CONTEXT<span style={{ color: R }}>...</span></div>
+        <div>{">"} INTRUSION DETECTED — UNAUTHORIZED TERMINAL ACCESS</div>
+        <div>{">"} SOURCE IP: <span style={{ color: R }}>LOGGED AND TRACED</span></div>
+        <div>{">"} SESSION FINGERPRINT: <span style={{ color: R }}>CAPTURED</span></div>
+        <div>{">"} DEVICE SIGNATURE: <span style={{ color: R }}>ARCHIVED</span></div>
+        <div>{">"} <span style={{ color: "#ff8888" }}>_</span></div>
+        <div style={{ color: RM }}>sfnet-sec@daemon-4:~$ <span style={{ color: RD }}>./alert --escalate SFNET_SEC_OPS</span></div>
+        <div>{">"} ALERTING: <span style={{ color: R }}>SFNET SEC-OPS</span></div>
+        <div>{">"} INCIDENT TICKET: <span style={{ color: R }}>SEC-{ticket}</span></div>
+        <div>{">"} RESPONSE ETA: <span style={{ color: R }}>IMMEDIATE</span></div>
+        <div>{">"} <span style={{ color: "#ff8888" }}>_</span></div>
+        <div style={{ marginTop: "8px", color: R, lineHeight: "1.8" }}>
+          THIS TERMINAL IS PROPERTY OF<br/>
+          STELLAR FINANCIAL NETWORK<br/>
+          UNAUTHORIZED ACCESS IS A VIOLATION<br/>
+          OF SFNET REGULATION 7-ALPHA<br/>
+          <span style={{ fontSize: "9px", opacity: 0.7 }}>~ ALL ACTIVITY LOGGED AND RETAINED FOR PROSECUTION ~</span>
+        </div>
+        {phase === "prompt" && (
+          <div style={{ marginTop: "20px" }}>
+            <div style={{ color: RM, marginBottom: "6px" }}>sfnet-override@daemon-4:~$ <span style={{ color: RD }}>./auth --market-key</span></div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <span style={{ color: R }}>{">"} KEY:</span>
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value.replace(/[^0-9]/g, ""))}
+                onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                inputMode="numeric"
+                autoFocus
+                style={{ background: "transparent", border: "none", borderBottom: `1px solid ${R}`,
+                  color: RD, fontFamily: MONO, fontSize: "13px", outline: "none",
+                  width: "120px", letterSpacing: "0.15em" }}
+              />
+            </div>
+          </div>
+        )}
+        {phase === "checking" && (
+          <div style={{ marginTop: "20px", color: RD }}>{">"} VERIFYING<span style={{ color: R }}>...</span></div>
+        )}
+        {phase === "denied" && (
+          <div style={{ marginTop: "20px", color: R }}>{">"} ACCESS DENIED — KEY INVALID</div>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: "12px", marginTop: "28px" }}>
+        {phase === "alert" && (
+          <button onClick={() => setPhase("prompt")}
+            style={{ background: "none", border: `1px solid #441111`, color: "#664444",
+              fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
+              padding: "8px 16px", cursor: "pointer" }}>
+            OVERRIDE
+          </button>
+        )}
+        <button onClick={onDisconnect}
+          style={{ background: "none", border: `1px solid ${R}`, color: RD,
+            fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
+            padding: "8px 16px", cursor: "pointer" }}>
+          DISCONNECT
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Black Market Player View ──────────────────────────────────────────────────
+
+function BlackMarketView({ blackmarket, onDisconnect }) {
+  const [showArchive, setShowArchive] = useState(false);
+  const active  = blackmarket.active  || [];
+  const archive = [...(blackmarket.archive || [])].reverse();
+
+  const R = "#ff3333"; const RD = "#cc3333"; const RM = "#882222";
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0a0000", display: "flex", flexDirection: "column",
+      alignItems: "center", fontFamily: MONO, padding: "40px 20px", position: "relative" }}>
+      {/* Scanlines */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none",
+        background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(120,0,0,0.06) 2px, rgba(120,0,0,0.06) 4px)" }} />
+
+      <div style={{ width: "100%", maxWidth: "720px", position: "relative", zIndex: 1 }}>
+        {/* Header */}
+        <div style={{ borderBottom: `1px solid ${RM}`, paddingBottom: "14px", marginBottom: "24px",
+          display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div>
+            <div style={{ color: R, fontSize: "clamp(14px, 4vw, 20px)", letterSpacing: "0.15em", fontWeight: "bold" }}>
+              ◈ SHADOW EXCHANGE
+            </div>
+            <div style={{ color: RM, fontSize: "10px", letterSpacing: "0.2em", marginTop: "4px", opacity: 0.7 }}>
+              UNAUTHORIZED NETWORK — PROCEED AT OWN RISK
+            </div>
+          </div>
+          <button onClick={onDisconnect}
+            style={{ background: "none", border: `1px solid ${RM}`, color: RM,
+              fontFamily: MONO, fontSize: "9px", letterSpacing: "0.15em",
+              padding: "5px 12px", cursor: "pointer" }}>
+            DISCONNECT
+          </button>
+        </div>
+
+        {/* Active jobs */}
+        <div style={{ color: RM, fontSize: "9px", letterSpacing: "0.25em", marginBottom: "14px" }}>
+          ACTIVE CONTRACTS — {active.length} POSTED
+        </div>
+
+        {active.length === 0 && (
+          <div style={{ color: "#441111", fontSize: "11px", textAlign: "center", padding: "30px 0",
+            letterSpacing: "0.1em" }}>
+            NO CONTRACTS CURRENTLY AVAILABLE<br/>
+            <span style={{ fontSize: "9px", opacity: 0.5 }}>CHECK BACK AFTER NEXT MARKET CYCLE</span>
+          </div>
+        )}
+
+        {active.map((job, i) => (
+          <div key={job.id} style={{ marginBottom: "20px", border: `1px solid ${RM}`,
+            background: "rgba(80,0,0,0.15)", padding: "16px" }}>
+            <pre style={{ color: RD, fontSize: "12px", margin: 0,
+              whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.8, fontFamily: MONO }}>
+              {job.content}
+            </pre>
+          </div>
+        ))}
+
+        {/* Archive toggle */}
+        {archive.length > 0 && (
+          <div style={{ marginTop: "24px" }}>
+            <button onClick={() => setShowArchive(v => !v)}
+              style={{ background: "none", border: `1px solid ${RM}`, color: RM,
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
+                padding: "6px 14px", width: "100%", cursor: "pointer" }}>
+              {showArchive ? "[ HIDE ARCHIVE ]" : `[ ARCHIVE (${archive.length}) ]`}
+            </button>
+            {showArchive && (
+              <div style={{ marginTop: "12px" }}>
+                {archive.map(job => (
+                  <div key={job.id} style={{ marginBottom: "12px", opacity: 0.45,
+                    borderLeft: `2px solid ${RM}`, paddingLeft: "12px" }}>
+                    <div style={{ color: RM, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>
+                      {job.status === "completed" ? "✓ COMPLETED" : "✗ EXPIRED"}
+                      {job.cycle_closed != null ? ` — CYC ${String(job.cycle_closed).padStart(2,"0")}` : ""}
+                    </div>
+                    <pre style={{ color: "#441111", fontSize: "11px", margin: 0,
+                      whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.7, fontFamily: MONO }}>
+                      {job.content}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Warden Black Market Panel ─────────────────────────────────────────────────
+
+const BM_GEN_TABLES = {
+  bounty: {
+    label: "BOUNTY",
+    rolls: [
+      { label: "Delivery condition (d3)", items: ["1 — Dead", "2 — Alive", "3 — Dead or Alive"] },
+      { label: "Target (d2)", items: ["1 — Solo", "2 — Has backup"] },
+      { label: "Hiring entity (d3)", items: ["1 — Criminal", "2 — Corporate", "3 — Private"] },
+      { label: "Rap sheet (d3)", items: ["1 — Violent", "2 — Non-violent", "3 — Unknown"] },
+    ],
+    d20: ["Unpaid loans","Fraud / embezzlement","Contract breach","Theft","Murder","Assault",
+      "Smuggling","NDA violation","Desertion","Industrial espionage",
+      "Witnessed something they shouldn't have","Mistaken identity",
+      "Someone just wants them gone","Identity theft","Indentured servitude escapee",
+      "Inheritance dispute","Bail jumper","Gambling debt","Roll twice","Roll three times"],
+    d20Label: "Stated reason (d20)",
+  },
+  repo: {
+    label: "REPO",
+    rolls: [
+      { label: "Object (d4)", items: ["1 — Pocket item","2 — Hand-carry item","3 — Cargo container","4 — Ship"] },
+      { label: "Who has it (d2)", items: ["1 — Individual","2 — Group"] },
+      { label: "Disposition (d3)", items: ["1 — Unaware","2 — Aware","3 — Fortified"] },
+      { label: "Threat level (d3)", items: ["1 — Unarmed","2 — Armed","3 — Private security"] },
+    ],
+    notes: "Tactical consideration + Puzzle component: Warden's Operational Manual",
+  },
+  heist: {
+    label: "HEIST",
+    rolls: [
+      { label: "Target (d2)", items: ["1 — Static","2 — Moving"] },
+      { label: "Goods (d2)", items: ["1 — Legal","2 — Illegal"] },
+      { label: "Visibility (d2)", items: ["1 — Private","2 — Public"] },
+      { label: "Security response (d4)", items: ["1 — None","2 — Slow","3 — Fast","4 — Military"] },
+    ],
+  },
+};
+
+function WardenBMJobEditor({ job, onSave, onCancel }) {
+  const [content, setContent] = useState(job?.content || "");
+  const [notes, setNotes] = useState(job?.notes || "");
+  const isNew = !job;
+
+  const sI = { background:"rgba(0,0,0,0.8)", border:`1px solid #441111`, color:"#cc6666",
+    fontFamily:MONO, fontSize:"11px", padding:"6px 8px", width:"100%", boxSizing:"border-box" };
+
+  return (
+    <div style={{ border:`1px solid #441111`, padding:"16px", marginBottom:"12px", background:"rgba(80,0,0,0.1)" }}>
+      <div style={{ color:"#882222", fontSize:"10px", letterSpacing:"0.15em", marginBottom:"10px" }}>
+        {isNew ? "NEW CONTRACT" : "EDIT CONTRACT"}
+      </div>
+      <div style={{ marginBottom:"10px" }}>
+        <div style={{ color:"#664444", fontSize:"10px", marginBottom:"4px" }}>CONTRACT TEXT</div>
+        <textarea value={content} onChange={e=>setContent(e.target.value)}
+          rows={6} placeholder={"BOUNTY NOTICE\nTarget: ...\nReward: ...\nContact: Drop Box N"}
+          style={{ ...sI, resize:"vertical", lineHeight:1.7 }} />
+      </div>
+      <div style={{ marginBottom:"12px" }}>
+        <div style={{ color:"#664444", fontSize:"10px", marginBottom:"4px" }}>WARDEN NOTES (not visible to players)</div>
+        <textarea value={notes} onChange={e=>setNotes(e.target.value)}
+          rows={3} placeholder="Complications, locations, reactive job triggers..."
+          style={{ ...sI, resize:"vertical", lineHeight:1.7, color:"#886666" }} />
+      </div>
+      <div style={{ display:"flex", gap:"8px" }}>
+        <button onClick={() => content.trim() && onSave({ ...job, id: job?.id || `bm-${Date.now()}`, content, notes })}
+          disabled={!content.trim()}
+          style={{ background:"none", border:`1px solid ${content.trim()?"#882222":"#331111"}`,
+            color:content.trim()?"#cc4444":"#441111", fontFamily:MONO,
+            fontSize:"10px", letterSpacing:"0.1em", padding:"6px 14px", cursor:content.trim()?"pointer":"default" }}>
+          {isNew ? "ADD TO POOL" : "SAVE"}
+        </button>
+        <button onClick={onCancel}
+          style={{ background:"none", border:`1px solid #220000`, color:"#553333",
+            fontFamily:MONO, fontSize:"10px", padding:"6px 14px", cursor:"pointer" }}>
+          CANCEL
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, KEYS, showToast }) {
+  const [subPanel, setSubPanel] = useState("active"); // "active"|"pool"|"archive"|"generate"
+  const [editingId, setEditingId] = useState(null);
+  const [expandedNotes, setExpandedNotes] = useState(new Set());
+  const [drawMode, setDrawMode] = useState("random");
+
+  const { active=[], pool=[], archive=[] } = blackmarket;
+  const save = (next) => { setBlackmarket(next); wardenSet(KEYS.blackmarket, next); };
+
+  const promote = (job) => {
+    if (active.length >= 3) { showToast("Board already has 3 active contracts", "#ff8844"); return; }
+    const next = { ...blackmarket,
+      pool: pool.filter(j => j.id !== job.id),
+      active: [...active, { ...job, status:"active", cycle_posted: date.cycle }],
+    };
+    save(next); showToast("CONTRACT POSTED TO SHADOW EXCHANGE", "#cc4444");
+  };
+
+  const closeJob = (job, status) => {
+    const next = { ...blackmarket,
+      active: active.filter(j => j.id !== job.id),
+      archive: [{ ...job, status, cycle_closed: date.cycle }, ...archive],
+    };
+    save(next);
+    showToast(status === "completed" ? "CONTRACT COMPLETED" : "CONTRACT EXPIRED", "#cc4444");
+    // Auto-fill from pool if drawMode is random
+    if (drawMode === "random") {
+      const remaining = next.active.length;
+      if (remaining < 3 && next.pool.length > 0) {
+        const shuffled = [...next.pool].sort(() => Math.random() - 0.5);
+        const draw = shuffled.slice(0, 3 - remaining);
+        const drawIds = new Set(draw.map(j => j.id));
+        save({
+          ...next,
+          pool: next.pool.filter(j => !drawIds.has(j.id)),
+          active: [...next.active, ...draw.map(j => ({ ...j, status:"active", cycle_posted: date.cycle }))],
+        });
+      }
+    }
+  };
+
+  const removeFromPool = (id) => {
+    if (!window.confirm("Remove this contract from pool?")) return;
+    save({ ...blackmarket, pool: pool.filter(j => j.id !== id) });
+  };
+
+  const saveEdit = (updated) => {
+    if (editingId === "new") {
+      save({ ...blackmarket, pool: [...pool, { ...updated, status:"pool" }] });
+      showToast("CONTRACT ADDED TO POOL", "#cc4444");
+    } else {
+      const inActive = active.find(j => j.id === updated.id);
+      if (inActive) {
+        save({ ...blackmarket, active: active.map(j => j.id === updated.id ? updated : j) });
+      } else {
+        save({ ...blackmarket, pool: pool.map(j => j.id === updated.id ? updated : j) });
+      }
+      showToast("CONTRACT UPDATED", "#cc4444");
+    }
+    setEditingId(null);
+  };
+
+  const toggleNotes = (id) => setExpandedNotes(s => {
+    const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+
+  const R = "#ff3333"; const RD = "#cc4444"; const RM = "#882222"; const RDark = "#441111";
+
+  const tabBtn = (id, label, count) => (
+    <button key={id} onClick={() => setSubPanel(id)}
+      style={{ background: subPanel===id ? "rgba(136,34,34,0.15)" : "none",
+        border: `1px solid ${subPanel===id ? RM : RDark}`,
+        color: subPanel===id ? RD : "#664444",
+        fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em",
+        padding:"4px 12px", cursor:"pointer" }}>
+      {label} {count != null ? `(${count})` : ""}
+    </button>
+  );
+
+  const jBtnStyle = (col) => ({ background:"none", border:`1px solid ${col||RDark}`,
+    color:col||"#664444", fontFamily:MONO, fontSize:"9px",
+    padding:"2px 8px", cursor:"pointer", letterSpacing:"0.08em" });
+
+  return (
+    <div style={{ background:"rgba(20,0,0,0.5)", border:`1px solid ${RDark}`, padding:"16px", marginBottom:"16px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"14px", flexWrap:"wrap", gap:"8px" }}>
+        <div style={{ color:RD, fontSize:"10px", letterSpacing:"0.2em" }}>SHADOW EXCHANGE — WARDEN</div>
+        <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
+          <span style={{ color:"#664444", fontSize:"9px" }}>ROTATION:</span>
+          {["random","bespoke"].map(m => (
+            <button key={m} onClick={() => setDrawMode(m)}
+              style={{ background:drawMode===m?"rgba(136,34,34,0.1)":"none",
+                border:`1px solid ${drawMode===m?RM:RDark}`,
+                color:drawMode===m?RD:"#664444",
+                fontFamily:MONO, fontSize:"9px", padding:"3px 8px", cursor:"pointer" }}>
+              {m.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display:"flex", gap:"4px", marginBottom:"12px", flexWrap:"wrap" }}>
+        {tabBtn("active","ACTIVE",active.length)}
+        {tabBtn("pool","POOL",pool.length)}
+        {tabBtn("archive","ARCHIVE",archive.length)}
+        {tabBtn("generate","GENERATE TABLES")}
+      </div>
+
+      {/* Editor overlay */}
+      {editingId && (
+        <WardenBMJobEditor
+          job={editingId === "new" ? null : [...active,...pool].find(j=>j.id===editingId)}
+          onSave={saveEdit}
+          onCancel={() => setEditingId(null)}
+        />
+      )}
+
+      {/* ACTIVE */}
+      {!editingId && subPanel === "active" && (
+        <div>
+          {active.length === 0 && (
+            <div style={{ color:RDark, fontSize:"10px", padding:"8px 0" }}>No active contracts. Promote from pool.</div>
+          )}
+          {active.map(job => (
+            <div key={job.id} style={{ marginBottom:"12px", border:`1px solid ${RM}`,
+              background:"rgba(80,0,0,0.1)", padding:"12px" }}>
+              <pre style={{ color:RD, fontSize:"11px", margin:"0 0 8px 0",
+                whiteSpace:"pre-wrap", wordBreak:"break-word", lineHeight:1.7, fontFamily:MONO }}>
+                {job.content}
+              </pre>
+              {job.notes && (
+                <div>
+                  <button onClick={() => toggleNotes(job.id)} style={{ ...jBtnStyle(RM), marginBottom:"4px" }}>
+                    {expandedNotes.has(job.id) ? "▲ NOTES" : "▼ NOTES"}
+                  </button>
+                  {expandedNotes.has(job.id) && (
+                    <div style={{ color:"#886666", fontSize:"10px", lineHeight:1.7,
+                      padding:"6px 8px", background:"rgba(0,0,0,0.3)", marginTop:"4px" }}>
+                      {job.notes}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div style={{ display:"flex", gap:"6px", marginTop:"8px", flexWrap:"wrap" }}>
+                <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#664444")}>EDIT</button>
+                <button onClick={() => closeJob(job,"completed")} style={jBtnStyle(RM)}>COMPLETE</button>
+                <button onClick={() => closeJob(job,"expired")} style={jBtnStyle(RDark)}>EXPIRE</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* POOL */}
+      {!editingId && subPanel === "pool" && (
+        <div>
+          {pool.length === 0 && (
+            <div style={{ color:RDark, fontSize:"10px", padding:"8px 0" }}>Pool empty. Create contracts below.</div>
+          )}
+          {pool.map(job => (
+            <div key={job.id} style={{ marginBottom:"10px", border:`1px solid ${RDark}`,
+              padding:"10px 12px" }}>
+              <pre style={{ color:"#884444", fontSize:"11px", margin:"0 0 6px 0",
+                whiteSpace:"pre-wrap", wordBreak:"break-word", lineHeight:1.7, fontFamily:MONO }}>
+                {job.content}
+              </pre>
+              {job.notes && (
+                <div>
+                  <button onClick={() => toggleNotes(job.id)} style={{ ...jBtnStyle("#664444"), marginBottom:"4px" }}>
+                    {expandedNotes.has(job.id) ? "▲ NOTES" : "▼ NOTES"}
+                  </button>
+                  {expandedNotes.has(job.id) && (
+                    <div style={{ color:"#664444", fontSize:"10px", lineHeight:1.7,
+                      padding:"6px 8px", background:"rgba(0,0,0,0.3)", marginTop:"4px" }}>
+                      {job.notes}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div style={{ display:"flex", gap:"6px", marginTop:"6px" }}>
+                <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#664444")}>EDIT</button>
+                <button onClick={() => promote(job)} style={jBtnStyle(RM)}>▶ POST TO BOARD</button>
+                <button onClick={() => removeFromPool(job.id)} style={jBtnStyle(RDark)}>REMOVE</button>
+              </div>
+            </div>
+          ))}
+          <button onClick={() => setEditingId("new")}
+            style={{ background:"none", border:`1px solid ${RDark}`, color:"#664444",
+              fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em",
+              padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>
+            + NEW CONTRACT
+          </button>
+        </div>
+      )}
+
+      {/* ARCHIVE */}
+      {!editingId && subPanel === "archive" && (
+        <div>
+          {archive.length === 0 && (
+            <div style={{ color:RDark, fontSize:"10px", padding:"8px 0" }}>No archived contracts yet.</div>
+          )}
+          {archive.map(job => (
+            <div key={job.id} style={{ marginBottom:"12px", opacity:0.8,
+              borderLeft:`2px solid ${job.status==="completed"?RM:RDark}`, paddingLeft:"10px" }}>
+              <div style={{ color:job.status==="completed"?RM:RDark, fontSize:"9px",
+                letterSpacing:"0.15em", marginBottom:"4px" }}>
+                {job.status==="completed"?"✓ COMPLETED":"✗ EXPIRED"}
+                {job.cycle_closed != null ? ` — CYC ${String(job.cycle_closed).padStart(2,"0")}` : ""}
+              </div>
+              <pre style={{ color:"#553333", fontSize:"10px", margin:"0 0 6px 0",
+                whiteSpace:"pre-wrap", wordBreak:"break-word", lineHeight:1.7, fontFamily:MONO }}>
+                {job.content}
+              </pre>
+              {job.notes && (
+                <div>
+                  <button onClick={() => toggleNotes(job.id)} style={{ ...jBtnStyle(RDark), marginBottom:"4px" }}>
+                    {expandedNotes.has(job.id) ? "▲ NOTES" : "▼ NOTES"}
+                  </button>
+                  {expandedNotes.has(job.id) && (
+                    <div style={{ color:"#664444", fontSize:"10px", lineHeight:1.7,
+                      padding:"6px 8px", background:"rgba(0,0,0,0.3)", marginTop:"4px" }}>
+                      {job.notes}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* GENERATION TABLES */}
+      {!editingId && subPanel === "generate" && (
+        <div style={{ color:"#884444", fontSize:"11px" }}>
+          {Object.entries(BM_GEN_TABLES).map(([key, tbl]) => (
+            <div key={key} style={{ marginBottom:"20px", border:`1px solid ${RDark}`, padding:"12px" }}>
+              <div style={{ color:RD, fontSize:"10px", letterSpacing:"0.2em", marginBottom:"10px" }}>{tbl.label} GENERATION</div>
+              {tbl.rolls.map(r => (
+                <div key={r.label} style={{ marginBottom:"8px" }}>
+                  <div style={{ color:RM, fontSize:"9px", marginBottom:"3px" }}>{r.label}</div>
+                  {r.items.map(item => (
+                    <div key={item} style={{ color:"#664444", fontSize:"10px", paddingLeft:"8px", lineHeight:1.7 }}>{item}</div>
+                  ))}
+                </div>
+              ))}
+              {tbl.d20 && (
+                <div style={{ marginTop:"8px" }}>
+                  <div style={{ color:RM, fontSize:"9px", marginBottom:"6px" }}>{tbl.d20Label}</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"2px 16px" }}>
+                    {tbl.d20.map((item, i) => (
+                      <div key={i} style={{ color:"#664444", fontSize:"10px" }}>
+                        <span style={{ color:"#553333", minWidth:"22px", display:"inline-block" }}>{i+1}.</span>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tbl.notes && (
+                <div style={{ color:"#553333", fontSize:"10px", marginTop:"8px", fontStyle:"italic" }}>{tbl.notes}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2924,6 +3510,7 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
   storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig,
   jobs, setJobs, crew, setCrew, debt, setDebt, portfolio, setPortfolio, catalogs, setCatalogs,
+  blackmarket, setBlackmarket,
   theme, setTheme, onLogout, KEYS }) {
 
   const [panel, setPanel] = useState("corps"); // "headline" | "jobs" | "economy" | "corps" | "session" | "settings"
@@ -3154,6 +3741,24 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
       wardenSet(KEYS.catalogs, newCatalogs);
     }
 
+    // ── Black Market: expire unfrozen active jobs, refill from pool ──
+    if (blackmarket) {
+      const bmActive = blackmarket.active || [];
+      const bmPool = blackmarket.pool || [];
+      const bmArchive = blackmarket.archive || [];
+      const expiring = bmActive;
+      const newBmArchive = [...expiring.map(j => ({ ...j, status:"expired", cycle_closed: newDate.cycle })), ...bmArchive];
+      // Refill with up to 3 from pool (random order)
+      const shuffled = [...bmPool].sort(() => Math.random() - 0.5);
+      const draw = shuffled.slice(0, 3);
+      const drawIds = new Set(draw.map(j => j.id));
+      const newBmPool = bmPool.filter(j => !drawIds.has(j.id));
+      const newBmActive = draw.map(j => ({ ...j, status:"active", cycle_posted: newDate.cycle }));
+      const newBm = { pool: newBmPool, active: newBmActive, archive: newBmArchive };
+      setBlackmarket(newBm);
+      wardenSet(KEYS.blackmarket, newBm);
+    }
+
     setPendingAdvance(null);
     setPanel(null);
   };
@@ -3203,7 +3808,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {/* Toolbar — scrollable on mobile */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px",
           overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["session","SESSION"],["settings","SETTINGS"]].map(([p, label]) => (
+          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["session","SESSION"],["blackmkt","BLACK MKT"],["settings","SETTINGS"]].map(([p, label]) => (
             <button key={p} onClick={() => setPanel(panel === p ? null : p)}
               style={{ background: panel === p ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                 border: `1px solid ${panel === p ? GREEN_MID : GREEN_DARK}`,
@@ -4030,6 +4635,14 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           </div>
         )}
 
+        {/* Panel: Black Market */}
+        {panel === "blackmkt" && (
+          <WardenBlackMarketPanel
+            blackmarket={blackmarket} setBlackmarket={setBlackmarket}
+            date={date} wardenSet={wardenSet} KEYS={KEYS} showToast={showToast}
+          />
+        )}
+
         {/* Panel: Settings */}
         {panel === "settings" && (
           <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid ${GREEN_DARK}`, padding: "20px", marginBottom: "20px" }}>
@@ -4150,7 +4763,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 style={{ ...inputStyle, width: "140px" }} />
               <button onClick={handleSavePin} style={{ ...actionBtn }}>SAVE PIN</button>
               <button onClick={() => {
-                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, jobs, crew, debt, portfolio, catalogs, exportedAt: new Date().toISOString() };
+                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, jobs, crew, debt, portfolio, catalogs, blackmarket, exportedAt: new Date().toISOString() };
                 const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -4173,7 +4786,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           return;
                         }
                         const confirmed = window.confirm(
-                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, and catalogs. This cannot be undone."
+                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, catalogs, and black market board. This cannot be undone."
                         );
                         if (!confirmed) return;
                         const s = data.stocks;
@@ -4187,6 +4800,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         const db = Array.isArray(data.debt) ? data.debt : [];
                         const pf = Array.isArray(data.portfolio) ? data.portfolio : [];
                         const cat = data.catalogs && typeof data.catalogs === "object" ? data.catalogs : {};
+                        const bm  = data.blackmarket && typeof data.blackmarket === "object" ? data.blackmarket : INITIAL_BLACKMARKET;
                         setStocks(sortByPrice(s));
                         setHeadlines(h);
                         setHistory(hist);
@@ -4198,6 +4812,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         setDebt(db);
                         setPortfolio(pf);
                         setCatalogs(cat);
+                        setBlackmarket(bm);
                         await wardenSet(KEYS.stocks, s);
                         await wardenSet(KEYS.headlines, h);
                         await wardenSet(KEYS.history, hist);
@@ -4208,6 +4823,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         await wardenSet(KEYS.debt, db);
                         await wardenSet(KEYS.portfolio, pf);
                         await wardenSet(KEYS.catalogs, cat);
+                        await wardenSet(KEYS.blackmarket, bm);
                         await wardenSet(KEYS.settings, { alwaysMerge: am, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
                         e.target.value = "";
                         alert("Backup restored successfully.");
@@ -4399,6 +5015,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
   const [debt, setDebt] = useState([]);
   const [portfolio, setPortfolio] = useState([]);
   const [catalogs, setCatalogs] = useState({});
+  const [blackmarket, setBlackmarket] = useState(INITIAL_BLACKMARKET);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -4414,6 +5031,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       const db = await safeGet(KEYS.debt, []);
       const pf = await safeGet(KEYS.portfolio, []);
       const cat = await safeGet(KEYS.catalogs, {});
+      const bm  = await safeGet(KEYS.blackmarket, null);
       setStocks(sortByPrice(s));
       setHeadlines(h);
       setHistory(hist);
@@ -4428,6 +5046,14 @@ export default function StonksApp({ roomCode = "stonks" }) {
       setDebt(Array.isArray(db) ? db : []);
       setPortfolio(Array.isArray(pf) ? pf : []);
       setCatalogs(cat && typeof cat === "object" ? { ...INITIAL_CATALOGS, ...cat } : INITIAL_CATALOGS);
+      // Merge saved BM data — saved active/archive win; pool merges (seed jobs not yet in saved pool are prepended)
+      if (bm && typeof bm === "object") {
+        const savedIds = new Set([...(bm.pool||[]), ...(bm.active||[]), ...(bm.archive||[])].map(j => j.id));
+        const newSeeds = INITIAL_BLACKMARKET.pool.filter(j => !savedIds.has(j.id));
+        setBlackmarket({ pool: [...newSeeds, ...(bm.pool||[])], active: bm.active||[], archive: bm.archive||[] });
+      } else {
+        setBlackmarket(INITIAL_BLACKMARKET);
+      }
       setLoaded(true);
     })();
   }, []);
@@ -4442,46 +5068,19 @@ export default function StonksApp({ roomCode = "stonks" }) {
   }
 
   if (view === "honeypot") {
-    return (
-      <div style={{ minHeight: "100vh", background: "#000", display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", fontFamily: MONO, padding: "32px" }}>
-        <div style={{ color: "#ff3333", fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px" }}>
-          ██████████████████████████████████<br/>
-          █  SFNET SECURITY MODULE v4.7.2  █<br/>
-          ██████████████████████████████████
-        </div>
-        <div style={{ color: "#ff6666", fontSize: "10px", letterSpacing: "0.15em", lineHeight: "2.2", textAlign: "left", maxWidth: "420px", width: "100%" }}>
-          <div style={{ color: "#ff4444", marginBottom: "4px" }}>sfnet-sec@daemon-4:~$ <span style={{ color: "#ff6666" }}>./intrusion_scan --live</span></div>
-          <div>{">"} SCANNING SESSION CONTEXT<span style={{ color: "#ff3333" }}>...</span></div>
-          <div>{">"} INTRUSION DETECTED — UNAUTHORIZED TERMINAL ACCESS</div>
-          <div>{">"} SOURCE IP: <span style={{ color: "#ff3333" }}>LOGGED AND TRACED</span></div>
-          <div>{">"} SESSION FINGERPRINT: <span style={{ color: "#ff3333" }}>CAPTURED</span></div>
-          <div>{">"} DEVICE SIGNATURE: <span style={{ color: "#ff3333" }}>ARCHIVED</span></div>
-          <div>{">"} <span style={{ color: "#ff8888" }}>_</span></div>
-          <div style={{ color: "#ff4444" }}>sfnet-sec@daemon-4:~$ <span style={{ color: "#ff6666" }}>./alert --escalate SFNET_SEC_OPS</span></div>
-          <div>{">"} ALERTING: <span style={{ color: "#ff3333" }}>SFNET SEC-OPS</span></div>
-          <div>{">"} INCIDENT TICKET: <span style={{ color: "#ff3333" }}>SEC-{Math.floor(Math.random()*90000)+10000}</span></div>
-          <div>{">"} RESPONSE ETA: <span style={{ color: "#ff3333" }}>IMMEDIATE</span></div>
-          <div>{">"} <span style={{ color: "#ff8888" }}>_</span></div>
-          <div style={{ marginTop: "8px", color: "#ff3333", lineHeight: "1.8" }}>
-            THIS TERMINAL IS PROPERTY OF<br/>
-            STELLAR FINANCIAL NETWORK<br/>
-            UNAUTHORIZED ACCESS IS A VIOLATION<br/>
-            OF SFNET REGULATION 7-ALPHA<br/>
-            <span style={{ fontSize: "9px", opacity: 0.7 }}>~ ALL ACTIVITY LOGGED AND RETAINED FOR PROSECUTION ~</span>
-          </div>
-        </div>
-        <button onClick={() => setView("player")}
-          style={{ marginTop: "32px", background: "none", border: "1px solid #ff3333",
-            color: "#ff6666", fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
-            padding: "8px 16px", cursor: "pointer" }}>
-          DISCONNECT
-        </button>
-      </div>
-    );
+    return <HoneypotTerminal
+      roomCode={roomCode}
+      onBlackMarket={() => setView("blackmarket")}
+      onDisconnect={() => setView("player")}
+    />;
   }
 
-  if (view === "pin") {
+  if (view === "blackmarket") {
+    return <BlackMarketView
+      blackmarket={blackmarket}
+      onDisconnect={() => setView("player")}
+    />;
+  }
     return <PinGate
       roomCode={roomCode}
       onSuccess={(pin) => { setStoredPin(pin); setView("warden"); }}
@@ -4513,6 +5112,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
         debt={debt} setDebt={setDebt}
         portfolio={portfolio} setPortfolio={setPortfolio}
         catalogs={catalogs} setCatalogs={setCatalogs}
+        blackmarket={blackmarket} setBlackmarket={setBlackmarket}
         theme={theme} setTheme={setTheme}
         onLogout={() => setView("player")}
         KEYS={KEYS}
