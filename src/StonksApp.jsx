@@ -2761,6 +2761,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
 
   const moveBMToPool = (job) => {
     const next = { ...blackmarket,
+      active: active.filter(j => j.id !== job.id),
       archive: archive.filter(j => j.id !== job.id),
       pool: [...pool, { ...job, status:"pool", cycle_posted: undefined, cycle_closed: undefined }],
     };
