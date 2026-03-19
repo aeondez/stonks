@@ -63,6 +63,19 @@ const INITIAL_MERGERS = [
   { name: "Hayden-Rhodes Dynamics",    partner1: "Hayden Enterprises",        partner2: "Rhodes Driveyards",  industry: "Fuel/Shipyards",triggered: false },
 ];
 
+const INITIAL_CATALOGS = {
+  "Vance Pharmaceuticals": {
+    status: "unlocked",
+    ineligibleReason: "",
+    benefits: "50% OFF ALL MEDICAL SERVICES AT ANY VANCE PHARMACEUTICALS MEDICAL CENTER",
+    items: [
+      { id: "vance-1", name: "Vance Stimpak\u2122",    price: "10kcr", notes: "Same as standard stimpak, but with zero cooldown." },
+      { id: "vance-2", name: "Vance Regen Patch\u2122", price: "15kcr", notes: "Heals 1 Wound. Takes 8 hours. Can be used in the field." },
+      { id: "vance-3", name: "Vanex\u2122",             price: "2kcr",  notes: "Sanity Save. Fail: Take 1 Stress. Pass: Reduce Stress by 1d5." },
+    ],
+  },
+};
+
 // Compute merger display status from live stocks; only "triggered" is stored.
 const getMergerStatus = (merger, stocks) => {
   if (merger.triggered) return "triggered";
@@ -4375,7 +4388,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
              : (cr && typeof cr === "object" && cr.profiles != null ? cr : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }));
       setDebt(Array.isArray(db) ? db : []);
       setPortfolio(Array.isArray(pf) ? pf : []);
-      setCatalogs(cat && typeof cat === "object" ? cat : {});
+      setCatalogs(cat && typeof cat === "object" ? { ...INITIAL_CATALOGS, ...cat } : INITIAL_CATALOGS);
       setLoaded(true);
     })();
   }, []);
