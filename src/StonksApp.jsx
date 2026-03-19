@@ -453,14 +453,21 @@ function Scanlines({ color }) {
     const iv = setInterval(() => setPos((p) => (p + 1) % 100), 30);
     return () => clearInterval(iv);
   }, []);
-  const scanlineColor = color || "var(--c-scanline, rgba(180,255,180,0.04))";
-  const gridColor = color ? color.replace(/[\d.]+\)$/, "0.06)") : "rgba(0,0,0,0.08)";
+  const sweepColor = color || "var(--c-scanline, rgba(180,255,180,0.18))";
+  const gridColor  = color
+    ? color.replace(/[\d.]+\)$/, "0.13)")
+    : "rgba(0,0,0,0.18)";
+  const overlay = {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    width: "100%", height: "100%",
+    pointerEvents: "none", zIndex: 9999,
+  };
   return (
     <>
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 10,
+      <div style={{ ...overlay,
         background: `repeating-linear-gradient(0deg, transparent, transparent 2px, ${gridColor} 2px, ${gridColor} 4px)` }} />
-      <div style={{ position: "fixed", top: `${pos}%`, left: 0, right: 0, height: "2px",
-        background: scanlineColor, pointerEvents: "none", zIndex: 11 }} />
+      <div style={{ ...overlay, top: `${pos}%`, height: "3px", bottom: "auto",
+        background: sweepColor, opacity: 0.7 }} />
     </>
   );
 }
@@ -3857,6 +3864,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   return (
     <div style={{ minHeight: "100vh", background: BG, fontFamily: MONO, padding: "32px 20px",
       position: "relative", overflow: "hidden" }}>
+      <Scanlines />
       <div style={{ width: "100%", maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 1 }}>
 
         {/* Warden Header */}
