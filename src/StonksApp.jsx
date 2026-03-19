@@ -884,7 +884,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                 }} style={jBtnStyle(job.frozen ? "#4488cc" : GREEN_DARK)}>
                   {job.frozen ? "📌 STICKY" : "STICKY OFF"}
                 </button>
-                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
+                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>REMOVE</button>
               </div>
             </div>
           ))}
@@ -918,7 +918,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                 }} style={jBtnStyle(job.frozen ? "#4488cc" : GREEN_DARK)}>
                   {job.frozen ? "📌 STICKY" : "STICKY OFF"}
                 </button>
-                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
+                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>REMOVE</button>
               </div>
             </div>
           ))}
@@ -957,7 +957,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                   <button onClick={() => uncompleteJob(job)} style={jBtnStyle("#4466aa")}>↩ MARK INCOMPLETE</button>
                   {!isRevoked && <button onClick={() => revokeJob(job)} style={jBtnStyle("#664422")}>REVOKE</button>}
                   {isRevoked && <button onClick={() => completeJob(job, true)} style={jBtnStyle(GREEN_DARK)}>MARK COMPLETE</button>}
-                  <button onClick={() => removeJob(job.id)} style={jBtnStyle("#664444")}>REMOVE</button>
+                  <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>REMOVE</button>
                 </div>
               </div>
             );
@@ -1327,7 +1327,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
             <input value={b.label} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,label:e.target.value}:x))} placeholder="Label" style={{ ...sI, flex: 1 }} />
             <input type="number" value={b.amount} onChange={e => setFlatBonuses(f => f.map((x,j)=>j===i?{...x,amount:e.target.value}:x))} placeholder="cr" style={{ ...sI, width: "80px" }} />
             <span style={{ color: GREEN_DARK, fontSize: "10px" }}>cr</span>
-            <button onClick={() => setFlatBonuses(f=>f.filter((_,j)=>j!==i))} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+            <button onClick={() => setFlatBonuses(f=>f.filter((_,j)=>j!==i))} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#aa6666" }}>✕</button>
           </div>
         ))}
         <button onClick={() => setFlatBonuses(f=>[...f,{id:Date.now(),label:"",amount:""}])}
@@ -1368,7 +1368,7 @@ function PayoutCalculator({ jobs, crew, setCrew, stocks, portfolio, setPortfolio
               <div style={{ display:"flex", gap:"8px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center" }}>
                 <input value={p.name} onChange={e=>updateProfile(p.id,{name:e.target.value})} placeholder="Name" style={{ ...sI, width:"130px" }} />
                 <input value={p.role} onChange={e=>updateProfile(p.id,{role:e.target.value})} placeholder="Class / Role" style={{ ...sI, width:"110px" }} />
-                <button onClick={()=>removeProfile(p.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+                <button onClick={()=>removeProfile(p.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#aa6666", marginLeft:"auto" }}>✕</button>
               </div>
               <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"8px", alignItems:"center" }}>
                 {[["trained","T",500],["expert","E",1000],["master","M",2000]].map(([field,lbl2,rate]) => (
@@ -1455,9 +1455,9 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
     <div>
       {debt.length > 0 && (
         <div style={{ display:"flex", gap:"24px", marginBottom:"16px", padding:"12px", border:`1px solid #3a1a1a`, background:"rgba(20,5,5,0.5)" }}>
-          <div><div style={{ color:"#cc5555", fontSize:"22px", fontWeight:"bold" }}>{debt.length}</div><div style={{ color:"#664444", fontSize:"10px" }}>ACTIVE DEBTORS</div></div>
-          <div><div style={{ color:"#cc5555", fontSize:"22px", fontWeight:"bold" }}>+{debt.length}</div><div style={{ color:"#664444", fontSize:"10px" }}>MIN STRESS</div></div>
-          <div><div style={{ color:"#cc8855", fontSize:"18px", fontWeight:"bold" }}>{totalOwed.toLocaleString()}cr</div><div style={{ color:"#664444", fontSize:"10px" }}>TOTAL OWED</div></div>
+          <div><div style={{ color:"#cc5555", fontSize:"22px", fontWeight:"bold" }}>{debt.length}</div><div style={{ color:"#aa6666", fontSize:"10px" }}>ACTIVE DEBTORS</div></div>
+          <div><div style={{ color:"#cc5555", fontSize:"22px", fontWeight:"bold" }}>+{debt.length}</div><div style={{ color:"#aa6666", fontSize:"10px" }}>MIN STRESS</div></div>
+          <div><div style={{ color:"#cc8855", fontSize:"18px", fontWeight:"bold" }}>{totalOwed.toLocaleString()}cr</div><div style={{ color:"#aa6666", fontSize:"10px" }}>TOTAL OWED</div></div>
         </div>
       )}
       {debt.length === 0 && <div style={{ color:GREEN_DARK, fontSize:"11px", padding:"10px 0" }}>No active debts.</div>}
@@ -1471,12 +1471,12 @@ function DebtPanel({ debt, setDebt, wardenSet, KEYS }) {
             <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cr/mo</span>
             <input type="number" value={d.termMonths} onChange={e=>upd(d.id,{termMonths:parseInt(e.target.value)||0})} placeholder="mo" style={{ ...sI, width:"55px" }} />
             <span style={{ color:GREEN_DARK, fontSize:"10px" }}>cycles remaining</span>
-            <button onClick={()=>del(d.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+            <button onClick={()=>del(d.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#aa6666" }}>✕</button>
           </div>
         </div>
       ))}
       <button onClick={addDebt}
-        style={{ background:"none", border:`1px solid #3a2a2a`, color:"#664444",
+        style={{ background:"none", border:`1px solid #3a2a2a`, color:"#aa6666",
           fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em", padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>
         + ADD DEBTOR
       </button>
@@ -1526,7 +1526,7 @@ function PortfolioPanel({ portfolio, setPortfolio, stocks, wardenSet, KEYS }) {
                 <button onClick={()=>upd(h.id,{shares:(h.shares||0)+1})} style={btnS}>+</button>
                 <span style={{ color:GREEN_DARK, fontSize:"10px", marginLeft:"2px" }}>shares</span>
               </div>
-              <button onClick={()=>del(h.id)} style={{ ...sI, padding:"2px 7px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+              <button onClick={()=>del(h.id)} style={{ ...sI, padding:"2px 7px", cursor:"pointer", color:"#aa6666", marginLeft:"auto" }}>✕</button>
             </div>
             <div style={{ display:"flex", gap:"16px", flexWrap:"wrap", fontSize:"11px" }}>
               <span style={{ color:GREEN_DARK }}>Grant: <span style={{ color:"#6688aa" }}>{(h.grantPrice||0).toLocaleString()}cr</span></span>
@@ -1703,7 +1703,7 @@ function ContractorPanel({ crew, setCrew, wardenSet, KEYS }) {
             <input value={c.name} onChange={e=>upd(c.id,{name:e.target.value})}
               placeholder="Name (optional)"
               style={{ ...sI, flex:1, minWidth:"120px" }} />
-            <button onClick={()=>del(c.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#664444", marginLeft:"auto" }}>✕</button>
+            <button onClick={()=>del(c.id)} style={{ ...sI, padding:"2px 6px", cursor:"pointer", color:"#aa6666", marginLeft:"auto" }}>✕</button>
           </div>
           <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap" }}>
             {/* Salary — editable, pre-filled by occupation */}
@@ -1776,7 +1776,7 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
             <input value={it.name} onChange={e=>updItem(it.id,{name:e.target.value})} placeholder="Item name" style={{ ...sI, flex:"2 1 100px", minWidth:"80px" }} />
             <input value={it.price} onChange={e=>updItem(it.id,{price:e.target.value})} placeholder="Price" style={{ ...sI, width:"80px" }} />
             <input value={it.notes} onChange={e=>updItem(it.id,{notes:e.target.value})} placeholder="Notes" style={{ ...sI, flex:"3 1 100px", minWidth:"80px" }} />
-            <button onClick={()=>delItem(it.id)} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#664444" }}>✕</button>
+            <button onClick={()=>delItem(it.id)} style={{ ...sI, padding:"1px 6px", cursor:"pointer", color:"#aa6666" }}>✕</button>
           </div>
         ))}
         <button onClick={addItem} style={{ background:"none", border:`1px solid #1a2a3a`, color:GREEN_MID, fontFamily:MONO, fontSize:"10px", padding:"4px 12px", cursor:"pointer" }}>+ ADD ITEM</button>
@@ -2194,7 +2194,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
             <div style={{ color: GREEN_DIM, fontSize: "10px", letterSpacing: "0.2em", marginTop: "4px", opacity: 0.5 }}>
               SFN MARKET DATA
             </div>
-            <div style={{ color: GREEN_DARK, fontSize: "10px", letterSpacing: "0.15em", marginTop: "2px", opacity: 0.6 }}>
+            <div style={{ color: HEADER_GREEN, fontSize: "10px", letterSpacing: "0.15em", marginTop: "2px" }}>
               MKT {computeMarketCap(stocks).toLocaleString()}cr
             </div>
           </div>
@@ -2520,7 +2520,7 @@ function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {
       <div style={{ display: "flex", gap: "12px", marginTop: "28px" }}>
         {phase === "alert" && (
           <button onClick={() => setPhase("prompt")}
-            style={{ background: "none", border: `1px solid #441111`, color: "#664444",
+            style={{ background: "none", border: `1px solid #441111`, color: "#aa6666",
               fontFamily: MONO, fontSize: "10px", letterSpacing: "0.15em",
               padding: "8px 16px", cursor: "pointer" }}>
             OVERRIDE
@@ -2682,13 +2682,13 @@ function WardenBMJobEditor({ job, onSave, onCancel }) {
         {isNew ? "NEW CONTRACT" : "EDIT CONTRACT"}
       </div>
       <div style={{ marginBottom:"10px" }}>
-        <div style={{ color:"#664444", fontSize:"10px", marginBottom:"4px" }}>CONTRACT TEXT</div>
+        <div style={{ color:"#aa6666", fontSize:"10px", marginBottom:"4px" }}>CONTRACT TEXT</div>
         <textarea value={content} onChange={e=>setContent(e.target.value)}
           rows={6} placeholder={"BOUNTY NOTICE\nTarget: ...\nReward: ...\nContact: Drop Box N"}
           style={{ ...sI, resize:"vertical", lineHeight:1.7 }} />
       </div>
       <div style={{ marginBottom:"12px" }}>
-        <div style={{ color:"#664444", fontSize:"10px", marginBottom:"4px" }}>WARDEN NOTES (not visible to players)</div>
+        <div style={{ color:"#aa6666", fontSize:"10px", marginBottom:"4px" }}>WARDEN NOTES (not visible to players)</div>
         <textarea value={notes} onChange={e=>setNotes(e.target.value)}
           rows={3} placeholder="Complications, locations, reactive job triggers..."
           style={{ ...sI, resize:"vertical", lineHeight:1.7, color:"#886666" }} />
@@ -2702,7 +2702,7 @@ function WardenBMJobEditor({ job, onSave, onCancel }) {
           {isNew ? "ADD TO POOL" : "SAVE"}
         </button>
         <button onClick={onCancel}
-          style={{ background:"none", border:`1px solid #220000`, color:"#553333",
+          style={{ background:"none", border:`1px solid #220000`, color:"#996666",
             fontFamily:MONO, fontSize:"10px", padding:"6px 14px", cursor:"pointer" }}>
           CANCEL
         </button>
@@ -2757,6 +2757,27 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
     save({ ...blackmarket, pool: pool.filter(j => j.id !== id) });
   };
 
+  const markIncomplete = (job) => {
+    if (active.length >= 3) { showToast("Board already has 3 active contracts", "#ff8844"); return; }
+    const next = { ...blackmarket,
+      archive: archive.filter(j => j.id !== job.id),
+      active: [...active, { ...job, status:"active", cycle_posted: date.cycle, cycle_closed: undefined }],
+    };
+    save(next); showToast("CONTRACT RETURNED TO BOARD", "#cc4444");
+  };
+
+  const revokeArchived = (job) => {
+    const next = { ...blackmarket,
+      archive: archive.map(j => j.id === job.id ? { ...j, status:"revoked" } : j),
+    };
+    save(next); showToast("CONTRACT REVOKED", "#cc4444");
+  };
+
+  const removeArchived = (id) => {
+    if (!window.confirm("Permanently remove this archived contract?")) return;
+    save({ ...blackmarket, archive: archive.filter(j => j.id !== id) });
+  };
+
   const saveEdit = (updated) => {
     if (editingId === "new") {
       save({ ...blackmarket, pool: [...pool, { ...updated, status:"pool" }] });
@@ -2777,13 +2798,36 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
     const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
 
-  const R = "#ff3333"; const RD = "#cc4444"; const RM = "#882222"; const RDark = "#441111";
+  const generateJob = (tableKey) => {
+    const tbl = BM_GEN_TABLES[tableKey];
+    if (!tbl) return;
+    // Roll one item from each dice roll table
+    const lines = tbl.rolls.map(r => {
+      const pick = r.items[Math.floor(Math.random() * r.items.length)];
+      return `${r.label.replace(/ \(d\d+\)/, "")}: ${pick.replace(/^\d+ — /, "")}`;
+    });
+    // Roll d20 table if present
+    if (tbl.d20) {
+      const pick = tbl.d20[Math.floor(Math.random() * tbl.d20.length)];
+      const label = tbl.d20Label.replace(/ \(d\d+\)/, "");
+      lines.push(`${label}: ${pick}`);
+    }
+    const content = `${tbl.label}
+${lines.join("
+")}`;
+    const newJob = { id: `bm-${Date.now()}`, content, notes: "", status: "pool" };
+    save({ ...blackmarket, pool: [...pool, newJob] });
+    showToast(`${tbl.label} CONTRACT GENERATED → POOL`, "#cc4444");
+    setSubPanel("pool");
+  };
+
+  const R = "#ff5555"; const RD = "#ff3333"; const RM = "#cc3333"; const RDark = "#883333";
 
   const tabBtn = (id, label, count) => (
     <button key={id} onClick={() => setSubPanel(id)}
       style={{ background: subPanel===id ? "rgba(136,34,34,0.15)" : "none",
         border: `1px solid ${subPanel===id ? RM : RDark}`,
-        color: subPanel===id ? RD : "#664444",
+        color: subPanel===id ? RD : "#aa6666",
         fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em",
         padding:"4px 12px", cursor:"pointer" }}>
       {label} {count != null ? `(${count})` : ""}
@@ -2791,7 +2835,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
   );
 
   const jBtnStyle = (col) => ({ background:"none", border:`1px solid ${col||RDark}`,
-    color:col||"#664444", fontFamily:MONO, fontSize:"9px",
+    color:col||"#aa6666", fontFamily:MONO, fontSize:"9px",
     padding:"2px 8px", cursor:"pointer", letterSpacing:"0.08em" });
 
   return (
@@ -2799,12 +2843,12 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"14px", flexWrap:"wrap", gap:"8px" }}>
         <div style={{ color:RD, fontSize:"10px", letterSpacing:"0.2em" }}>SHADOW EXCHANGE — WARDEN</div>
         <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
-          <span style={{ color:"#664444", fontSize:"9px" }}>ROTATION:</span>
+          <span style={{ color:"#aa6666", fontSize:"9px" }}>ROTATION:</span>
           {["random","bespoke"].map(m => (
             <button key={m} onClick={() => setDrawMode(m)}
               style={{ background:drawMode===m?"rgba(136,34,34,0.1)":"none",
                 border:`1px solid ${drawMode===m?RM:RDark}`,
-                color:drawMode===m?RD:"#664444",
+                color:drawMode===m?RD:"#aa6666",
                 fontFamily:MONO, fontSize:"9px", padding:"3px 8px", cursor:"pointer" }}>
               {m.toUpperCase()}
             </button>
@@ -2816,7 +2860,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
         {tabBtn("active","ACTIVE",active.length)}
         {tabBtn("pool","POOL",pool.length)}
         {tabBtn("archive","ARCHIVE",archive.length)}
-        {tabBtn("generate","GENERATE TABLES")}
+        {tabBtn("generate","GENERATION TABLES")}
       </div>
 
       {/* Editor overlay */}
@@ -2855,7 +2899,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
                 </div>
               )}
               <div style={{ display:"flex", gap:"6px", marginTop:"8px", flexWrap:"wrap" }}>
-                <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#664444")}>EDIT</button>
+                <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#aa6666")}>EDIT</button>
                 <button onClick={() => closeJob(job,"completed")} style={jBtnStyle(RM)}>COMPLETE</button>
                 <button onClick={() => closeJob(job,"expired")} style={jBtnStyle(RDark)}>EXPIRE</button>
               </div>
@@ -2873,17 +2917,17 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
           {pool.map(job => (
             <div key={job.id} style={{ marginBottom:"10px", border:`1px solid ${RDark}`,
               padding:"10px 12px" }}>
-              <pre style={{ color:"#884444", fontSize:"11px", margin:"0 0 6px 0",
+              <pre style={{ color:"#cc6666", fontSize:"11px", margin:"0 0 6px 0",
                 whiteSpace:"pre-wrap", wordBreak:"break-word", lineHeight:1.7, fontFamily:MONO }}>
                 {job.content}
               </pre>
               {job.notes && (
                 <div>
-                  <button onClick={() => toggleNotes(job.id)} style={{ ...jBtnStyle("#664444"), marginBottom:"4px" }}>
+                  <button onClick={() => toggleNotes(job.id)} style={{ ...jBtnStyle("#aa6666"), marginBottom:"4px" }}>
                     {expandedNotes.has(job.id) ? "▲ NOTES" : "▼ NOTES"}
                   </button>
                   {expandedNotes.has(job.id) && (
-                    <div style={{ color:"#664444", fontSize:"10px", lineHeight:1.7,
+                    <div style={{ color:"#aa6666", fontSize:"10px", lineHeight:1.7,
                       padding:"6px 8px", background:"rgba(0,0,0,0.3)", marginTop:"4px" }}>
                       {job.notes}
                     </div>
@@ -2891,14 +2935,14 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
                 </div>
               )}
               <div style={{ display:"flex", gap:"6px", marginTop:"6px" }}>
-                <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#664444")}>EDIT</button>
+                <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#aa6666")}>EDIT</button>
                 <button onClick={() => promote(job)} style={jBtnStyle(RM)}>▶ POST TO BOARD</button>
                 <button onClick={() => removeFromPool(job.id)} style={jBtnStyle(RDark)}>REMOVE</button>
               </div>
             </div>
           ))}
           <button onClick={() => setEditingId("new")}
-            style={{ background:"none", border:`1px solid ${RDark}`, color:"#664444",
+            style={{ background:"none", border:`1px solid ${RDark}`, color:"#aa6666",
               fontFamily:MONO, fontSize:"10px", letterSpacing:"0.1em",
               padding:"5px 14px", cursor:"pointer", marginTop:"6px" }}>
             + NEW CONTRACT
@@ -2920,7 +2964,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
                 {job.status==="completed"?"✓ COMPLETED":"✗ EXPIRED"}
                 {job.cycle_closed != null ? ` — CYC ${String(job.cycle_closed).padStart(2,"0")}` : ""}
               </div>
-              <pre style={{ color:"#553333", fontSize:"10px", margin:"0 0 6px 0",
+              <pre style={{ color:"#996666", fontSize:"10px", margin:"0 0 6px 0",
                 whiteSpace:"pre-wrap", wordBreak:"break-word", lineHeight:1.7, fontFamily:MONO }}>
                 {job.content}
               </pre>
@@ -2930,13 +2974,22 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
                     {expandedNotes.has(job.id) ? "▲ NOTES" : "▼ NOTES"}
                   </button>
                   {expandedNotes.has(job.id) && (
-                    <div style={{ color:"#664444", fontSize:"10px", lineHeight:1.7,
+                    <div style={{ color:"#cc8888", fontSize:"10px", lineHeight:1.7,
                       padding:"6px 8px", background:"rgba(0,0,0,0.3)", marginTop:"4px" }}>
                       {job.notes}
                     </div>
                   )}
                 </div>
               )}
+              <div style={{ display:"flex", gap:"6px", marginTop:"6px", flexWrap:"wrap" }}>
+                {job.status !== "revoked" && (
+                  <button onClick={() => markIncomplete(job)} style={jBtnStyle(RM)}>↩ MARK INCOMPLETE</button>
+                )}
+                {job.status !== "revoked" && (
+                  <button onClick={() => revokeArchived(job)} style={jBtnStyle(RDark)}>⊘ REVOKE</button>
+                )}
+                <button onClick={() => removeArchived(job.id)} style={jBtnStyle("#553333")}>REMOVE</button>
+              </div>
             </div>
           ))}
         </div>
@@ -2944,15 +2997,23 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
 
       {/* GENERATION TABLES */}
       {!editingId && subPanel === "generate" && (
-        <div style={{ color:"#884444", fontSize:"11px" }}>
+        <div>
           {Object.entries(BM_GEN_TABLES).map(([key, tbl]) => (
             <div key={key} style={{ marginBottom:"20px", border:`1px solid ${RDark}`, padding:"12px" }}>
-              <div style={{ color:RD, fontSize:"10px", letterSpacing:"0.2em", marginBottom:"10px" }}>{tbl.label} GENERATION</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
+                <div style={{ color:RD, fontSize:"10px", letterSpacing:"0.2em" }}>{tbl.label} GENERATION</div>
+                <button onClick={() => generateJob(key)}
+                  style={{ background:"rgba(80,0,0,0.2)", border:`1px solid ${RM}`, color:R,
+                    fontFamily:MONO, fontSize:"9px", letterSpacing:"0.1em",
+                    padding:"4px 10px", cursor:"pointer", whiteSpace:"nowrap" }}>
+                  ⚄ GENERATE → POOL
+                </button>
+              </div>
               {tbl.rolls.map(r => (
                 <div key={r.label} style={{ marginBottom:"8px" }}>
                   <div style={{ color:RM, fontSize:"9px", marginBottom:"3px" }}>{r.label}</div>
                   {r.items.map(item => (
-                    <div key={item} style={{ color:"#664444", fontSize:"10px", paddingLeft:"8px", lineHeight:1.7 }}>{item}</div>
+                    <div key={item} style={{ color:"#cc8888", fontSize:"10px", paddingLeft:"8px", lineHeight:1.7 }}>{item}</div>
                   ))}
                 </div>
               ))}
@@ -2961,8 +3022,8 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
                   <div style={{ color:RM, fontSize:"9px", marginBottom:"6px" }}>{tbl.d20Label}</div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"2px 16px" }}>
                     {tbl.d20.map((item, i) => (
-                      <div key={i} style={{ color:"#664444", fontSize:"10px" }}>
-                        <span style={{ color:"#553333", minWidth:"22px", display:"inline-block" }}>{i+1}.</span>
+                      <div key={i} style={{ color:"#cc8888", fontSize:"10px" }}>
+                        <span style={{ color:"#996666", minWidth:"22px", display:"inline-block" }}>{i+1}.</span>
                         {item}
                       </div>
                     ))}
@@ -2970,7 +3031,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
                 </div>
               )}
               {tbl.notes && (
-                <div style={{ color:"#553333", fontSize:"10px", marginTop:"8px", fontStyle:"italic" }}>{tbl.notes}</div>
+                <div style={{ color:"#996666", fontSize:"10px", marginTop:"8px", fontStyle:"italic" }}>{tbl.notes}</div>
               )}
             </div>
           ))}
@@ -2982,7 +3043,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
 
 // ─── PIN Gate ─────────────────────────────────────────────────────────────────
 
-function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
+function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout, onHoneypot }) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
@@ -3047,12 +3108,19 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
   };
 
   const submitRecovery = async () => {
-    await onClearLockout(recoveryInput.trim());
-    setRecoveryInput("");
-    setShowRecovery(false);
-    setError(false);
-    setRecoveryError(false);
-    refs[0].current?.focus();
+    const ok = await onClearLockout(recoveryInput.trim());
+    if (ok) {
+      setRecoveryInput("");
+      setShowRecovery(false);
+      setError(false);
+      setRecoveryError(false);
+      refs[0].current?.focus();
+    } else {
+      setRecoveryError(true);
+      setRecoveryInput("");
+      // Failed override attempt — trigger honeypot
+      if (onHoneypot) onHoneypot();
+    }
   };
 
   return (
@@ -3172,7 +3240,7 @@ function HistoryLog({ history, headlines }) {
         pastHeadlines.length === 0
           ? <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "8px 0" }}>NO ARCHIVED HEADLINES</div>
           : pastHeadlines.map((h, i) => (
-            <div key={i} style={{ borderLeft: `2px solid ${i === 0 ? GREEN_DARK : "#2a3a2a"}`,
+            <div key={i} style={{ borderLeft: `2px solid ${GREEN_DARK}`,
               paddingLeft: "12px", marginBottom: "14px", opacity: i === 0 ? 0.85 : 0.5 }}>
               <div style={{ color: GREEN_DIM, fontSize: "12px", letterSpacing: "0.05em" }}>{h.headline}</div>
               {h.subtext && <div style={{ color: GREEN_DARK, fontSize: "10px", marginTop: "2px" }}>{h.subtext}</div>}
@@ -3301,7 +3369,7 @@ function HeadlineFeedManager({ headlines, setHeadlines, date, KEYS, wardenSet })
                 EDIT
               </button>
               <button onClick={() => removeHL(i)}
-                style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444",
+                style={{ background: "none", border: `1px solid #3a2a2a`, color: "#aa6666",
                   fontFamily: MONO, fontSize: "10px", padding: "2px 7px", cursor: "pointer", flexShrink: 0 }}>
                 ✕
               </button>
@@ -4346,7 +4414,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                       if (!window.confirm(`Remove merger "${m.name}"?`)) return;
                       const next = mergers.filter((_, xi) => xi !== i);
                       setMergers(next); wardenSet(KEYS.mergers, next);
-                    }} style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444",
+                    }} style={{ background: "none", border: `1px solid #3a2a2a`, color: "#aa6666",
                       fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
                   </div>
                 );
@@ -4582,7 +4650,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                         </td>
                         <td style={{ padding: "3px 4px" }}>
                           <button onClick={() => { if (!window.confirm(`Remove ${s.name}?`)) return; const next = sortByPrice(stocks.filter((_, xi) => xi !== i)); setStocks(next); wardenSet(KEYS.stocks, next); }}
-                            style={{ background: "none", border: `1px solid #3a2a2a`, color: "#664444", fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
+                            style={{ background: "none", border: `1px solid #3a2a2a`, color: "#aa6666", fontFamily: MONO, fontSize: "10px", padding: "1px 6px", cursor: "pointer" }}>✕</button>
                         </td>
                       </tr>
                     ))}
@@ -4881,7 +4949,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             </div>
 
             <div style={{ borderTop: `1px solid ${GREEN_DARK}`, marginTop: "24px", paddingTop: "20px" }}>
-              <div style={{ color: "#664444", fontSize: "11px", marginBottom: "12px", letterSpacing: "0.15em" }}>DANGER ZONE</div>
+              <div style={{ color: "#aa6666", fontSize: "11px", marginBottom: "12px", letterSpacing: "0.15em" }}>DANGER ZONE</div>
               <button onClick={() => setConfirmDialog({
                   msg: "RESET ALL DATA TO DEFAULTS?",
                   submsg: "This will erase all stock prices, headlines, history, and the warden PIN. This cannot be undone.",
@@ -5087,6 +5155,10 @@ export default function StonksApp({ roomCode = "stonks" }) {
       roomCode={roomCode}
       onSuccess={(pin) => { setStoredPin(pin); setView("warden"); }}
       onCancel={() => setView("player")}
+      onHoneypot={() => {
+        fetch(`/api/honeypot?room=${encodeURIComponent(roomCode)}`).catch(() => {});
+        setView("honeypot");
+      }}
       onClearLockout={async (passphrase) => {
         const r = await fetch("/api/unlock", {
           method: "POST",
