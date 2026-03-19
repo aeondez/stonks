@@ -5081,6 +5081,8 @@ export default function StonksApp({ roomCode = "stonks" }) {
       onDisconnect={() => setView("player")}
     />;
   }
+
+  if (view === "pin") {
     return <PinGate
       roomCode={roomCode}
       onSuccess={(pin) => { setStoredPin(pin); setView("warden"); }}

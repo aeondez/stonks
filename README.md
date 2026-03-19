@@ -16,29 +16,36 @@ Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but u
 - 🏦 **Economy engine** — roll-based market advancement with configurable dice, bankruptcy checks, collapse cycles, and absorption mechanics
 - 🤝 **Merger system** — configurable pending mergers that trigger automatically or manually
 - 📊 **History** — players can browse the full news archive and past market snapshots
+- 💹 **Market cap** — total market cap of all active non-OmniCorp corporations displayed in the player header
 
 **Session Tools (Warden)**
-- 💼 **Payout calculator** — per-crew salary based on skill tiers (Trained/Expert/Master), hazard pay, negotiation adjustments, jump bonuses, flat bonuses, and equity conversion
-- 🏢 **Catalog system** — per-corporation contractor perks and item catalogs with visibility gating (Hidden / Unlocked / Revoked / Ineligible); shown to players in the market view when unlocked
-- 📋 **Job board** — freeform and template contract postings, status tracking (Active / Completed), auto-linked to payout calculator
-- 👥 **Crew roster** — profiles with skill counts, payment types (cash or equity), disposition tracking, and beneficiary fields
-- 🏗️ **Contractors** — salary and paid-status tracking with loyalty roll reminders
-- 💳 **Debt tracker** — per-creditor entries with monthly payment and term; reflected as minimum Stress increase in the player Downtime tab
-- 📦 **Portfolio** — equity holdings with grant price, live value, G/L, and scenario-based lock/unlock
-- 🚢 **Ship/Group account** — named balance ledger (e.g. "Diamond Club, LLC") with deposit/withdraw history, ownership type, crew payment mode, and bankruptcy save reference table (owner-operator mode)
+- 💼 **Jobs → Payout** — per-crew salary based on skill tiers (Trained/Expert/Master), hazard pay, negotiation adjustments, jump bonuses, flat bonuses, and equity conversion
+- 📋 **Jobs → Board** — freeform and template contract postings with status tracking (Active / Completed / Revoked), sticky jobs, auto-linked to payout calculator
+- 🕳️ **Shadow Exchange (Black Market)** — separate warden panel with freeform job board, pool/active/archive workflow, Warden-only notes per contract, COMPLETE / EXPIRE actions, random or bespoke rotation, and built-in generation tables for Bounty, Repo, and Heist jobs; 7 seed contracts pre-loaded
+- 🏢 **Corps → Catalog** — per-corporation contractor perks and item catalogs with visibility gating (Hidden / Unlocked / Revoked / Ineligible); shown to players in the market view when unlocked
+- 👥 **Crew roster** — profiles with skill counts, payment types (cash or equity), disposition tracking, and beneficiary fields (via Jobs → Payout)
+- 🏗️ **Session → Contractors** — occupation dropdown with default salaries, paid-status tracking with loyalty roll reminders
+- 💳 **Session → Debt** — per-creditor entries with monthly payment and term; reflected as minimum Stress increase in the player Downtime tab
+- 📦 **Session → Portfolio** — equity holdings with grant price, live value, and scenario-based lock/unlock
+- 🚢 **Session → Ship** — named balance ledger (e.g. "Diamond Club, LLC") with deposit/withdraw history, owner-operator mode, crew payment mode, and bankruptcy save reference table
 
 **Session Tools (Player)**
-- 🗓️ **Downtime tab** — post-session checklist, debt obligations, payout calculator, medical treatment costs, shore leave table, skill training reference (no prerequisites column — see note above table), military enlistment, ship repair costs, and fuel calculator
-- 💰 **Account balance** — if the Warden has set a ship/group account balance, it appears at the top of the player's Portfolio section
+- 🗓️ **Downtime tab** — collapsible sections: payout calculator, post-session checklist, debt obligations, contractors, medical treatments, shore leave, skill training, ship repairs and maintenance
+- 💰 **Portfolio** — equity holdings with live value and lock status; ship/group account balance if set; accessible from the Market tab
+
+**Shadow Exchange (Player)**
+- 🔴 **Hidden access** — the total market cap is displayed in the player header; entering it into the honeypot terminal grants access to the Shadow Exchange
+- 📋 **Red terminal aesthetic** — 3 active contracts displayed as raw preformatted text; collapsible archive of completed/expired contracts
+- 🔒 **Secure** — access code verified server-side only; never exposed in the client or console; honeypot headline fires on every attempt regardless of outcome
 
 **Display**
-- 🎨 **Five themes** — GREEN, AMBER, BLUE, MONO, HI-VIS; all UI elements adapt to the selected theme including warden panels and active states
+- 🎨 **Five themes** — GREEN, AMBER, BLUE, MONO, HI-VIS; all UI elements adapt to the selected theme
 
 **Infrastructure**
-- 🔒 **Warden dashboard** — PIN-gated, mobile-friendly, tabbed interface
+- 🔒 **Warden dashboard** — PIN-gated, mobile-friendly, tabbed interface with inline theme switcher
 - 📱 **PWA support** — installs as a fullscreen app on Android, iPhone, iPad, and desktop
 - 💾 **Persistent** — data survives page refreshes; rooms expire after 90 days of inactivity
-- 🛡️ **Hardened** — server-side PIN auth, read-protected PIN key, per-room lockout after 5 failed attempts, IP rate limiting, honeypot terminal for failed access attempts
+- 🛡️ **Hardened** — server-side PIN auth, read-protected PIN key, per-room lockout after 5 failed attempts, IP rate limiting, honeypot terminal with hidden black market access
 
 ---
 
