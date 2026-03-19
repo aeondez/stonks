@@ -450,7 +450,7 @@ var volColor = (v) => ({
 function Scanlines({ color }) {
   useEffect(() => {
     const gridColor  = color ? color.replace(/[\d.]+\)$/, "0.05)") : "rgba(0,0,0,0.07)";
-    const sweepColor = color || "rgba(180,255,180,0.18)";
+    const sweepColor = color ? color.replace(/[\d.]+\)$/, "0.5)") : "rgba(180,255,180,0.18)";
 
     const base = {
       position: "fixed", top: "0", left: "0", width: "100vw", height: "100vh",
