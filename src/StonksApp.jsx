@@ -448,28 +448,42 @@ var volColor = (v) => ({
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Scanlines({ color }) {
-  const [pos, setPos] = useState(0);
   useEffect(() => {
-    const iv = setInterval(() => setPos((p) => (p + 1) % 100), 30);
-    return () => clearInterval(iv);
-  }, []);
-  const sweepColor = color || "var(--c-scanline, rgba(180,255,180,0.18))";
-  const gridColor  = color
-    ? color.replace(/[\d.]+\)$/, "0.13)")
-    : "rgba(0,0,0,0.18)";
-  const overlay = {
-    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    width: "100%", height: "100%",
-    pointerEvents: "none", zIndex: 9999,
-  };
-  return (
-    <>
-      <div style={{ ...overlay,
-        background: `repeating-linear-gradient(0deg, transparent, transparent 2px, ${gridColor} 2px, ${gridColor} 4px)` }} />
-      <div style={{ ...overlay, top: `${pos}%`, height: "3px", bottom: "auto",
-        background: sweepColor, opacity: 0.7 }} />
-    </>
-  );
+    const gridColor  = color ? color.replace(/[\d.]+\)$/, "0.13)") : "rgba(0,0,0,0.18)";
+    const sweepColor = color || "rgba(180,255,180,0.55)";
+
+    const base = {
+      position: "fixed", top: "0", left: "0", width: "100vw", height: "100vh",
+      pointerEvents: "none", zIndex: "99999",
+    };
+
+    const grid = document.createElement("div");
+    Object.assign(grid.style, { ...base,
+      background: `repeating-linear-gradient(0deg, transparent, transparent 2px, ${gridColor} 2px, ${gridColor} 4px)`,
+    });
+
+    const sweep = document.createElement("div");
+    Object.assign(sweep.style, { ...base,
+      height: "3px", background: sweepColor, opacity: "0.7",
+    });
+
+    document.body.appendChild(grid);
+    document.body.appendChild(sweep);
+
+    let pct = 0;
+    const iv = setInterval(() => {
+      pct = (pct + 1) % 100;
+      sweep.style.top = pct + "vh";
+    }, 30);
+
+    return () => {
+      clearInterval(iv);
+      if (grid.parentNode) grid.parentNode.removeChild(grid);
+      if (sweep.parentNode) sweep.parentNode.removeChild(sweep);
+    };
+  }, [color]);
+
+  return null;
 }
 
 function FictionDate({ date, yearLabel = "YEAR", cycleLabel = "CYC" }) {
