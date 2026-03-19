@@ -876,6 +876,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                     NO BUMP
                   </button>
                 )}
+                <button onClick={() => moveJobToPool(job)} style={jBtnStyle(GREEN_DARK)}>↩ MOVE TO POOL</button>
                 <button onClick={() => revokeJob(job)} style={jBtnStyle("#664422")}>REVOKE</button>
                 <button onClick={() => {
                   const next = jobs.map(j => j.id === job.id ? { ...j, frozen: !j.frozen } : j);
@@ -2549,11 +2550,9 @@ function BlackMarketView({ blackmarket, onDisconnect }) {
   const R = "#ff3333"; const RD = "#cc3333"; const RM = "#882222";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0000", display: "flex", flexDirection: "column",
+    <div style={{ minHeight: "100vh", background: "#000000", display: "flex", flexDirection: "column",
       alignItems: "center", fontFamily: MONO, padding: "40px 20px", position: "relative" }}>
-      {/* Scanlines */}
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(120,0,0,0.06) 2px, rgba(120,0,0,0.06) 4px)" }} />
+      <Scanlines />
 
       <div style={{ width: "100%", maxWidth: "720px", position: "relative", zIndex: 1 }}>
         {/* Header */}
@@ -2627,6 +2626,7 @@ function BlackMarketView({ blackmarket, onDisconnect }) {
           </div>
         )}
       </div>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
     </div>
   );
 }
@@ -2899,6 +2899,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
               )}
               <div style={{ display:"flex", gap:"6px", marginTop:"8px", flexWrap:"wrap" }}>
                 <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#aa6666")}>EDIT</button>
+                <button onClick={() => moveBMToPool(job)} style={jBtnStyle(RM)}>↩ MOVE TO POOL</button>
                 <button onClick={() => closeJob(job,"completed")} style={jBtnStyle(RM)}>COMPLETE</button>
                 <button onClick={() => closeJob(job,"expired")} style={jBtnStyle(RDark)}>EXPIRE</button>
               </div>
@@ -3852,7 +3853,6 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
   return (
     <div style={{ minHeight: "100vh", background: BG, fontFamily: MONO, padding: "32px 20px",
       position: "relative", overflow: "hidden" }}>
-      <Scanlines />
       <div style={{ width: "100%", maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 1 }}>
 
         {/* Warden Header */}
