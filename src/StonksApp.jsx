@@ -2812,9 +2812,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
       const label = tbl.d20Label.replace(/ \(d\d+\)/, "");
       lines.push(`${label}: ${pick}`);
     }
-    const content = `${tbl.label}
-${lines.join("
-")}`;
+    const content = [tbl.label, ...lines].join("\n");
     const newJob = { id: `bm-${Date.now()}`, content, notes: "", status: "pool" };
     save({ ...blackmarket, pool: [...pool, newJob] });
     showToast(`${tbl.label} CONTRACT GENERATED → POOL`, "#cc4444");
