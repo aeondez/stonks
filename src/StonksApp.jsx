@@ -759,14 +759,14 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
   };
 
   const removeJob = (id) => {
-    if (!window.confirm("Remove this job?")) return;
+    if (!window.confirm("Delete this job?")) return;
     saveJobs(jobs.filter(j => j.id !== id));
   };
 
-  const uncompleteJob = (job) => {
-    const next = jobs.map(j => j.id === job.id ? { ...j, status: "active", cycle_completed: undefined } : j);
+  const moveJobToPool = (job) => {
+    const next = jobs.map(j => j.id === job.id ? { ...j, status: "pool", cycle_completed: undefined, cycle_posted: undefined } : j);
     saveJobs(next);
-    showToast("JOB RETURNED TO BOARD", "#88ccff");
+    showToast("JOB MOVED TO POOL");
   };
 
   const revokeJob = (job) => {
@@ -884,7 +884,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                 }} style={jBtnStyle(job.frozen ? "#4488cc" : GREEN_DARK)}>
                   {job.frozen ? "📌 STICKY" : "STICKY OFF"}
                 </button>
-                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>REMOVE</button>
+                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>DELETE</button>
               </div>
             </div>
           ))}
@@ -918,7 +918,7 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                 }} style={jBtnStyle(job.frozen ? "#4488cc" : GREEN_DARK)}>
                   {job.frozen ? "📌 STICKY" : "STICKY OFF"}
                 </button>
-                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>REMOVE</button>
+                <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>DELETE</button>
               </div>
             </div>
           ))}
@@ -954,10 +954,10 @@ function JobBoardPanel({ jobs, setJobs, stocks, setStocks, date, rollConfig, set
                   <JobCard job={job} isOmniCorp={false} minimal />
                 </div>
                 <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
-                  <button onClick={() => uncompleteJob(job)} style={jBtnStyle("#4466aa")}>↩ MARK INCOMPLETE</button>
+                  <button onClick={() => moveJobToPool(job)} style={jBtnStyle(GREEN_DARK)}>↩ MOVE TO POOL</button>
                   {!isRevoked && <button onClick={() => revokeJob(job)} style={jBtnStyle("#664422")}>REVOKE</button>}
                   {isRevoked && <button onClick={() => completeJob(job, true)} style={jBtnStyle(GREEN_DARK)}>MARK COMPLETE</button>}
-                  <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>REMOVE</button>
+                  <button onClick={() => removeJob(job.id)} style={jBtnStyle("#aa6666")}>DELETE</button>
                 </div>
               </div>
             );
@@ -2452,6 +2452,8 @@ function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {
       } else {
         setInput("");
         setPhase("denied");
+        // Wrong code entered — push security headline
+        fetch(`/api/honeypot?room=${encodeURIComponent(roomCode)}`).catch(() => {});
         setTimeout(() => setPhase("prompt"), 2000);
       }
     } catch {
@@ -2753,17 +2755,16 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
   };
 
   const removeFromPool = (id) => {
-    if (!window.confirm("Remove this contract from pool?")) return;
+    if (!window.confirm("Delete this contract?")) return;
     save({ ...blackmarket, pool: pool.filter(j => j.id !== id) });
   };
 
-  const markIncomplete = (job) => {
-    if (active.length >= 3) { showToast("Board already has 3 active contracts", "#ff8844"); return; }
+  const moveBMToPool = (job) => {
     const next = { ...blackmarket,
       archive: archive.filter(j => j.id !== job.id),
-      active: [...active, { ...job, status:"active", cycle_posted: date.cycle, cycle_closed: undefined }],
+      pool: [...pool, { ...job, status:"pool", cycle_posted: undefined, cycle_closed: undefined }],
     };
-    save(next); showToast("CONTRACT RETURNED TO BOARD", "#cc4444");
+    save(next); showToast("CONTRACT MOVED TO POOL", "#cc4444");
   };
 
   const revokeArchived = (job) => {
@@ -2774,7 +2775,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
   };
 
   const removeArchived = (id) => {
-    if (!window.confirm("Permanently remove this archived contract?")) return;
+    if (!window.confirm("Permanently delete this archived contract?")) return;
     save({ ...blackmarket, archive: archive.filter(j => j.id !== id) });
   };
 
@@ -2819,7 +2820,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
     setSubPanel("pool");
   };
 
-  const R = "#ff5555"; const RD = "#ff3333"; const RM = "#cc3333"; const RDark = "#883333";
+  const R = "#ff7777"; const RD = "#ff4444"; const RM = "#dd3333"; const RDark = "#aa3333";
 
   const tabBtn = (id, label, count) => (
     <button key={id} onClick={() => setSubPanel(id)}
@@ -2935,7 +2936,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
               <div style={{ display:"flex", gap:"6px", marginTop:"6px" }}>
                 <button onClick={() => setEditingId(job.id)} style={jBtnStyle("#aa6666")}>EDIT</button>
                 <button onClick={() => promote(job)} style={jBtnStyle(RM)}>▶ POST TO BOARD</button>
-                <button onClick={() => removeFromPool(job.id)} style={jBtnStyle(RDark)}>REMOVE</button>
+                <button onClick={() => removeFromPool(job.id)} style={jBtnStyle(RDark)}>DELETE</button>
               </div>
             </div>
           ))}
@@ -2981,12 +2982,12 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
               )}
               <div style={{ display:"flex", gap:"6px", marginTop:"6px", flexWrap:"wrap" }}>
                 {job.status !== "revoked" && (
-                  <button onClick={() => markIncomplete(job)} style={jBtnStyle(RM)}>↩ MARK INCOMPLETE</button>
+                  <button onClick={() => moveBMToPool(job)} style={jBtnStyle(RM)}>↩ MOVE TO POOL</button>
                 )}
                 {job.status !== "revoked" && (
                   <button onClick={() => revokeArchived(job)} style={jBtnStyle(RDark)}>⊘ REVOKE</button>
                 )}
-                <button onClick={() => removeArchived(job.id)} style={jBtnStyle("#553333")}>REMOVE</button>
+                <button onClick={() => removeArchived(job.id)} style={jBtnStyle("#553333")}>DELETE</button>
               </div>
             </div>
           ))}
@@ -3041,7 +3042,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
 
 // ─── PIN Gate ─────────────────────────────────────────────────────────────────
 
-function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout, onHoneypot }) {
+function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
@@ -3116,8 +3117,6 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout, onH
     } else {
       setRecoveryError(true);
       setRecoveryInput("");
-      // Failed override attempt — trigger honeypot
-      if (onHoneypot) onHoneypot();
     }
   };
 
@@ -5153,10 +5152,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       roomCode={roomCode}
       onSuccess={(pin) => { setStoredPin(pin); setView("warden"); }}
       onCancel={() => setView("player")}
-      onHoneypot={() => {
-        fetch(`/api/honeypot?room=${encodeURIComponent(roomCode)}`).catch(() => {});
-        setView("honeypot");
-      }}
+      onHoneypot={() => { setView("honeypot"); }}
       onClearLockout={async (passphrase) => {
         const r = await fetch("/api/unlock", {
           method: "POST",
@@ -5218,10 +5214,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
         setDate(d);
       }}
       onWardenAccess={() => setView("pin")}
-      onHoneypot={() => {
-        fetch(`/api/honeypot?room=${encodeURIComponent(roomCode)}`).catch(() => {});
-        setView("honeypot");
-      }}
+      onHoneypot={() => { setView("honeypot"); }}
     />
   );
 }
