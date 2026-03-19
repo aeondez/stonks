@@ -449,8 +449,8 @@ var volColor = (v) => ({
 
 function Scanlines({ color }) {
   useEffect(() => {
-    const gridColor  = color ? color.replace(/[\d.]+\)$/, "0.13)") : "rgba(0,0,0,0.18)";
-    const sweepColor = color || "rgba(180,255,180,0.55)";
+    const gridColor  = color ? color.replace(/[\d.]+\)$/, "0.05)") : "rgba(0,0,0,0.07)";
+    const sweepColor = color || "rgba(180,255,180,0.18)";
 
     const base = {
       position: "fixed", top: "0", left: "0", width: "100vw", height: "100vh",
@@ -464,7 +464,7 @@ function Scanlines({ color }) {
 
     const sweep = document.createElement("div");
     Object.assign(sweep.style, { ...base,
-      height: "3px", background: sweepColor, opacity: "0.7",
+      height: "3px", background: sweepColor, opacity: "0.4",
     });
 
     document.body.appendChild(grid);
