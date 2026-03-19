@@ -447,18 +447,20 @@ var volColor = (v) => ({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function Scanlines() {
+function Scanlines({ color }) {
   const [pos, setPos] = useState(0);
   useEffect(() => {
     const iv = setInterval(() => setPos((p) => (p + 1) % 100), 30);
     return () => clearInterval(iv);
   }, []);
+  const scanlineColor = color || "var(--c-scanline, rgba(180,255,180,0.04))";
+  const gridColor = color ? color.replace(/[\d.]+\)$/, "0.06)") : "rgba(0,0,0,0.08)";
   return (
     <>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 10,
-        background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)" }} />
+        background: `repeating-linear-gradient(0deg, transparent, transparent 2px, ${gridColor} 2px, ${gridColor} 4px)` }} />
       <div style={{ position: "fixed", top: `${pos}%`, left: 0, right: 0, height: "2px",
-        background: "var(--c-scanline, rgba(180,255,180,0.04))", pointerEvents: "none", zIndex: 11 }} />
+        background: scanlineColor, pointerEvents: "none", zIndex: 11 }} />
     </>
   );
 }
@@ -2468,8 +2470,9 @@ function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", fontFamily: MONO, padding: "32px" }}>
-      <div style={{ color: R, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px" }}>
+      alignItems: "center", justifyContent: "center", fontFamily: MONO, padding: "32px", position: "relative" }}>
+      <Scanlines color="rgba(200,0,0,0.06)" />
+      <div style={{ color: R, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px", position: "relative", zIndex: 1 }}>
         ██████████████████████████████████<br/>
         █  SFNET SECURITY MODULE v4.7.2  █<br/>
         ██████████████████████████████████
@@ -2552,7 +2555,7 @@ function BlackMarketView({ blackmarket, onDisconnect }) {
   return (
     <div style={{ minHeight: "100vh", background: "#000000", display: "flex", flexDirection: "column",
       alignItems: "center", fontFamily: MONO, padding: "40px 20px", position: "relative" }}>
-      <Scanlines />
+      <Scanlines color="rgba(200,0,0,0.06)" />
 
       <div style={{ width: "100%", maxWidth: "720px", position: "relative", zIndex: 1 }}>
         {/* Header */}
