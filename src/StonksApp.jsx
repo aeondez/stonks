@@ -64,15 +64,54 @@ const INITIAL_MERGERS = [
 ];
 
 const INITIAL_CATALOGS = {
+  "Koo-Ya Interactive": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "KOO-YA PREFERRED PARTNER: MEDIA ACCOUNT\n50% OFF ALL ADVERTISING, MARKETING, AND SPONSORED PLACEMENT ACROSS THE KOO-YA INTERACTIVE NETWORK.",
+  },
+  "Rhodes Driveyards": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "PREFERRED CONTRACTOR ACCOUNT: RHODES DRIVEYARDS FACILITY NETWORK\n50% OFF ALL MAJOR AND MINOR SHIP UPGRADES AT ANY RHODES DRIVEYARDS DEALERSHIP. SHIP WEAPONS AND ORDNANCE NOT INCLUDED.",
+  },
+  "Hayden Enterprises": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "HAYDEN FUEL CARD: AUTHORIZED OPERATOR\n50% OFF ALL FUEL PURCHASES AT ANY HAYDEN ENTERPRISES REFUELING STATION. PRESENT CARD AT TIME OF PURCHASE. CARD IS NON-TRANSFERABLE.",
+  },
+  "Koga Cybersystems": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "KOGA IMPLANT PROGRAM: APPROVED PARTICIPANT\n50% OFF ALL NON-COMBAT CYBERNETIC IMPLANTS AT ANY KOGA CYBERSYSTEMS INSTALLATION. COMBAT-RATED HARDWARE EXCLUDED.",
+  },
+  "Conduit Interstellar": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "CONDUIT FREQUENT TRAVELER: DIAMOND PLUS ELITE PREFERRED PRIORITY MEMBERSHIP\n50% OFF ALL INTERPLANETARY AND INTERSTELLAR JUMP TICKETS ACROSS THE CONDUIT INTERSTELLAR NETWORK.",
+  },
+  "Sterling Credit Solutions": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "STERLING PREFERRED MEMBER: ZERO INTEREST LENDING\nACCESS TO ZERO-INTEREST LOANS UP TO 1,000,000CR. NO CREDIT CHECK. NO COLLATERAL REQUIRED. STANDARD DEBT OBLIGATIONS APPLY.",
+  },
   "Vance Pharmaceuticals": {
-    status: "unlocked",
-    ineligibleReason: "",
-    benefits: "50% OFF ALL MEDICAL SERVICES AT ANY VANCE PHARMACEUTICALS MEDICAL CENTER",
+    status: "unlocked", ineligibleReason: "",
+    benefits: "VANCE MEDICAL PARTNER ACCOUNT: DISCOUNT MEDICAL SERVICES\n50% OFF ALL MEDICAL SERVICES AT ANY VANCE PHARMACEUTICALS MEDICAL CENTER.",
     items: [
-      { id: "vance-1", name: "Vance Stimpak\u2122",    price: "10kcr", notes: "Same as standard stimpak, but with zero cooldown." },
-      { id: "vance-2", name: "Vance Regen Patch\u2122", price: "15kcr", notes: "Heals 1 Wound. Takes 8 hours. Can be used in the field." },
-      { id: "vance-3", name: "Vanex\u2122",             price: "2kcr",  notes: "Sanity Save. Fail: Take 1 Stress. Pass: Reduce Stress by 1d5." },
+      { id: "vance-1", name: "Vance Stimpak\u2122",     price: "10kcr", notes: "Same as standard stimpak, but with zero cooldown." },
+      { id: "vance-2", name: "Vance Regen Patch\u2122",  price: "15kcr", notes: "Heals 1 Wound. Takes 8 hours. Can be used in the field." },
+      { id: "vance-3", name: "Vanex\u2122",              price: "2kcr",  notes: "Sanity Save. Fail: Take 1 Stress. Pass: Reduce Stress by 1d5." },
     ],
+  },
+  "Torsten Defense Unlimited": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "TORSTEN AUTHORIZED RESELLER ACCOUNT\n50% OFF ALL SHIP MUNITIONS RESUPPLY AND PERSONAL AMMUNITION CONTAINERS AT ANY TORSTEN DEFENSE UNLIMITED DEPOT. PROOF OF VESSEL REGISTRATION REQUIRED.",
+  },
+  "Citadel Labor Union": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "CITADEL UNION MEMBERSHIP\n50% OFF ALL CITADEL LABOR UNION CONTRACTOR FEES ACROSS THE NETWORK. RECOGNIZED AT ALL CITADEL-AFFILIATED PORTS, STATIONS, AND INSTALLATIONS.",
+  },
+  "Albedo Agrosystems": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "ALBEDO BULK RETAILER AUTHORIZED DISTRIBUTOR\n50% OFF ALL MRE BULK ORDERS THROUGH THE ALBEDO AGROSYSTEMS DISTRIBUTION NETWORK. MINIMUM ORDER: ONE PALLET. FLAVORS SUBJECT TO AVAILABILITY.",
+  },
+  "Bortek": {
+    status: "unlocked", ineligibleReason: "", items: [],
+    benefits: "BORTEK PARTS & SUPPLIES\n50% OFF ALL MACHINE SHOP RESUPPLY ORDERS THROUGH BORTEK'S INDUSTRIAL SUPPLY NETWORK.",
   },
 };
 
