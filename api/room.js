@@ -29,6 +29,15 @@ function safeEqual(a, b) {
 }
 
 export default async function handler(req, res) {
+  if (req.method === "GET") {
+    const { code } = req.query;
+    if (!code || !/^[A-Z0-9]{6}$/i.test(code)) {
+      return res.status(400).json({ error: "invalid_code" });
+    }
+    const exists = await redis.exists(`${code.toUpperCase()}:_active`);
+    return res.json({ exists: !!exists });
+  }
+
   if (req.method !== "POST") return res.status(405).end();
 
   const { creationKey } = req.body || {};

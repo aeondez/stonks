@@ -66,13 +66,29 @@ export default function RoomGate() {
     }
   };
 
-  const joinGame = () => {
+  const [joining, setJoining] = useState(false);
+
+  const joinGame = async () => {
     const code = digits.join("").toUpperCase();
     if (!/^[A-Z0-9]{6}$/.test(code)) {
       setError("Enter a valid 6-character game code.");
       return;
     }
-    window.location.href = `/room/${code}`;
+    setJoining(true);
+    setError("");
+    try {
+      const r = await fetch(`/api/room?code=${code}`);
+      const data = await r.json();
+      if (!data.exists) {
+        setError("Game not found. Check your code.");
+        setJoining(false);
+        return;
+      }
+      window.location.href = `/room/${code}`;
+    } catch {
+      setError("Could not reach server. Try again.");
+      setJoining(false);
+    }
   };
 
   const boxStyle = {
@@ -120,12 +136,12 @@ export default function RoomGate() {
                 style={{ ...boxStyle, borderColor: error ? GATE_RED : GATE_GREEN_DARK }} />
             ))}
           </div>
-          <button onClick={joinGame}
+          <button onClick={joinGame} disabled={joining}
             style={{ display: "block", width: "100%", background: "none",
               border: `1px solid ${GATE_GREEN_DARK}`, color: GATE_GREEN_DIM, fontFamily: GATE_MONO,
               fontSize: "12px", letterSpacing: "0.2em", padding: "14px",
-              cursor: "pointer" }}>
-            JOIN GAME
+              cursor: joining ? "default" : "pointer" }}>
+            {joining ? "CONNECTING..." : "JOIN GAME"}
           </button>
         </div>
 
