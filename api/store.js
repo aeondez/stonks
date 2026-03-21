@@ -15,8 +15,23 @@ const LOCKOUT_TTL = 60 * 30; // 30 minutes per lockout
 const IP_LIMIT = 20;
 const IP_WINDOW = 60; // per minute
 
+const VALID_SUBKEYS = new Set([
+  "stocks","headlines","history","date","pin","mergers","settings",
+  "jobs","crew","debt","portfolio","catalogs","blackmarket","_active"
+]);
+
 function getRoomCode(key) {
   return key.split(":")[0];
+}
+
+function isValidKey(key) {
+  if (!key || typeof key !== "string") return false;
+  const parts = key.split(":");
+  if (parts.length !== 2) return false;
+  const [room, subkey] = parts;
+  if (!/^[A-Z0-9]{6}$/i.test(room)) return false;
+  if (!VALID_SUBKEYS.has(subkey)) return false;
+  return true;
 }
 
 function cleanPin(raw) {
@@ -69,6 +84,7 @@ async function pushHoneypotHeadline(roomCode) {
 export default async function handler(req, res) {
   const key = req.query.k;
   if (!key) return res.status(400).json({ error: "missing key" });
+  if (!isValidKey(key)) return res.status(400).json({ error: "invalid key" });
 
   // GET — no auth required, except PIN key is never readable
   if (req.method === "GET") {
