@@ -9,13 +9,13 @@ var GATE_GREEN_DARK = "#3a5a3a";
 var GATE_RED = "#ff4455";
 var GATE_AMBER = "#ffcc44";
 
-export default function RoomGate() {
+export default function RoomGate({ initializing = false, initialError = "" }) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creationKey, setCreationKey] = useState("");
   const [keyError, setKeyError] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const refs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
   const handleDigit = (i, val) => {
@@ -97,6 +97,17 @@ export default function RoomGate() {
     fontFamily: GATE_MONO, fontSize: "22px", textAlign: "center", outline: "none",
     letterSpacing: 0, boxSizing: "border-box",
   };
+
+  if (initializing) {
+    return (
+      <div style={{ minHeight: "100vh", background: GATE_BG, display: "flex",
+        alignItems: "center", justifyContent: "center", fontFamily: GATE_MONO }}>
+        <div style={{ color: GATE_GREEN_DARK, fontSize: "11px", letterSpacing: "0.3em" }}>
+          VERIFYING ACCESS...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: GATE_BG, display: "flex",
