@@ -1,10 +1,12 @@
-# Stonks
+# Stonks — v1.0
 
 > A live corporate stock market ticker for tabletop RPGs.
 
 Players connect on their phones and watch prices move in real time. The Warden controls everything from a PIN-protected dashboard — publishing headlines, advancing the economy, triggering mergers, managing crew and contracts, and watching corporations collapse.
 
 Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but usable with any game that needs a living corporate economy at the table.
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ---
 
@@ -28,9 +30,10 @@ Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but u
 - 💳 **Session → Debt** — per-creditor entries with monthly payment and term; reflected as minimum Stress increase in the player Downtime tab
 - 📦 **Session → Portfolio** — equity holdings with grant price, live value, and scenario-based lock/unlock
 - 🚢 **Session → Ship** — named balance ledger (e.g. "Diamond Club, LLC") with deposit/withdraw history, owner-operator mode, crew payment mode, and bankruptcy save reference table
+- 📜 **Session → House Rules** — create, edit, and delete house rules with an all-caps title and freeform description; published rules appear in the player Downtime tab
 
 **Session Tools (Player)**
-- 🗓️ **Downtime tab** — collapsible sections: payout calculator, post-session checklist, debt obligations, contractors, medical treatments, shore leave, skill training, ship repairs and maintenance
+- 🗓️ **Downtime tab** — collapsible sections: payout calculator, post-session checklist, debt obligations, contractors, medical treatments, shore leave, skill training, ship repairs and maintenance, house rules
 - 💰 **Portfolio** — equity holdings with live value and lock status; ship/group account balance if set; accessible from the Market tab
 
 **Shadow Exchange (Player)**
@@ -46,6 +49,7 @@ Built for [Mothership RPG](https://www.tuesdayknightgames.com/mothership), but u
 - 📱 **PWA support** — installs as a fullscreen app on Android, iPhone, iPad, and desktop
 - 💾 **Persistent** — data survives page refreshes; rooms expire after 90 days of inactivity
 - 🛡️ **Hardened** — server-side PIN auth, read-protected PIN key, per-room lockout after 5 failed attempts, IP rate limiting, honeypot terminal with hidden black market access
+- 🚪 **Room validation** — direct URL navigation to unknown room codes returns to the gate with an error rather than opening a blank session
 
 ---
 
@@ -149,7 +153,7 @@ On the player view, scroll to the very bottom and tap **WARDEN ACCESS**. Default
 
 ## Backups
 
-Use **⬇ EXPORT BACKUP** in Warden Settings before every session. The JSON file includes all room data: stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, and catalogs.
+Use **⬇ EXPORT BACKUP** in Warden Settings before every session. The JSON file includes all room data: stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, catalogs, and house rules.
 
 To restore, use **⬆ IMPORT BACKUP** and select the file — it will overwrite all current data and save to Redis automatically.
 
@@ -190,6 +194,7 @@ After deploying an update, verify the following:
 - [ ] Hazard and Corp dropdowns don't cause page jump on change
 - [ ] Training table shows no PREREQ column; prerequisite note appears above table
 - [ ] Debt obligations section appears if Warden has added debts
+- [ ] HOUSE RULES section appears at the bottom of Downtime if Warden has added rules; hidden if none
 
 **Warden view — general**
 - [ ] All five themes (GREEN, AMBER, BLUE, MONO, HI-VIS) are readable; no green-tinted boxes in non-green themes
@@ -203,14 +208,28 @@ After deploying an update, verify the following:
 - [ ] Deposit and Withdraw update the balance and add to recent transactions
 - [ ] Bankruptcy save table appears when Ownership = OWNER-OP
 
+**Warden — Session → House Rules**
+- [ ] ADD HOUSE RULE opens inline form
+- [ ] Title input auto-uppercases
+- [ ] SAVE creates rule; rule appears in list
+- [ ] EDIT loads existing rule into form and updates on SAVE
+- [ ] DELETE removes rule immediately
+- [ ] Rule count badge appears on HOUSE RULES tab when rules exist
+- [ ] Rules persist across page reload
+
 **Warden — Jobs → Payout**
 - [ ] Crew cards show TRAINED / EXPERT / MASTER tier grid without overflow
 - [ ] Salary calculates correctly
 
 **Warden — Settings**
-- [ ] Training time unit toggle works (note about Ship tab for ownership/payment)
+- [ ] Training time unit toggle works
 - [ ] Theme switcher works
-- [ ] Export/Import backup round-trips correctly
+- [ ] Export/Import backup round-trips correctly (including house rules)
+
+**Room gate**
+- [ ] Direct navigation to unknown room code `/room/XXXXXX` shows "Game not found" error at gate
+- [ ] Direct navigation to valid room code enters the room normally
+- [ ] Brief "VERIFYING ACCESS..." state shown while check is in flight
 
 ---
 
@@ -233,6 +252,45 @@ After deploying an update, verify the following:
 **Online data not saving:** Check your Vercel function logs and confirm both Upstash env vars are set under Settings → Environment Variables.
 
 **Room locked out:** Use the EMERGENCY OVERRIDE link on the PIN screen, or clear it manually via the Upstash Console (`DEL lockout:ROOMCODE`).
+
+---
+
+## Project Structure
+
+```
+stonks/
+├── api/                    # Vercel serverless functions
+│   ├── auth.js             # PIN verification
+│   ├── blackmarket-auth.js # Shadow Exchange access
+│   ├── honeypot.js         # Decoy terminal handler
+│   ├── kv.js               # Upstash Redis client
+│   ├── room.js             # Room creation & existence check
+│   ├── store.js            # Generic KV read/write
+│   └── unlock.js           # Emergency PIN recovery
+├── public/
+│   └── sw.js               # Service worker (PWA)
+├── src/
+│   ├── constants.js        # Game data, themes, style vars, storage helpers
+│   ├── logic.js            # Economy engine, dice, merger helpers
+│   ├── components/
+│   │   ├── BlackMarket.jsx # Honeypot terminal, BM player/warden views
+│   │   ├── JobBoard.jsx    # Job cards, editor, warden board, player board
+│   │   ├── SessionPanels.jsx # All session sub-panels + player downtime tab
+│   │   ├── Shared.jsx      # Scanlines, FictionDate, StockRows, HistoryLog, PinGate
+│   │   └── WardenPanels.jsx # Headlines, corp editor, custom merger form
+│   ├── PlayerView.jsx      # Player view shell
+│   ├── WardenView.jsx      # Warden dashboard shell
+│   ├── StonksApp.jsx       # Root app: state, data loading, view routing
+│   ├── RoomGate.jsx        # Room entry / creation screen
+│   └── main.jsx            # Entry point with room validation
+├── index.html
+├── package.json
+├── server.js               # Local Express server
+├── vite.config.js
+├── vercel.json
+├── CHANGELOG.md
+└── README.md
+```
 
 ---
 
