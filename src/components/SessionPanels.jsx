@@ -6,12 +6,6 @@ import {
   TREATMENTS_TABLE, TRAINING_TABLE, MILITARY_RESULTS, CHECKLIST_ITEMS,
 } from "../constants.js";
 
-  GREEN, GREEN_DIM, GREEN_DARK, GREEN_MID, AMBER, RED, HEADER_GREEN, MONO,
-  CONTRACTOR_TYPES, SHORE_LEAVE_TABLE, SHORE_LEAVE_RESULTS, TREATMENTS_TABLE,
-  TRAINING_TABLE, MILITARY_RESULTS, CHECKLIST_ITEMS,
-  HAZARD_OPTS, HAZARD_MULT, DISPOSITION_OPTS, CLASS_TEMPLATES,
-} from "../constants.js";
-
 // ─── Session Panel Sub-Components ───────────────────────────────────────────
 
 // ─── Session Panel Sub-Components ─────────────────────────────────────────────

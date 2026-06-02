@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { GREEN_DIM, GREEN_DARK, GREEN_MID, MONO, BM_GEN_TABLES } from "../constants.js";
-
 // ─── Honeypot Terminal ───────────────────────────────────────────────────────
 
 export function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {

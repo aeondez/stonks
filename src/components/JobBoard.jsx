@@ -4,10 +4,6 @@ import {
   HAZARD_LABELS,
 } from "../constants.js";
 
-  GREEN, GREEN_DIM, GREEN_DARK, GREEN_MID, AMBER, RED, HEADER_GREEN, MONO,
-  HAZARD_LABELS,
-} from "../constants.js";
-
 // ─── Job Board Shared Components ────────────────────────────────────────────
 
 // ─── Job Board Components ──────────────────────────────────────────────────────

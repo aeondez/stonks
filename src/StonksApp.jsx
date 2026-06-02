@@ -9,7 +9,6 @@ import { Scanlines, PinGate } from "./components/Shared.jsx";
 import { HoneypotTerminal, BlackMarketView } from "./components/BlackMarket.jsx";
 import PlayerView from "./PlayerView.jsx";
 import WardenView from "./WardenView.jsx";
-
 // ─── Root App ─────────────────────────────────────────────────────────────────
 
 export default function StonksApp({ roomCode = "stonks" }) {

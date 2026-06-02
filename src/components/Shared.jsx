@@ -4,10 +4,6 @@ import {
   AMBER, RED, HEADER_GREEN, MONO, healthColor, volColor,
 } from "../constants.js";
 
-  BG, GREEN, GREEN_DIM, GREEN_DARK, GREEN_MID, AMBER, RED, HEADER_GREEN, MONO,
-  healthColor, volColor, THEMES,
-} from "../constants.js";
-
 // Scanlines + FictionDate
 export function Scanlines({ color }) {
   useEffect(() => {

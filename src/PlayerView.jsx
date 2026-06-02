@@ -6,10 +6,6 @@ import { computeMarketCap } from "./logic.js";
 import { Scanlines, FictionDate, StockRows, HistoryLog } from "./components/Shared.jsx";
 import { PlayerJobBoard } from "./components/JobBoard.jsx";
 import { PlayerSessionTab } from "./components/SessionPanels.jsx";
-
-  GREEN, GREEN_DIM, GREEN_DARK, GREEN_MID, AMBER, RED, HEADER_GREEN, MONO,
-  THEMES,
-} from "./constants.js";
 export default function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, houseRules, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
   const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "downtime"
   const [showHistory, setShowHistory] = useState(false);

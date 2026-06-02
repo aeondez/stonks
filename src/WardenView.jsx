@@ -17,11 +17,6 @@ import {
 } from "./components/SessionPanels.jsx";
 import { WardenBlackMarketPanel } from "./components/BlackMarket.jsx";
 import { HeadlineFeedManager, AddCorpRow, CustomMergerForm } from "./components/WardenPanels.jsx";
-
-  GREEN, GREEN_DIM, GREEN_DARK, GREEN_MID, AMBER, RED, HEADER_GREEN, MONO,
-  THEMES, DEFAULT_ROLL_CONFIG, HEALTH_STEPS, VOLATILITY_STEPS,
-  INITIAL_STOCKS, INITIAL_MERGERS, MERGER_HEADLINES, MERGER_PROTECTED, OMNICORP_HEADLINES,
-} from "./constants.js";
 // ─── Warden View ──────────────────────────────────────────────────────────────
 
 export default function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,

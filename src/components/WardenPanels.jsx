@@ -4,10 +4,6 @@ import {
   HEALTH_STEPS, VOLATILITY_STEPS, OMNICORP_HEADLINES,
 } from "../constants.js";
 
-  GREEN, GREEN_DIM, GREEN_DARK, GREEN_MID, AMBER, RED, HEADER_GREEN, MONO,
-  HEALTH_STEPS, VOLATILITY_STEPS, OMNICORP_HEADLINES,
-} from "../constants.js";
-
 // ─── Headline Feed Manager ───────────────────────────────────────────────────
 
 // ─── Headline Feed Manager (Warden) ──────────────────────────────────────────
