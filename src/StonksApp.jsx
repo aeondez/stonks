@@ -337,6 +337,7 @@ const makeKeys = (prefix) => ({
   portfolio:   `${prefix}:portfolio`,
   catalogs:    `${prefix}:catalogs`,
   blackmarket: `${prefix}:blackmarket`,
+  houseRules:  `${prefix}:houseRules`,
 });
 
 const safeGet = async (key, fallback) => {
@@ -1809,6 +1810,163 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
   );
 }
 
+// ─── House Rules Panel (Warden) ────────────────────────────────────────────────
+
+function HouseRulesPanel({ houseRules, setHouseRules, wardenSet, KEYS }) {
+  const [editingId, setEditingId] = useState(null); // null | "new" | rule id
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftDesc, setDraftDesc] = useState("");
+
+  const sI = {
+    background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+    fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%",
+    boxSizing: "border-box", outline: "none",
+  };
+
+  const openNew = () => { setDraftTitle(""); setDraftDesc(""); setEditingId("new"); };
+  const openEdit = (rule) => { setDraftTitle(rule.title); setDraftDesc(rule.description); setEditingId(rule.id); };
+  const cancel = () => { setEditingId(null); setDraftTitle(""); setDraftDesc(""); };
+
+  const save = () => {
+    const title = draftTitle.toUpperCase().trim();
+    if (!title) return;
+    let next;
+    if (editingId === "new") {
+      next = [...houseRules, { id: `hr_${Date.now()}`, title, description: draftDesc.trim() }];
+    } else {
+      next = houseRules.map(r => r.id === editingId ? { ...r, title, description: draftDesc.trim() } : r);
+    }
+    setHouseRules(next);
+    wardenSet(KEYS.houseRules, next);
+    cancel();
+  };
+
+  const remove = (id) => {
+    const next = houseRules.filter(r => r.id !== id);
+    setHouseRules(next);
+    wardenSet(KEYS.houseRules, next);
+  };
+
+  const jBtnStyle = (borderColor) => ({
+    background: "none", border: `1px solid ${borderColor}`, color: borderColor,
+    fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
+    padding: "3px 9px", cursor: "pointer",
+  });
+
+  return (
+    <div>
+      {houseRules.length === 0 && !editingId && (
+        <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "10px 0", marginBottom: "8px" }}>
+          No house rules set. Add rules visible to all players in the DOWNTIME tab.
+        </div>
+      )}
+
+      {houseRules.map(rule => (
+        <div key={rule.id} style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}`, padding: "12px 14px" }}>
+          {editingId === rule.id ? (
+            <div>
+              <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>RULE TITLE</div>
+              <input
+                value={draftTitle}
+                onChange={e => setDraftTitle(e.target.value.toUpperCase())}
+                placeholder="TITLE"
+                style={{ ...sI, marginBottom: "8px", letterSpacing: "0.08em" }}
+              />
+              <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>DESCRIPTION</div>
+              <textarea
+                value={draftDesc}
+                onChange={e => setDraftDesc(e.target.value)}
+                placeholder="Rule description..."
+                rows={4}
+                style={{ ...sI, resize: "vertical", lineHeight: 1.6, marginBottom: "10px" }}
+              />
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button onClick={save} disabled={!draftTitle.trim()}
+                  style={{ background: "none", border: `1px solid ${draftTitle.trim() ? GREEN_DARK : "#1a2a1a"}`,
+                    color: draftTitle.trim() ? GREEN_MID : GREEN_DARK,
+                    fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                    padding: "5px 14px", cursor: draftTitle.trim() ? "pointer" : "not-allowed" }}>
+                  SAVE
+                </button>
+                <button onClick={cancel}
+                  style={{ background: "none", border: `1px solid #1a2a1a`, color: GREEN_DARK,
+                    fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                    padding: "5px 14px", cursor: "pointer" }}>
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ color: HEADER_GREEN, fontSize: "12px", letterSpacing: "0.1em",
+                marginBottom: rule.description ? "6px" : 0 }}>
+                {rule.title}
+              </div>
+              {rule.description && (
+                <div style={{ color: GREEN_DIM, fontSize: "11px", lineHeight: 1.7, marginBottom: "8px",
+                  whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {rule.description}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button onClick={() => openEdit(rule)} style={jBtnStyle(GREEN_DARK)}>EDIT</button>
+                <button onClick={() => remove(rule.id)} style={jBtnStyle("#aa6666")}>DELETE</button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {editingId === "new" && (
+        <div style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}`, padding: "12px 14px",
+          background: "rgba(0,0,0,0.3)" }}>
+          <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "10px" }}>NEW HOUSE RULE</div>
+          <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>RULE TITLE</div>
+          <input
+            value={draftTitle}
+            onChange={e => setDraftTitle(e.target.value.toUpperCase())}
+            placeholder="TITLE"
+            style={{ ...sI, marginBottom: "8px", letterSpacing: "0.08em" }}
+            autoFocus
+          />
+          <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>DESCRIPTION</div>
+          <textarea
+            value={draftDesc}
+            onChange={e => setDraftDesc(e.target.value)}
+            placeholder="Rule description..."
+            rows={4}
+            style={{ ...sI, resize: "vertical", lineHeight: 1.6, marginBottom: "10px" }}
+          />
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button onClick={save} disabled={!draftTitle.trim()}
+              style={{ background: "none", border: `1px solid ${draftTitle.trim() ? GREEN_DARK : "#1a2a1a"}`,
+                color: draftTitle.trim() ? GREEN_MID : GREEN_DARK,
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                padding: "5px 14px", cursor: draftTitle.trim() ? "pointer" : "not-allowed" }}>
+              SAVE
+            </button>
+            <button onClick={cancel}
+              style={{ background: "none", border: `1px solid #1a2a1a`, color: GREEN_DARK,
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                padding: "5px 14px", cursor: "pointer" }}>
+              CANCEL
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!editingId && (
+        <button onClick={openNew}
+          style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
+            fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+            padding: "5px 14px", cursor: "pointer", marginTop: "4px" }}>
+          + ADD HOUSE RULE
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Player Session Tab ────────────────────────────────────────────────────────
 
 const SHORE_LEAVE_TABLE = [
@@ -1852,7 +2010,7 @@ const CHECKLIST_ITEMS = [
   "Go shopping",
 ];
 
-function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
+function PlayerSessionTab({ debt, crew, rollConfig, stocks, houseRules }) {
   const [months, setMonths] = useState(1);
   const [jumps, setJumps] = useState(0);
   const [hazard, setHazard] = useState("N/A");
@@ -2175,13 +2333,31 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
           </div>
         )}
       </Section>
+
+      {houseRules && houseRules.length > 0 && (
+        <Section id="houserules" title="HOUSE RULES">
+          {houseRules.map((rule, i) => (
+            <div key={rule.id} style={{ padding: "10px 0",
+              borderBottom: i < houseRules.length - 1 ? `1px solid rgba(68,100,68,0.15)` : "none" }}>
+              <div style={{ color: HEADER_GREEN, fontSize: "13px", letterSpacing: "0.08em",
+                marginBottom: rule.description ? "6px" : 0 }}>
+                {rule.title}
+              </div>
+              {rule.description && (
+                <div style={{ color: GREEN_DIM, fontSize: "12px", lineHeight: 1.7,
+                  whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {rule.description}
+                </div>
+              )}
+            </div>
+          ))}
+        </Section>
+      )}
     </div>
   );
 }
 
-// ─── Player View ──────────────────────────────────────────────────────────────
-
-function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, houseRules, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
   const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "downtime"
   const [showHistory, setShowHistory] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
@@ -2415,7 +2591,7 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         )}
 
         {tab === "downtime" && (
-          <PlayerSessionTab debt={debt} crew={crew} rollConfig={rollConfig} stocks={stocks} />
+          <PlayerSessionTab debt={debt} crew={crew} rollConfig={rollConfig} stocks={stocks} houseRules={houseRules} />
         )}
 
         {/* Theme switcher */}
@@ -3601,7 +3777,7 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
   storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig,
   jobs, setJobs, crew, setCrew, debt, setDebt, portfolio, setPortfolio, catalogs, setCatalogs,
-  blackmarket, setBlackmarket,
+  blackmarket, setBlackmarket, houseRules, setHouseRules,
   theme, setTheme, onLogout, KEYS }) {
 
   const [panel, setPanel] = useState("corps"); // "headline" | "jobs" | "economy" | "corps" | "session" | "settings"
@@ -4696,7 +4872,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             <div style={{ color: GREEN_MID, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>SESSION</div>
             {/* Sub-tab bar */}
             <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "20px", borderBottom: `1px solid ${GREEN_DARK}`, paddingBottom: "12px" }}>
-              {[["debt","DEBT"],["portfolio","PORTFOLIO"],["ship","SHIP"],["contractors","CONTRACTORS"]].map(([id, lbl]) => (
+              {[["debt","DEBT"],["portfolio","PORTFOLIO"],["ship","SHIP"],["contractors","CONTRACTORS"],["houserules","HOUSE RULES"]].map(([id, lbl]) => (
                 <button key={id} onClick={() => setSessionTab(id)}
                   style={{ background: sessionTab === id ? "rgba(68,136,255,0.12)" : "none",
                     border: `1px solid ${sessionTab === id ? "#334488" : "#1a2a3a"}`,
@@ -4706,6 +4882,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                   {lbl}
                   {id === "debt" && debt.length > 0 && <span style={{ color: "#cc5555", marginLeft: "4px" }}>({debt.length})</span>}
                   {id === "portfolio" && portfolio.length > 0 && <span style={{ color: GREEN_MID, marginLeft: "4px" }}>({portfolio.length})</span>}
+                  {id === "houserules" && houseRules.length > 0 && <span style={{ color: GREEN_MID, marginLeft: "4px" }}>({houseRules.length})</span>}
                 </button>
               ))}
             </div>
@@ -4722,6 +4899,9 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             )}
             {sessionTab === "contractors" && (
               <ContractorPanel crew={crew} setCrew={setCrew} wardenSet={wardenSet} KEYS={KEYS} />
+            )}
+            {sessionTab === "houserules" && (
+              <HouseRulesPanel houseRules={houseRules} setHouseRules={setHouseRules} wardenSet={wardenSet} KEYS={KEYS} />
             )}
           </div>
         )}
@@ -5107,6 +5287,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
   const [portfolio, setPortfolio] = useState([]);
   const [catalogs, setCatalogs] = useState({});
   const [blackmarket, setBlackmarket] = useState(INITIAL_BLACKMARKET);
+  const [houseRules, setHouseRules] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -5123,6 +5304,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       const pf = await safeGet(KEYS.portfolio, []);
       const cat = await safeGet(KEYS.catalogs, {});
       const bm  = await safeGet(KEYS.blackmarket, null);
+      const hr  = await safeGet(KEYS.houseRules, []);
       setStocks(sortByPrice(s));
       setHeadlines(h);
       setHistory(hist);
@@ -5145,6 +5327,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       } else {
         setBlackmarket(INITIAL_BLACKMARKET);
       }
+      setHouseRules(Array.isArray(hr) ? hr : []);
       setLoaded(true);
     })();
   }, []);
@@ -5207,6 +5390,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
         portfolio={portfolio} setPortfolio={setPortfolio}
         catalogs={catalogs} setCatalogs={setCatalogs}
         blackmarket={blackmarket} setBlackmarket={setBlackmarket}
+        houseRules={houseRules} setHouseRules={setHouseRules}
         theme={theme} setTheme={setTheme}
         onLogout={() => setView("player")}
         KEYS={KEYS}
@@ -5226,6 +5410,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       portfolio={portfolio}
       catalogs={catalogs}
       rollConfig={rollConfig}
+      houseRules={houseRules}
       theme={theme} setTheme={setTheme}
       onRefresh={async () => {
         const [s, h, hist, d] = await Promise.all([
