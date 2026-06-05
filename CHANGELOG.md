@@ -4,6 +4,13 @@ All notable changes to Stonks will be documented here.
 
 ---
 
+## [1.0.1] — 2026-06-05
+
+### Fixed
+- **Security: Warden data now requires PIN to read** — `/api/store` GET requests for sensitive keys (`crew`, `debt`, `portfolio`, `blackmarket`, `mergers`, `settings`, `houseRules`) now require the `x-warden-pin` header, subject to the same lockout and rate-limiting as writes. Previously any player with the room code could read all Warden data directly from the API with no authentication. Public keys (`stocks`, `headlines`, `history`, `date`, `jobs`, `catalogs`) remain unauthenticated as players need them. `pin` remains unreadable at all times.
+
+---
+
 ## [1.0.0] — 2026-06-02
 
 ### Added
