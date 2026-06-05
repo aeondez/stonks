@@ -6,13 +6,12 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-// No confusable characters: excludes 0/O, 1/I/L
 const CHARS = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const TTL = 60 * 60 * 24 * 90;
-
-// Room creation key — set ROOM_CREATION_KEY in Vercel env vars.
-// Default is "stonks". Change it to prevent players from spinning up rooms.
 const CREATION_KEY = process.env.ROOM_CREATION_KEY || "stonks";
+
+const IP_LIMIT = 30;
+const IP_WINDOW = 60; // 30 lookups per minute per IP — enough for legit use, not enumeration
 
 function generateCode() {
   return Array.from({ length: 6 }, () =>
@@ -29,6 +28,13 @@ function safeEqual(a, b) {
 }
 
 export default async function handler(req, res) {
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
+  const ipKey = `room-ip-rl:${ip}`;
+  const ipCount = await redis.incr(ipKey);
+  if (ipCount === 1) await redis.expire(ipKey, IP_WINDOW);
+  if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
+
+  // GET — check if room exists
   if (req.method === "GET") {
     const { code } = req.query;
     if (!code || !/^[A-Z0-9]{6}$/i.test(code)) {
@@ -38,10 +44,10 @@ export default async function handler(req, res) {
     return res.json({ exists: !!exists });
   }
 
+  // POST — create room
   if (req.method !== "POST") return res.status(405).end();
 
   const { creationKey } = req.body || {};
-
   if (!safeEqual(String(creationKey || ""), CREATION_KEY)) {
     return res.status(403).json({ error: "invalid_key" });
   }

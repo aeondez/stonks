@@ -9,6 +9,9 @@ const MAX_FAILURES = 5;
 const LOCKOUT_TTL = 60 * 30; // 30 minutes
 const TTL = 60 * 60 * 24 * 90;
 
+const IP_LIMIT = 10;
+const IP_WINDOW = 60 * 5; // 5 minutes
+
 function cleanPin(raw) {
   return String(raw || "000000").replace(/^"+|"+$/g, "").trim();
 }
@@ -34,18 +37,21 @@ export default async function handler(req, res) {
   if (!room || !pin) return res.status(400).json({ error: "missing fields" });
   if (!/^[A-Z0-9]{6}$/i.test(room)) return res.status(400).json({ error: "invalid room" });
 
-  // Check lockout first
-  const lockout = await redis.get(`lockout:${room}`);
-  if (lockout) {
-    return res.status(423).json({ error: "locked" });
-  }
+  // IP rate limit
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
+  const ipKey = `auth-ip-rl:${ip}`;
+  const ipCount = await redis.incr(ipKey);
+  if (ipCount === 1) await redis.expire(ipKey, IP_WINDOW);
+  if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
 
-  // Fetch stored PIN
+  // Room lockout
+  const lockout = await redis.get(`lockout:${room}`);
+  if (lockout) return res.status(423).json({ error: "locked" });
+
   const rawStored = await redis.get(`${room}:pin`);
   const storedPin = rawStored ? cleanPin(rawStored) : "000000";
 
   if (pin !== storedPin) {
-    // Record failure and push honeypot headline
     const failKey = `failures:${room}`;
     const count = await redis.incr(failKey);
     if (count === 1) await redis.expire(failKey, LOCKOUT_TTL);
@@ -60,7 +66,6 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: "denied", remaining: MAX_FAILURES - count });
   }
 
-  // Success — clear failures
   await redis.del(`failures:${room}`);
   await redis.del(`lockout:${room}`);
   return res.json({ ok: true });

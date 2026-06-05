@@ -4,6 +4,17 @@ All notable changes to Stonks will be documented here.
 
 ---
 
+## [1.0.2] — 2026-06-05
+
+### Fixed
+- **Security: `auth.js` missing IP rate limit** — PIN verification endpoint now enforces 10 attempts per 5 minutes per IP, independent of the per-room lockout. Previously a single IP could hammer any number of rooms with no IP-level throttle.
+- **Security: Black market brute-force window too wide** — `/api/blackmarket-auth` rate limit tightened from 10 attempts/minute to 5 attempts/10 minutes per IP and 8 attempts/10 minutes per room. Market cap is a small integer; the old limit was feasibly brute-forceable with a short script.
+- **Security: Black market headline fires on correct guess** — The "UNAUTHORIZED ACCESS ATTEMPT" headline previously fired on every attempt including successful ones, breaking immersion the moment a legitimate player entered the right code. Headline now fires only on failed attempts.
+- **Security: `unlock.js` HMAC key was hardcoded in public source** — Recovery passphrase comparison was wrapped in `createHmac("sha256", "stonks")` with `"stonks"` as the key, visible to anyone reading the code. Replaced with direct `timingSafeEqual` comparison. Also fixed a length oracle — differing-length inputs now consume constant time before returning false.
+- **Security: `room.js` GET had no rate limit** — Room existence checks are now rate limited to 30 requests/minute per IP, preventing scripted room code enumeration.
+
+---
+
 ## [1.0.1] — 2026-06-05
 
 ### Fixed
