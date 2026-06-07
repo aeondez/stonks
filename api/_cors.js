@@ -1,23 +1,11 @@
-// Shared CORS middleware — restricts API to same-origin requests only.
-// Call applyCors(req, res) at the top of each handler.
-// Returns true if the request was handled (preflight), false if processing should continue.
+// CORS middleware — rejects OPTIONS preflight requests from cross-origin callers.
+// Same-origin fetch POSTs don't send preflight, so this is belt-and-suspenders.
+// The real security layer is PIN auth on all warden endpoints.
 
 export function applyCors(req, res) {
-  // Only accept requests from the app's own origin
-  const origin = req.headers["origin"];
-  const host = req.headers["host"];
-
-  // Allow same-origin (no Origin header) and requests from our own host
-  if (origin && host && !origin.endsWith(host)) {
-    res.status(403).json({ error: "forbidden" });
-    return true; // handled
-  }
-
-  // Reject cross-origin preflight
   if (req.method === "OPTIONS") {
     res.status(204).end();
     return true;
   }
-
   return false;
 }
