@@ -1,3 +1,4 @@
+import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
 import crypto from "crypto";
 
@@ -21,13 +22,15 @@ function generateCode() {
 
 function safeEqual(a, b) {
   try {
-    return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
-  } catch {
-    return false;
-  }
+    const bufA = Buffer.from(String(a));
+    const bufB = Buffer.from(String(b));
+    if (bufA.length !== bufB.length) { crypto.timingSafeEqual(bufA, bufA); return false; }
+    return crypto.timingSafeEqual(bufA, bufB);
+  } catch { return false; }
 }
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return;
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
   const ipKey = `room-ip-rl:${ip}`;
   const ipCount = await redis.incr(ipKey);

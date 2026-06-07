@@ -5,7 +5,8 @@ import { GREEN_DIM, GREEN_DARK, GREEN_MID, MONO, BM_GEN_TABLES } from "../consta
 export function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState("alert"); // "alert" | "prompt" | "checking" | "denied"
-  const [ticket] = useState(() => Math.floor(Math.random() * 90000) + 10000);
+  const [ticket] = useState(() => `SEC-${Math.floor(Math.random() * 90000) + 10000}`);
+  const [node]   = useState(() => `NODE-${Math.floor(Math.random() * 900) + 100}`);
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -22,52 +23,55 @@ export function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {
       } else {
         setInput("");
         setPhase("denied");
-        // Wrong code entered — push security headline
         fetch(`/api/honeypot?room=${encodeURIComponent(roomCode)}`).catch(() => {});
-        setTimeout(() => setPhase("prompt"), 2000);
+        setTimeout(() => setPhase("prompt"), 2500);
       }
     } catch {
       setInput("");
       setPhase("denied");
-      setTimeout(() => setPhase("prompt"), 2000);
+      setTimeout(() => setPhase("prompt"), 2500);
     }
   };
 
-  const R = "#ff3333"; const RD = "#ff6666"; const RM = "#ff4444";
+  const R = "#ff3333"; const RD = "#ff6666"; const RM = "#ff4444"; const RX = "#ff8888";
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", fontFamily: MONO, padding: "32px", position: "relative" }}>
       <Scanlines color="rgba(200,0,0,0.06)" />
-      <div style={{ color: R, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px", position: "relative", zIndex: 1 }}>
-        ██████████████████████████████████<br/>
-        █  SFNET SECURITY MODULE v4.7.2  █<br/>
-        ██████████████████████████████████
+      <div style={{ color: R, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px",
+        position: "relative", zIndex: 1, lineHeight: "1.6" }}>
+        ████████████████████████████████████<br/>
+        █  SFNET SECURITY MODULE  v4.7.2   █<br/>
+        ████████████████████████████████████
       </div>
       <div style={{ color: RD, fontSize: "10px", letterSpacing: "0.15em", lineHeight: "2.2",
         textAlign: "left", maxWidth: "420px", width: "100%" }}>
-        <div style={{ color: RM, marginBottom: "4px" }}>sfnet-sec@daemon-4:~$ <span style={{ color: RD }}>./intrusion_scan --live</span></div>
-        <div>{">"} SCANNING SESSION CONTEXT<span style={{ color: R }}>...</span></div>
-        <div>{">"} INTRUSION DETECTED — UNAUTHORIZED TERMINAL ACCESS</div>
-        <div>{">"} SOURCE IP: <span style={{ color: R }}>LOGGED AND TRACED</span></div>
-        <div>{">"} SESSION FINGERPRINT: <span style={{ color: R }}>CAPTURED</span></div>
-        <div>{">"} DEVICE SIGNATURE: <span style={{ color: R }}>ARCHIVED</span></div>
-        <div>{">"} <span style={{ color: "#ff8888" }}>_</span></div>
-        <div style={{ color: RM }}>sfnet-sec@daemon-4:~$ <span style={{ color: RD }}>./alert --escalate SFNET_SEC_OPS</span></div>
-        <div>{">"} ALERTING: <span style={{ color: R }}>SFNET SEC-OPS</span></div>
-        <div>{">"} INCIDENT TICKET: <span style={{ color: R }}>SEC-{ticket}</span></div>
-        <div>{">"} RESPONSE ETA: <span style={{ color: R }}>IMMEDIATE</span></div>
-        <div>{">"} <span style={{ color: "#ff8888" }}>_</span></div>
-        <div style={{ marginTop: "8px", color: R, lineHeight: "1.8" }}>
-          THIS TERMINAL IS PROPERTY OF<br/>
-          STELLAR FINANCIAL NETWORK<br/>
-          UNAUTHORIZED ACCESS IS A VIOLATION<br/>
-          OF SFNET REGULATION 7-ALPHA<br/>
-          <span style={{ fontSize: "9px", opacity: 0.7 }}>~ ALL ACTIVITY LOGGED AND RETAINED FOR PROSECUTION ~</span>
+
+        <div style={{ color: RM, marginBottom: "4px" }}>sfnet-sec@{node}:~$ <span style={{ color: RD }}>./intrusion_scan --live --deep</span></div>
+        <div>{">"} probing session context<span style={{ color: R }}>...</span></div>
+        <div>{">"} <span style={{ color: R }}>unauthorized terminal access confirmed</span></div>
+        <div>{">"} origin traced. fingerprint locked. device logged.</div>
+        <div>{">"} <span style={{ color: RX }}>_</span></div>
+
+        <div style={{ color: RM, marginBottom: "4px" }}>sfnet-sec@{node}:~$ <span style={{ color: RD }}>./escalate --priority CRITICAL --tag {ticket}</span></div>
+        <div>{">"} incident filed under <span style={{ color: R }}>{ticket}</span></div>
+        <div>{">"} sfnet sec-ops paged. response window: <span style={{ color: R }}>immediate</span></div>
+        <div>{">"} session retained for litigation hold</div>
+        <div>{">"} <span style={{ color: RX }}>_</span></div>
+
+        <div style={{ marginTop: "10px", marginBottom: "10px", borderTop: `1px solid #330000` }} />
+
+        <div style={{ color: R, lineHeight: "1.9", fontSize: "9px", letterSpacing: "0.12em" }}>
+          THIS TERMINAL IS PROPERTY OF STELLAR FINANCIAL NETWORK.<br/>
+          UNAUTHORIZED ACCESS VIOLATES SFNET REGULATION 7-ALPHA<br/>
+          AND IS SUBJECT TO CIVIL AND CRIMINAL PROSECUTION.<br/>
+          <span style={{ opacity: 0.5 }}>ALL ACTIVITY IS LOGGED, RETAINED, AND ADMISSIBLE.</span>
         </div>
+
         {phase === "prompt" && (
           <div style={{ marginTop: "20px" }}>
-            <div style={{ color: RM, marginBottom: "6px" }}>sfnet-override@daemon-4:~$ <span style={{ color: RD }}>./auth --market-key</span></div>
+            <div style={{ color: RM, marginBottom: "6px" }}>sfnet-override@{node}:~$ <span style={{ color: RD }}>./auth --exchange-key</span></div>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <span style={{ color: R }}>{">"} KEY:</span>
               <input
@@ -84,12 +88,13 @@ export function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {
           </div>
         )}
         {phase === "checking" && (
-          <div style={{ marginTop: "20px", color: RD }}>{">"} VERIFYING<span style={{ color: R }}>...</span></div>
+          <div style={{ marginTop: "20px", color: RD }}>{">"} verifying<span style={{ color: R }}>...</span></div>
         )}
         {phase === "denied" && (
-          <div style={{ marginTop: "20px", color: R }}>{">"} ACCESS DENIED — KEY INVALID</div>
+          <div style={{ marginTop: "20px", color: R }}>{">"} key rejected — incident log updated</div>
         )}
       </div>
+
       <div style={{ display: "flex", gap: "12px", marginTop: "28px" }}>
         {phase === "alert" && (
           <button onClick={() => setPhase("prompt")}

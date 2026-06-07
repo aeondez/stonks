@@ -1,3 +1,4 @@
+import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
@@ -8,6 +9,7 @@ const redis = new Redis({
 const TTL = 60 * 60 * 24 * 90;
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return;
   const { room } = req.query;
   if (!room || !/^[A-Z0-9]{6}$/i.test(room)) {
     return res.status(400).json({ error: "invalid room" });

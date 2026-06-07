@@ -159,7 +159,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
         blackmarket={blackmarket} setBlackmarket={setBlackmarket}
         houseRules={houseRules} setHouseRules={setHouseRules}
         theme={theme} setTheme={setTheme}
-        onLogout={() => setView("player")}
+        onLogout={() => { setStoredPin(null); setView("player"); }}
         KEYS={KEYS}
       />
     );

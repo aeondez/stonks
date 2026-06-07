@@ -1,4 +1,6 @@
+import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
+import { timingSafeEqual } from "crypto";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -12,7 +14,16 @@ const TTL = 60 * 60 * 24 * 90;
 const IP_LIMIT = 10;
 const IP_WINDOW = 60 * 5; // 5 minutes
 
-function cleanPin(raw) {
+function pinEqual(a, b) {
+  try {
+    const bufA = Buffer.from(String(a));
+    const bufB = Buffer.from(String(b));
+    if (bufA.length !== bufB.length) { timingSafeEqual(bufA, bufA); return false; }
+    return timingSafeEqual(bufA, bufB);
+  } catch { return false; }
+}
+
+
   return String(raw || "000000").replace(/^"+|"+$/g, "").trim();
 }
 
@@ -31,6 +42,7 @@ async function pushHoneypotHeadline(room) {
 }
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).end();
 
   const { room, pin } = req.body;
@@ -51,7 +63,7 @@ export default async function handler(req, res) {
   const rawStored = await redis.get(`${room}:pin`);
   const storedPin = rawStored ? cleanPin(rawStored) : "000000";
 
-  if (pin !== storedPin) {
+  if (!pinEqual(pin, storedPin)) {
     const failKey = `failures:${room}`;
     const count = await redis.incr(failKey);
     if (count === 1) await redis.expire(failKey, LOCKOUT_TTL);

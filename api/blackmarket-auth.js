@@ -1,3 +1,4 @@
+import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
@@ -14,6 +15,7 @@ const ROOM_LIMIT = 8;
 const ROOM_WINDOW = 60 * 10; // 8 attempts per 10 minutes per room
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
 
   const { room, guess } = req.body || {};

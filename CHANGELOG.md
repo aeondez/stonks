@@ -4,6 +4,20 @@ All notable changes to Stonks will be documented here.
 
 ---
 
+## [1.0.4] — 2026-06-07
+
+### Changed
+- **Honeypot terminal copy and layout** — Rewrote the terminal text to feel less like a form letter and more like a live system. Lowercase output lines, tighter incident commands, a random node ID per session alongside the ticket number, a thin rule separator before the legal notice, and cleaned-up legal copy. Fixed the header box spacing so `v4.7.2` is properly padded.
+
+### Fixed
+- **Security: `storedPin` not cleared on Warden logout** — The verified PIN was held in React state after logout, meaning it could be reused by the next person to sit down. Now cleared to `null` on logout.
+- **Security: PIN comparison not timing-safe in `store.js` and `auth.js`** — Both handlers were using plain `!==` string equality. Replaced with `timingSafeEqual`, consistent with `unlock.js`. Length-oracle bypass included.
+- **Security: Fresh room accepts any read on warden keys** — A brand-new room (no PIN set) previously allowed any caller to read warden-only keys without credentials. Now requires the caller to send no PIN header at all (the Warden's first load) — any explicit PIN attempt on a fresh room is rejected.
+- **Security: `room.js` `safeEqual` length oracle** — Same `timingSafeEqual` throw-on-length-mismatch bug fixed in `unlock.js` previously; now fixed in `room.js` as well.
+- **Security: No CORS policy** — Added `api/_cors.js` helper, applied to all six API handlers. Cross-origin requests (different host in `Origin` header) are rejected with 403. Prevents a malicious page visited by a player from making API calls to the app in their browser.
+
+---
+
 ## [1.0.3] — 2026-06-07
 
 ### Fixed

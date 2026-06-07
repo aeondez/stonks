@@ -1,4 +1,6 @@
+import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
+import { timingSafeEqual } from "crypto";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -86,16 +88,31 @@ async function pushHoneypotHeadline(roomCode) {
   } catch {}
 }
 
+function pinEqual(a, b) {
+  try {
+    const bufA = Buffer.from(String(a));
+    const bufB = Buffer.from(String(b));
+    if (bufA.length !== bufB.length) { timingSafeEqual(bufA, bufA); return false; }
+    return timingSafeEqual(bufA, bufB);
+  } catch { return false; }
+}
+
 async function verifyPin(roomCode, submittedPin) {
   const rawStored = await redis.get(`${roomCode}:pin`);
-  const storedPin = rawStored ? cleanPin(rawStored) : null;
-  // Fresh room with no PIN set — allow through
-  if (storedPin === null) return { ok: true, fresh: true };
-  if (!submittedPin || submittedPin !== storedPin) return { ok: false };
+  // Fresh room — no PIN set yet. Only allow through if no pin header was sent at all,
+  // meaning this is the Warden's first load, not an unauthenticated probe.
+  if (rawStored === null) {
+    return submittedPin === undefined || submittedPin === null
+      ? { ok: true, fresh: true }
+      : { ok: false };
+  }
+  const storedPin = cleanPin(rawStored);
+  if (!submittedPin || !pinEqual(submittedPin, storedPin)) return { ok: false };
   return { ok: true };
 }
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return;
   const key = req.query.k;
   if (!key) return res.status(400).json({ error: "missing key" });
   if (!isValidKey(key)) return res.status(400).json({ error: "invalid key" });
