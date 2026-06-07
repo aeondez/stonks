@@ -17,13 +17,12 @@ const IP_WINDOW = 60; // per minute
 
 // Keys any connected player can read — market data, news, public job board
 const PUBLIC_SUBKEYS = new Set([
-  "stocks", "headlines", "history", "date", "jobs", "catalogs", "_active",
+  "stocks", "headlines", "history", "date", "jobs", "catalogs", "_active", "blackmarket",
 ]);
 
 // Keys only the Warden can read or write
 const WARDEN_SUBKEYS = new Set([
-  "pin", "mergers", "settings", "crew", "debt", "portfolio", "blackmarket",
-  "houseRules",
+  "pin", "mergers", "settings", "crew", "debt", "portfolio", "houseRules",
 ]);
 
 const VALID_SUBKEYS = new Set([...PUBLIC_SUBKEYS, ...WARDEN_SUBKEYS]);
@@ -99,14 +98,7 @@ function pinEqual(a, b) {
 
 async function verifyPin(roomCode, submittedPin) {
   const rawStored = await redis.get(`${roomCode}:pin`);
-  // Fresh room — no PIN set yet. Only allow through if no pin header was sent at all,
-  // meaning this is the Warden's first load, not an unauthenticated probe.
-  if (rawStored === null) {
-    return submittedPin === undefined || submittedPin === null
-      ? { ok: true, fresh: true }
-      : { ok: false };
-  }
-  const storedPin = cleanPin(rawStored);
+  const storedPin = rawStored ? cleanPin(rawStored) : "000000";
   if (!submittedPin || !pinEqual(submittedPin, storedPin)) return { ok: false };
   return { ok: true };
 }
