@@ -40,11 +40,14 @@ export function HoneypotTerminal({ roomCode, onBlackMarket, onDisconnect }) {
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", fontFamily: MONO, padding: "32px", position: "relative" }}>
       <Scanlines color="rgba(200,0,0,0.06)" />
-      <div style={{ color: R, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px",
-        position: "relative", zIndex: 1, lineHeight: "1.6" }}>
-        ████████████████████████████████████<br/>
-        █  SFNET SECURITY MODULE  v4.7.2   █<br/>
-        ████████████████████████████████████
+      <div style={{
+        color: R, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "24px",
+        position: "relative", zIndex: 1,
+        border: `1px solid ${R}`,
+        padding: "8px 18px",
+        whiteSpace: "nowrap",
+      }}>
+        SFNET SECURITY MODULE v4.7.2
       </div>
       <div style={{ color: RD, fontSize: "10px", letterSpacing: "0.15em", lineHeight: "2.2",
         textAlign: "left", maxWidth: "420px", width: "100%" }}>
