@@ -168,7 +168,6 @@ export default function StonksApp({ roomCode = "stonks" }) {
       stocks={stocks} headlines={headlines}
       history={history} date={date}
       yearLabel={rollConfig.yearLabel ?? "Year"} cycleLabel={rollConfig.cycleLabel ?? "Cycle"}
-      onSwitchGame={() => { window.location.href = "/"; }}
       jobs={jobs}
       debt={debt}
       crew={crew}

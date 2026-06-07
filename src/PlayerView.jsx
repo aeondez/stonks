@@ -6,7 +6,7 @@ import { computeMarketCap } from "./logic.js";
 import { Scanlines, FictionDate, StockRows, HistoryLog } from "./components/Shared.jsx";
 import { PlayerJobBoard } from "./components/JobBoard.jsx";
 import { PlayerSessionTab } from "./components/SessionPanels.jsx";
-export default function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, houseRules, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
+export default function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, houseRules, theme, setTheme, onWardenAccess, onHoneypot, onRefresh }) {
   const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "downtime"
   const [showHistory, setShowHistory] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
@@ -154,12 +154,12 @@ export default function PlayerView({ stocks, headlines, history, date, yearLabel
                     <span style={{ color: GREEN_MID, marginLeft: "4px" }}>●</span>
                   )}
                 </button>
-                <button onClick={onSwitchGame}
+                <button onClick={onWardenAccess}
                   style={{ background: "none", border: `1px solid ${GREEN_DARK}`,
                     color: GREEN_DARK, cursor: "pointer", fontFamily: MONO,
                     fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px",
                     whiteSpace: "nowrap" }}>
-                  [ SWITCH GAME ]
+                  [ WARDEN ]
                 </button>
               </div>
             </div>
@@ -257,14 +257,6 @@ export default function PlayerView({ stocks, headlines, history, date, yearLabel
           ))}
         </div>
 
-        {/* Hidden warden link */}
-        <div style={{ marginTop: "16px", textAlign: "center" }}>
-          <button onClick={onWardenAccess}
-            style={{ background: "none", border: "none", color: GREEN_DARK, opacity: 0.3, cursor: "pointer",
-              fontFamily: MONO, fontSize: "9px", letterSpacing: "0.15em" }}>
-            WARDEN ACCESS
-          </button>
-        </div>
         {/* Honeypot — looks like a system terminal to a curious hacker */}
         <div style={{ marginTop: "4px", textAlign: "center" }}>
           <button onClick={() => onHoneypot && onHoneypot()}
