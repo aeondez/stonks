@@ -4,6 +4,13 @@ All notable changes to Stonks will be documented here.
 
 ---
 
+## [1.0.3] — 2026-06-07
+
+### Fixed
+- **Warden data load no longer fires on page mount** — The initial data load was fetching all keys (including warden-only ones) for every visitor, triggering auth failures, fake headlines, and lockouts on every page load. Public keys (`stocks`, `headlines`, `history`, `date`, `jobs`, `catalogs`) still load on mount for all visitors. Warden-only keys (`mergers`, `settings`, `crew`, `debt`, `portfolio`, `blackmarket`, `houseRules`) now only load after PIN verification succeeds, using the verified PIN. `safeGet` updated to accept an optional PIN parameter.
+
+---
+
 ## [1.0.2] — 2026-06-05
 
 ### Fixed

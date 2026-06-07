@@ -54,45 +54,50 @@ export default function StonksApp({ roomCode = "stonks" }) {
 
   useEffect(() => {
     (async () => {
-      const s = await safeGet(KEYS.stocks, INITIAL_STOCKS);
-      const h = await safeGet(KEYS.headlines, []);
-      const hist = await safeGet(KEYS.history, []);
-      const d = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
-      const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
-      const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
-      const j = await safeGet(KEYS.jobs, []);
-      const cr = await safeGet(KEYS.crew, { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] });
-      const db = await safeGet(KEYS.debt, []);
-      const pf = await safeGet(KEYS.portfolio, []);
-      const cat = await safeGet(KEYS.catalogs, {});
-      const bm  = await safeGet(KEYS.blackmarket, null);
-      const hr  = await safeGet(KEYS.houseRules, []);
+      // Public keys only — no PIN required, safe to fetch for all visitors
+      const s   = await safeGet(KEYS.stocks,    INITIAL_STOCKS);
+      const h   = await safeGet(KEYS.headlines, []);
+      const hist= await safeGet(KEYS.history,   []);
+      const d   = await safeGet(KEYS.date,      { year: 2122, cycle: 1 });
+      const j   = await safeGet(KEYS.jobs,      []);
+      const cat = await safeGet(KEYS.catalogs,  {});
       setStocks(sortByPrice(s));
       setHeadlines(h);
       setHistory(hist);
       setDate(d);
-      setMergers(m);
-      setAlwaysMerge(sett.alwaysMerge ?? true);
-      setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
       setJobs(Array.isArray(j) ? j : []);
-      // Migrate crew from old array format to new object format
-      setCrew(Array.isArray(cr) ? { profiles: cr, contractors: [], shipBalance: 0, shipExpenses: [] }
-             : (cr && typeof cr === "object" && cr.profiles != null ? cr : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }));
-      setDebt(Array.isArray(db) ? db : []);
-      setPortfolio(Array.isArray(pf) ? pf : []);
       setCatalogs(cat && typeof cat === "object" ? { ...INITIAL_CATALOGS, ...cat } : INITIAL_CATALOGS);
-      // Merge saved BM data — saved active/archive win; pool merges (seed jobs not yet in saved pool are prepended)
-      if (bm && typeof bm === "object") {
-        const savedIds = new Set([...(bm.pool||[]), ...(bm.active||[]), ...(bm.archive||[])].map(j => j.id));
-        const newSeeds = INITIAL_BLACKMARKET.pool.filter(j => !savedIds.has(j.id));
-        setBlackmarket({ pool: [...newSeeds, ...(bm.pool||[])], active: bm.active||[], archive: bm.archive||[] });
-      } else {
-        setBlackmarket(INITIAL_BLACKMARKET);
-      }
-      setHouseRules(Array.isArray(hr) ? hr : []);
       setLoaded(true);
     })();
   }, []);
+
+  // Called after PIN is verified — loads warden-only keys using the confirmed PIN
+  const loadWardenData = async (pin) => {
+    const m    = await safeGet(KEYS.mergers,     INITIAL_MERGERS,  pin);
+    const sett = await safeGet(KEYS.settings,    { alwaysMerge: true }, pin);
+    const cr   = await safeGet(KEYS.crew,        { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }, pin);
+    const db   = await safeGet(KEYS.debt,        [], pin);
+    const pf   = await safeGet(KEYS.portfolio,   [], pin);
+    const bm   = await safeGet(KEYS.blackmarket, null, pin);
+    const hr   = await safeGet(KEYS.houseRules,  [], pin);
+    setMergers(m);
+    setAlwaysMerge(sett.alwaysMerge ?? true);
+    setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
+    setCrew(Array.isArray(cr)
+      ? { profiles: cr, contractors: [], shipBalance: 0, shipExpenses: [] }
+      : (cr && typeof cr === "object" && cr.profiles != null ? cr
+        : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] }));
+    setDebt(Array.isArray(db) ? db : []);
+    setPortfolio(Array.isArray(pf) ? pf : []);
+    if (bm && typeof bm === "object") {
+      const savedIds = new Set([...(bm.pool||[]), ...(bm.active||[]), ...(bm.archive||[])].map(j => j.id));
+      const newSeeds = INITIAL_BLACKMARKET.pool.filter(j => !savedIds.has(j.id));
+      setBlackmarket({ pool: [...newSeeds, ...(bm.pool||[])], active: bm.active||[], archive: bm.archive||[] });
+    } else {
+      setBlackmarket(INITIAL_BLACKMARKET);
+    }
+    setHouseRules(Array.isArray(hr) ? hr : []);
+  };
 
   if (!loaded) {
     return (
@@ -121,7 +126,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
   if (view === "pin") {
     return <PinGate
       roomCode={roomCode}
-      onSuccess={(pin) => { setStoredPin(pin); setView("warden"); }}
+      onSuccess={async (pin) => { setStoredPin(pin); await loadWardenData(pin); setView("warden"); }}
       onCancel={() => setView("player")}
       onHoneypot={() => { setView("honeypot"); }}
       onClearLockout={async (passphrase) => {

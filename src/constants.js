@@ -208,9 +208,11 @@ export const makeKeys = (prefix) => ({
   houseRules:  `${prefix}:houseRules`,
 });
 
-export const safeGet = async (key, fallback) => {
+export const safeGet = async (key, fallback, pin = null) => {
   try {
-    const r = await fetch(`/api/store?k=${encodeURIComponent(key)}`);
+    const headers = {};
+    if (pin) headers["x-warden-pin"] = pin;
+    const r = await fetch(`/api/store?k=${encodeURIComponent(key)}`, { headers });
     if (!r.ok) return fallback;
     const data = await r.json();
     return (data.value !== undefined && data.value !== null) ? data.value : fallback;
