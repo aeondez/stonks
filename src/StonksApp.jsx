@@ -126,6 +126,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       roomCode={roomCode}
       onSuccess={async (pin) => { setStoredPin(pin); await loadWardenData(pin); setView("warden"); }}
       onCancel={() => setView("player")}
+      onSwitchGame={() => { window.location.href = "/"; }}
       onHoneypot={() => { setView("honeypot"); }}
       onClearLockout={async (passphrase) => {
         const r = await fetch("/api/unlock", {

@@ -256,7 +256,7 @@ export function HistoryLog({ history, headlines }) {
 
 
 // ─── PIN Gate ───────────────────────────────────────────────────────────────
-export function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
+export function PinGate({ onSuccess, onCancel, onSwitchGame, storedPin, roomCode, onClearLockout }) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
@@ -375,6 +375,13 @@ export function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLocko
               fontFamily: MONO, fontSize: "12px", letterSpacing: "0.15em", padding: "10px", cursor: "pointer" }}>
             CANCEL
           </button>
+          {onSwitchGame && (
+            <button onClick={onSwitchGame}
+              style={{ background: "none", border: "none", color: GREEN_DARK,
+                fontFamily: MONO, fontSize: "12px", letterSpacing: "0.15em", padding: "10px", cursor: "pointer" }}>
+              SWITCH GAME
+            </button>
+          )}
         </div>
         <div style={{ color: GREEN_DARK, opacity: 0.4, fontSize: "10px", marginTop: "32px", letterSpacing: "0.1em" }}>
           DEFAULT PIN: {DEFAULT_PIN}
