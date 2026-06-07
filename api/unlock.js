@@ -1,6 +1,5 @@
-import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
-import { timingSafeEqual, randomBytes } from "crypto";
+import { timingSafeEqual } from "crypto";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -8,17 +7,14 @@ const redis = new Redis({
 });
 
 const RECOVERY = process.env.RECOVERY_PASSPHRASE || "omnicorp-is-watching";
-
 const RL_MAX = 5;
-const RL_WINDOW = 60 * 15; // 15 minutes per IP
+const RL_WINDOW = 60 * 15;
 
 function safeCompare(a, b) {
   try {
     const bufA = Buffer.from(a);
     const bufB = Buffer.from(b);
-    // Must be same length for timingSafeEqual — pad to avoid length oracle
     if (bufA.length !== bufB.length) {
-      // Still do a comparison to consume constant time, then return false
       timingSafeEqual(bufA, bufA);
       return false;
     }
@@ -29,7 +25,6 @@ function safeCompare(a, b) {
 }
 
 export default async function handler(req, res) {
-  if (applyCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).end();
 
   const { room, passphrase } = req.body;
@@ -42,7 +37,6 @@ export default async function handler(req, res) {
   if (count === 1) await redis.expire(rlKey, RL_WINDOW);
   if (count > RL_MAX) return res.status(429).json({ error: "rate limited" });
 
-  // Direct constant-time comparison — no HMAC with a known key
   if (!safeCompare(passphrase, RECOVERY)) {
     return res.status(403).json({ error: "invalid passphrase" });
   }

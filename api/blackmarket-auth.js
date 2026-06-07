@@ -1,4 +1,3 @@
-import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
@@ -7,15 +6,12 @@ const redis = new Redis({
 });
 
 const TTL = 60 * 60 * 24 * 90;
-
-// Tight limits — market cap is a small number, brute-forceable if loose
 const IP_LIMIT = 5;
-const IP_WINDOW = 60 * 10;   // 5 attempts per 10 minutes per IP
+const IP_WINDOW = 60 * 10;
 const ROOM_LIMIT = 8;
-const ROOM_WINDOW = 60 * 10; // 8 attempts per 10 minutes per room
+const ROOM_WINDOW = 60 * 10;
 
 export default async function handler(req, res) {
-  if (applyCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
 
   const { room, guess } = req.body || {};
@@ -24,13 +20,11 @@ export default async function handler(req, res) {
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
 
-  // IP rate limit
   const ipKey = `bm-ip-rl:${ip}`;
   const ipCount = await redis.incr(ipKey);
   if (ipCount === 1) await redis.expire(ipKey, IP_WINDOW);
   if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
 
-  // Per-room rate limit
   const roomKey = `bm-room-rl:${room}`;
   const roomCount = await redis.incr(roomKey);
   if (roomCount === 1) await redis.expire(roomKey, ROOM_WINDOW);
@@ -53,7 +47,6 @@ export default async function handler(req, res) {
     const guessNum = parseInt(String(guess).replace(/[^0-9]/g, ""), 10);
     const granted = !isNaN(guessNum) && guessNum === marketCap;
 
-    // Only push the security headline on failed attempts
     if (!granted) {
       const roomDate = (dateRaw && typeof dateRaw === "object" && dateRaw.year)
         ? dateRaw : { year: 2122, cycle: 1 };

@@ -1,35 +1,30 @@
-import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
-import { timingSafeEqual } from "crypto";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-const TTL = 60 * 60 * 24 * 90; // 90 days
-const MAX_BODY_BYTES = 512 * 1024; // 512KB max payload
-
+const TTL = 60 * 60 * 24 * 90;
+const MAX_BODY_BYTES = 512 * 1024;
 const MAX_FAILURES = 5;
-const LOCKOUT_TTL = 60 * 30; // 30 minutes per lockout
+const LOCKOUT_TTL = 60 * 30;
 const IP_LIMIT = 20;
-const IP_WINDOW = 60; // per minute
+const IP_WINDOW = 60;
 
-// Keys any connected player can read — market data, news, public job board
+// Player-readable — no auth required
 const PUBLIC_SUBKEYS = new Set([
   "stocks", "headlines", "history", "date", "jobs", "catalogs", "_active", "blackmarket",
 ]);
 
-// Keys only the Warden can read or write
+// Warden-only — PIN required to read or write
 const WARDEN_SUBKEYS = new Set([
   "pin", "mergers", "settings", "crew", "debt", "portfolio", "houseRules",
 ]);
 
 const VALID_SUBKEYS = new Set([...PUBLIC_SUBKEYS, ...WARDEN_SUBKEYS]);
 
-function getRoomCode(key) {
-  return key.split(":")[0];
-}
+function getRoomCode(key) { return key.split(":")[0]; }
 
 function isValidKey(key) {
   if (!key || typeof key !== "string") return false;
@@ -37,8 +32,7 @@ function isValidKey(key) {
   if (parts.length !== 2) return false;
   const [room, subkey] = parts;
   if (!/^[A-Z0-9]{6}$/i.test(room)) return false;
-  if (!VALID_SUBKEYS.has(subkey)) return false;
-  return true;
+  return VALID_SUBKEYS.has(subkey);
 }
 
 function cleanPin(raw) {
@@ -77,34 +71,25 @@ async function pushHoneypotHeadline(roomCode) {
   try {
     const existing = await redis.get(`${roomCode}:headlines`);
     const headlines = Array.isArray(existing) ? existing : [];
-    const entry = {
+    await redis.set(`${roomCode}:headlines`, [{
       headline: "UNAUTHORIZED ACCESS ATTEMPT DETECTED AND LOGGED",
       subtext: "Security incident filed. Stellar Financial Network monitoring team has been notified. Have a nice day.",
       date: { year: 2122, cycle: 0 },
       id: Date.now(),
-    };
-    await redis.set(`${roomCode}:headlines`, [entry, ...headlines], { ex: TTL });
+    }, ...headlines], { ex: TTL });
   } catch {}
-}
-
-function pinEqual(a, b) {
-  try {
-    const bufA = Buffer.from(String(a));
-    const bufB = Buffer.from(String(b));
-    if (bufA.length !== bufB.length) { timingSafeEqual(bufA, bufA); return false; }
-    return timingSafeEqual(bufA, bufB);
-  } catch { return false; }
 }
 
 async function verifyPin(roomCode, submittedPin) {
   const rawStored = await redis.get(`${roomCode}:pin`);
-  const storedPin = rawStored ? cleanPin(rawStored) : "000000";
-  if (!submittedPin || !pinEqual(submittedPin, storedPin)) return { ok: false };
+  const storedPin = rawStored ? cleanPin(rawStored) : null;
+  // Fresh room — no PIN set yet, allow through
+  if (storedPin === null) return { ok: true, fresh: true };
+  if (!submittedPin || submittedPin !== storedPin) return { ok: false };
   return { ok: true };
 }
 
 export default async function handler(req, res) {
-  if (applyCors(req, res)) return;
   const key = req.query.k;
   if (!key) return res.status(400).json({ error: "missing key" });
   if (!isValidKey(key)) return res.status(400).json({ error: "invalid key" });
@@ -114,13 +99,10 @@ export default async function handler(req, res) {
 
   // ── GET ──────────────────────────────────────────────────────────────────────
   if (req.method === "GET") {
-    // PIN is never readable
     if (subkey === "pin") return res.status(403).json({ error: "forbidden" });
 
-    // Warden-only keys require PIN auth on read
     if (WARDEN_SUBKEYS.has(subkey)) {
       const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
-
       const ipCount = await checkIpRateLimit(ip);
       if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
 
@@ -131,7 +113,6 @@ export default async function handler(req, res) {
 
       const submittedPin = req.headers["x-warden-pin"];
       const { ok, fresh } = await verifyPin(roomCode, submittedPin);
-
       if (!ok) {
         const failures = await recordFailure(roomCode);
         await pushHoneypotHeadline(roomCode);
@@ -143,11 +124,9 @@ export default async function handler(req, res) {
             : "room now locked for 30 minutes",
         });
       }
-
       if (!fresh) await clearFailures(roomCode);
     }
 
-    // Public keys or authenticated Warden read — return value
     const value = await redis.get(key);
     if (value === null) return res.json({ value: null });
     return res.json({ value });
@@ -156,7 +135,6 @@ export default async function handler(req, res) {
   // ── POST ─────────────────────────────────────────────────────────────────────
   if (req.method === "POST") {
     const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
-
     const ipCount = await checkIpRateLimit(ip);
     if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
 
@@ -172,7 +150,6 @@ export default async function handler(req, res) {
 
     const submittedPin = req.headers["x-warden-pin"];
     const { ok, fresh } = await verifyPin(roomCode, submittedPin);
-
     if (!ok) {
       const failures = await recordFailure(roomCode);
       await pushHoneypotHeadline(roomCode);
@@ -184,7 +161,6 @@ export default async function handler(req, res) {
           : "room now locked for 30 minutes",
       });
     }
-
     if (!fresh) await clearFailures(roomCode);
 
     const { value } = body;

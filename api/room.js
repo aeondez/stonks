@@ -1,4 +1,3 @@
-import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
 import crypto from "crypto";
 
@@ -12,7 +11,7 @@ const TTL = 60 * 60 * 24 * 90;
 const CREATION_KEY = process.env.ROOM_CREATION_KEY || "stonks";
 
 const IP_LIMIT = 30;
-const IP_WINDOW = 60; // 30 lookups per minute per IP — enough for legit use, not enumeration
+const IP_WINDOW = 60;
 
 function generateCode() {
   return Array.from({ length: 6 }, () =>
@@ -24,20 +23,20 @@ function safeEqual(a, b) {
   try {
     const bufA = Buffer.from(String(a));
     const bufB = Buffer.from(String(b));
-    if (bufA.length !== bufB.length) { crypto.timingSafeEqual(bufA, bufA); return false; }
+    if (bufA.length !== bufB.length) return false;
     return crypto.timingSafeEqual(bufA, bufB);
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 export default async function handler(req, res) {
-  if (applyCors(req, res)) return;
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
   const ipKey = `room-ip-rl:${ip}`;
   const ipCount = await redis.incr(ipKey);
   if (ipCount === 1) await redis.expire(ipKey, IP_WINDOW);
   if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
 
-  // GET — check if room exists
   if (req.method === "GET") {
     const { code } = req.query;
     if (!code || !/^[A-Z0-9]{6}$/i.test(code)) {
@@ -47,7 +46,6 @@ export default async function handler(req, res) {
     return res.json({ exists: !!exists });
   }
 
-  // POST — create room
   if (req.method !== "POST") return res.status(405).end();
 
   const { creationKey } = req.body || {};

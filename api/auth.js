@@ -1,6 +1,4 @@
-import { applyCors } from "./_cors.js";
 import { Redis } from "@upstash/redis";
-import { timingSafeEqual } from "crypto";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -8,22 +6,12 @@ const redis = new Redis({
 });
 
 const MAX_FAILURES = 5;
-const LOCKOUT_TTL = 60 * 30; // 30 minutes
+const LOCKOUT_TTL = 60 * 30;
 const TTL = 60 * 60 * 24 * 90;
-
 const IP_LIMIT = 10;
-const IP_WINDOW = 60 * 5; // 5 minutes
+const IP_WINDOW = 60 * 5;
 
-function pinEqual(a, b) {
-  try {
-    const bufA = Buffer.from(String(a));
-    const bufB = Buffer.from(String(b));
-    if (bufA.length !== bufB.length) { timingSafeEqual(bufA, bufA); return false; }
-    return timingSafeEqual(bufA, bufB);
-  } catch { return false; }
-}
-
-
+function cleanPin(raw) {
   return String(raw || "000000").replace(/^"+|"+$/g, "").trim();
 }
 
@@ -31,45 +19,39 @@ async function pushHoneypotHeadline(room) {
   try {
     const existing = await redis.get(`${room}:headlines`);
     const headlines = Array.isArray(existing) ? existing : [];
-    const entry = {
+    await redis.set(`${room}:headlines`, [{
       headline: "UNAUTHORIZED ACCESS ATTEMPT DETECTED AND LOGGED",
       subtext: "Security incident filed. Stellar Financial Network monitoring team has been notified. Have a nice day.",
       date: { year: 2122, cycle: 0 },
       id: Date.now(),
-    };
-    await redis.set(`${room}:headlines`, [entry, ...headlines], { ex: TTL });
+    }, ...headlines], { ex: TTL });
   } catch {}
 }
 
 export default async function handler(req, res) {
-  if (applyCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).end();
 
   const { room, pin } = req.body;
   if (!room || !pin) return res.status(400).json({ error: "missing fields" });
   if (!/^[A-Z0-9]{6}$/i.test(room)) return res.status(400).json({ error: "invalid room" });
 
-  // IP rate limit
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
   const ipKey = `auth-ip-rl:${ip}`;
   const ipCount = await redis.incr(ipKey);
   if (ipCount === 1) await redis.expire(ipKey, IP_WINDOW);
   if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
 
-  // Room lockout
   const lockout = await redis.get(`lockout:${room}`);
   if (lockout) return res.status(423).json({ error: "locked" });
 
   const rawStored = await redis.get(`${room}:pin`);
   const storedPin = rawStored ? cleanPin(rawStored) : "000000";
 
-  if (!pinEqual(pin, storedPin)) {
+  if (pin !== storedPin) {
     const failKey = `failures:${room}`;
     const count = await redis.incr(failKey);
     if (count === 1) await redis.expire(failKey, LOCKOUT_TTL);
-
     await pushHoneypotHeadline(room);
-
     if (count >= MAX_FAILURES) {
       await redis.set(`lockout:${room}`, "1", { ex: LOCKOUT_TTL });
       await redis.del(failKey);
