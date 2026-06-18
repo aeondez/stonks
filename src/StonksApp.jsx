@@ -5216,7 +5216,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
           }
           setSessionToken(null);
           setView("player");
-        }}}
+        }}
         KEYS={KEYS}
       />
     );
