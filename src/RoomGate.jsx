@@ -16,6 +16,9 @@ export default function RoomGate({ initializing = false, initialError = "" }) {
   const [creationKey, setCreationKey] = useState("");
   const [keyError, setKeyError] = useState("");
   const [error, setError] = useState(initialError);
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinError, setPinError] = useState("");
   const refs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
   const handleDigit = (i, val) => {
@@ -43,14 +46,17 @@ export default function RoomGate({ initializing = false, initialError = "" }) {
 
   const createGame = async () => {
     if (!creationKey.trim()) { setKeyError("Enter the creation key."); return; }
+    if (!/^\d{6}$/.test(newPin)) { setPinError("PIN must be exactly 6 digits."); return; }
+    if (newPin !== confirmPin) { setPinError("PINs do not match."); return; }
     setCreating(true);
     setKeyError("");
+    setPinError("");
     setError("");
     try {
       const r = await fetch("/api/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ creationKey: creationKey.trim() }),
+        body: JSON.stringify({ creationKey: creationKey.trim(), pin: newPin }),
       });
       if (r.status === 403) {
         setKeyError("Invalid creation key.");
@@ -97,17 +103,6 @@ export default function RoomGate({ initializing = false, initialError = "" }) {
     fontFamily: GATE_MONO, fontSize: "22px", textAlign: "center", outline: "none",
     letterSpacing: 0, boxSizing: "border-box",
   };
-
-  if (initializing) {
-    return (
-      <div style={{ minHeight: "100vh", background: GATE_BG, display: "flex",
-        alignItems: "center", justifyContent: "center", fontFamily: GATE_MONO }}>
-        <div style={{ color: GATE_GREEN_DARK, fontSize: "11px", letterSpacing: "0.3em" }}>
-          VERIFYING ACCESS...
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ minHeight: "100vh", background: GATE_BG, display: "flex",
@@ -193,6 +188,45 @@ export default function RoomGate({ initializing = false, initialError = "" }) {
                 {keyError}
               </div>
             )}
+            <div style={{ color: "#4a6a4a", fontSize: "9px", letterSpacing: "0.2em", marginBottom: "6px", marginTop: "8px" }}>
+              SET WARDEN PIN
+            </div>
+            <input
+              value={newPin}
+              onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && createGame()}
+              type="password"
+              inputMode="numeric"
+              placeholder="6-digit PIN"
+              maxLength={6}
+              style={{ width: "100%", background: "transparent",
+                border: `1px solid ${pinError ? GATE_RED : GATE_GREEN_DARK}`, color: "#e8ffe8",
+                fontFamily: GATE_MONO, fontSize: "13px", textAlign: "center",
+                letterSpacing: "0.3em", padding: "12px", outline: "none",
+                boxSizing: "border-box", marginBottom: "8px" }}
+            />
+            <div style={{ color: "#4a6a4a", fontSize: "9px", letterSpacing: "0.2em", marginBottom: "6px" }}>
+              CONFIRM PIN
+            </div>
+            <input
+              value={confirmPin}
+              onChange={(e) => { setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && createGame()}
+              type="password"
+              inputMode="numeric"
+              placeholder="confirm PIN"
+              maxLength={6}
+              style={{ width: "100%", background: "transparent",
+                border: `1px solid ${pinError ? GATE_RED : GATE_GREEN_DARK}`, color: "#e8ffe8",
+                fontFamily: GATE_MONO, fontSize: "13px", textAlign: "center",
+                letterSpacing: "0.3em", padding: "12px", outline: "none",
+                boxSizing: "border-box", marginBottom: "8px" }}
+            />
+            {pinError && (
+              <div style={{ color: GATE_RED, fontSize: "10px", letterSpacing: "0.1em", marginBottom: "8px" }}>
+                {pinError}
+              </div>
+            )}
             <div style={{ display: "flex", gap: "8px" }}>
               <button onClick={createGame} disabled={creating}
                 style={{ flex: 1, background: creating ? "rgba(68,255,136,0.05)" : "none",
@@ -202,7 +236,7 @@ export default function RoomGate({ initializing = false, initialError = "" }) {
                   padding: "12px", cursor: creating ? "default" : "pointer" }}>
                 {creating ? "GENERATING..." : "CREATE"}
               </button>
-              <button onClick={() => { setShowCreate(false); setCreationKey(""); setKeyError(""); }}
+              <button onClick={() => { setShowCreate(false); setCreationKey(""); setKeyError(""); setNewPin(""); setConfirmPin(""); setPinError(""); }}
                 style={{ background: "none", border: `1px solid #1a2a1a`, color: "#3a5a3a",
                   fontFamily: GATE_MONO, fontSize: "11px", padding: "12px 16px", cursor: "pointer" }}>
                 CANCEL

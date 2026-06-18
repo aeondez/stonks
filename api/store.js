@@ -5,26 +5,24 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-const TTL = 60 * 60 * 24 * 90;
-const MAX_BODY_BYTES = 512 * 1024;
+const TTL = 60 * 60 * 24 * 90; // 90 days
+const MAX_BODY_BYTES = 512 * 1024; // 512KB max payload
+
+// After this many wrong PINs, lock the room for LOCKOUT_TTL seconds
 const MAX_FAILURES = 5;
-const LOCKOUT_TTL = 60 * 30;
+const LOCKOUT_TTL = 60 * 30; // 30 minutes per lockout
+// Global IP rate limit — legitimate Warden saves ~7 keys per action
 const IP_LIMIT = 20;
-const IP_WINDOW = 60;
+const IP_WINDOW = 60; // per minute
 
-// Player-readable — no auth required
-const PUBLIC_SUBKEYS = new Set([
-  "stocks", "headlines", "history", "date", "jobs", "catalogs", "_active", "blackmarket",
+const VALID_SUBKEYS = new Set([
+  "stocks","headlines","history","date","pin","mergers","settings",
+  "jobs","crew","debt","portfolio","catalogs","blackmarket","_active"
 ]);
 
-// Warden-only — PIN required to read or write
-const WARDEN_SUBKEYS = new Set([
-  "pin", "mergers", "settings", "crew", "debt", "portfolio", "houseRules",
-]);
-
-const VALID_SUBKEYS = new Set([...PUBLIC_SUBKEYS, ...WARDEN_SUBKEYS]);
-
-function getRoomCode(key) { return key.split(":")[0]; }
+function getRoomCode(key) {
+  return key.split(":")[0];
+}
 
 function isValidKey(key) {
   if (!key || typeof key !== "string") return false;
@@ -32,7 +30,8 @@ function isValidKey(key) {
   if (parts.length !== 2) return false;
   const [room, subkey] = parts;
   if (!/^[A-Z0-9]{6}$/i.test(room)) return false;
-  return VALID_SUBKEYS.has(subkey);
+  if (!VALID_SUBKEYS.has(subkey)) return false;
+  return true;
 }
 
 function cleanPin(raw) {
@@ -56,6 +55,7 @@ async function recordFailure(roomCode) {
   const count = await redis.incr(key);
   if (count === 1) await redis.expire(key, LOCKOUT_TTL);
   if (count >= MAX_FAILURES) {
+    // Lock the room
     await redis.set(`lockout:${roomCode}`, count, { ex: LOCKOUT_TTL });
     await redis.del(key);
   }
@@ -71,22 +71,14 @@ async function pushHoneypotHeadline(roomCode) {
   try {
     const existing = await redis.get(`${roomCode}:headlines`);
     const headlines = Array.isArray(existing) ? existing : [];
-    await redis.set(`${roomCode}:headlines`, [{
+    const entry = {
       headline: "UNAUTHORIZED ACCESS ATTEMPT DETECTED AND LOGGED",
       subtext: "Security incident filed. Stellar Financial Network monitoring team has been notified. Have a nice day.",
       date: { year: 2122, cycle: 0 },
       id: Date.now(),
-    }, ...headlines], { ex: TTL });
+    };
+    await redis.set(`${roomCode}:headlines`, [entry, ...headlines], { ex: TTL });
   } catch {}
-}
-
-async function verifyPin(roomCode, submittedPin) {
-  const rawStored = await redis.get(`${roomCode}:pin`);
-  const storedPin = rawStored ? cleanPin(rawStored) : null;
-  // Fresh room — no PIN set yet, allow through
-  if (storedPin === null) return { ok: true, fresh: true };
-  if (!submittedPin || submittedPin !== storedPin) return { ok: false };
-  return { ok: true };
 }
 
 export default async function handler(req, res) {
@@ -94,74 +86,58 @@ export default async function handler(req, res) {
   if (!key) return res.status(400).json({ error: "missing key" });
   if (!isValidKey(key)) return res.status(400).json({ error: "invalid key" });
 
-  const subkey = key.split(":")[1];
-  const roomCode = getRoomCode(key);
-
-  // ── GET ──────────────────────────────────────────────────────────────────────
+  // GET — no auth required, except PIN key is never readable
   if (req.method === "GET") {
-    if (subkey === "pin") return res.status(403).json({ error: "forbidden" });
-
-    if (WARDEN_SUBKEYS.has(subkey)) {
-      const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
-      const ipCount = await checkIpRateLimit(ip);
-      if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
-
-      const lockout = await checkRoomLockout(roomCode);
-      if (lockout >= MAX_FAILURES) {
-        return res.status(423).json({ error: "room locked — too many failed attempts. Try again in 30 minutes." });
-      }
-
-      const submittedPin = req.headers["x-warden-pin"];
-      const { ok, fresh } = await verifyPin(roomCode, submittedPin);
-      if (!ok) {
-        const failures = await recordFailure(roomCode);
-        await pushHoneypotHeadline(roomCode);
-        const remaining = Math.max(0, MAX_FAILURES - failures);
-        return res.status(403).json({
-          error: "unauthorized",
-          remaining: remaining > 0
-            ? `${remaining} attempts before 30-minute lockout`
-            : "room now locked for 30 minutes",
-        });
-      }
-      if (!fresh) await clearFailures(roomCode);
-    }
-
+    if (key.endsWith(":pin")) return res.status(403).json({ error: "forbidden" });
     const value = await redis.get(key);
     if (value === null) return res.json({ value: null });
     return res.json({ value });
   }
 
-  // ── POST ─────────────────────────────────────────────────────────────────────
+  // POST — Warden writes require PIN auth
   if (req.method === "POST") {
     const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
-    const ipCount = await checkIpRateLimit(ip);
-    if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
 
+    // IP rate limit
+    const ipCount = await checkIpRateLimit(ip);
+    if (ipCount > IP_LIMIT) {
+      return res.status(429).json({ error: "rate limited" });
+    }
+
+    // Payload size check
     const body = req.body;
     if (JSON.stringify(body).length > MAX_BODY_BYTES) {
       return res.status(413).json({ error: "payload too large" });
     }
 
+    const roomCode = getRoomCode(key);
+    const submittedPin = req.headers["x-warden-pin"];
+
+    // Check room lockout
     const lockout = await checkRoomLockout(roomCode);
     if (lockout >= MAX_FAILURES) {
       return res.status(423).json({ error: "room locked — too many failed attempts. Try again in 30 minutes." });
     }
 
-    const submittedPin = req.headers["x-warden-pin"];
-    const { ok, fresh } = await verifyPin(roomCode, submittedPin);
-    if (!ok) {
+    // Fetch stored PIN — no PIN means room wasn't created properly, reject
+    const rawStored = await redis.get(`${roomCode}:pin`);
+    if (!rawStored) {
+      return res.status(403).json({ error: "room not initialized" });
+    }
+    const storedPin = cleanPin(rawStored);
+
+    if (!submittedPin || submittedPin !== storedPin) {
       const failures = await recordFailure(roomCode);
       await pushHoneypotHeadline(roomCode);
       const remaining = Math.max(0, MAX_FAILURES - failures);
       return res.status(403).json({
         error: "unauthorized",
-        remaining: remaining > 0
-          ? `${remaining} attempts before 30-minute lockout`
-          : "room now locked for 30 minutes",
+        remaining: remaining > 0 ? `${remaining} attempts before 30-minute lockout` : "room now locked for 30 minutes"
       });
     }
-    if (!fresh) await clearFailures(roomCode);
+
+    // Success — clear any failure count
+    await clearFailures(roomCode);
 
     const { value } = body;
     await redis.set(key, value, { ex: TTL });

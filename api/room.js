@@ -6,12 +6,13 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
+// No confusable characters: excludes 0/O, 1/I/L
 const CHARS = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const TTL = 60 * 60 * 24 * 90;
-const CREATION_KEY = process.env.ROOM_CREATION_KEY || "stonks";
 
-const IP_LIMIT = 30;
-const IP_WINDOW = 60;
+// Room creation key — set ROOM_CREATION_KEY in Vercel env vars.
+// Default is "stonks". Change it to prevent players from spinning up rooms.
+const CREATION_KEY = process.env.ROOM_CREATION_KEY || "stonks";
 
 function generateCode() {
   return Array.from({ length: 6 }, () =>
@@ -21,22 +22,13 @@ function generateCode() {
 
 function safeEqual(a, b) {
   try {
-    const bufA = Buffer.from(String(a));
-    const bufB = Buffer.from(String(b));
-    if (bufA.length !== bufB.length) return false;
-    return crypto.timingSafeEqual(bufA, bufB);
+    return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
   } catch {
     return false;
   }
 }
 
 export default async function handler(req, res) {
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || "unknown";
-  const ipKey = `room-ip-rl:${ip}`;
-  const ipCount = await redis.incr(ipKey);
-  if (ipCount === 1) await redis.expire(ipKey, IP_WINDOW);
-  if (ipCount > IP_LIMIT) return res.status(429).json({ error: "rate limited" });
-
   if (req.method === "GET") {
     const { code } = req.query;
     if (!code || !/^[A-Z0-9]{6}$/i.test(code)) {
@@ -48,9 +40,14 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") return res.status(405).end();
 
-  const { creationKey } = req.body || {};
+  const { creationKey, pin } = req.body || {};
+
   if (!safeEqual(String(creationKey || ""), CREATION_KEY)) {
     return res.status(403).json({ error: "invalid_key" });
+  }
+
+  if (!pin || !/^\d{6}$/.test(String(pin))) {
+    return res.status(400).json({ error: "pin_required" });
   }
 
   let code;
@@ -60,6 +57,9 @@ export default async function handler(req, res) {
     if (!exists) break;
   }
 
-  await redis.set(`${code}:_active`, Date.now(), { ex: TTL });
+  await Promise.all([
+    redis.set(`${code}:_active`, Date.now(), { ex: TTL }),
+    redis.set(`${code}:pin`, String(pin), { ex: TTL }),
+  ]);
   return res.json({ code });
 }
