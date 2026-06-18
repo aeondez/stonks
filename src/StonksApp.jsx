@@ -2183,7 +2183,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks }) {
 
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, theme, setTheme, onWardenAccess, onHoneypot, onRefresh, onSwitchGame }) {
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, theme, setTheme, onWardenAccess, onHoneypot, onRefresh }) {
   const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "downtime"
   const [showHistory, setShowHistory] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
@@ -2331,12 +2331,12 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
                     <span style={{ color: GREEN_MID, marginLeft: "4px" }}>●</span>
                   )}
                 </button>
-                <button onClick={onSwitchGame}
+                <button onClick={onWardenAccess}
                   style={{ background: "none", border: `1px solid ${GREEN_DARK}`,
                     color: GREEN_DARK, cursor: "pointer", fontFamily: MONO,
                     fontSize: "10px", letterSpacing: "0.15em", padding: "6px 14px",
                     whiteSpace: "nowrap" }}>
-                  [ SWITCH GAME ]
+                  [ WARDEN ]
                 </button>
               </div>
             </div>
@@ -2434,14 +2434,6 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
           ))}
         </div>
 
-        {/* Hidden warden link */}
-        <div style={{ marginTop: "16px", textAlign: "center" }}>
-          <button onClick={onWardenAccess}
-            style={{ background: "none", border: "none", color: GREEN_DARK, opacity: 0.3, cursor: "pointer",
-              fontFamily: MONO, fontSize: "9px", letterSpacing: "0.15em" }}>
-            WARDEN ACCESS
-          </button>
-        </div>
         {/* Honeypot — looks like a system terminal to a curious hacker */}
         <div style={{ marginTop: "4px", textAlign: "center" }}>
           <button onClick={() => onHoneypot && onHoneypot()}
@@ -3070,7 +3062,7 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
 
 // ─── PIN Gate ─────────────────────────────────────────────────────────────────
 
-function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
+function PinGate({ onSuccess, onCancel, onSwitchGame, storedPin, roomCode, onClearLockout }) {
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
@@ -3190,6 +3182,13 @@ function PinGate({ onSuccess, onCancel, storedPin, roomCode, onClearLockout }) {
               fontFamily: MONO, fontSize: "12px", letterSpacing: "0.15em", padding: "10px", cursor: "pointer" }}>
             CANCEL
           </button>
+          {onSwitchGame && (
+            <button onClick={onSwitchGame}
+              style={{ background: "none", border: "none", color: GREEN_DARK,
+                fontFamily: MONO, fontSize: "12px", letterSpacing: "0.15em", padding: "10px", cursor: "pointer" }}>
+              SWITCH GAME
+            </button>
+          )}
         </div>
         {/* Recovery passphrase — invisible trigger */}
         <div style={{ marginTop: "24px" }}>
@@ -5176,6 +5175,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       roomCode={roomCode}
       onSuccess={(token) => { setSessionToken(token); setView("warden"); }}
       onCancel={() => setView("player")}
+      onSwitchGame={() => { window.location.href = "/"; }}
       onHoneypot={() => { setView("honeypot"); }}
       onClearLockout={async (passphrase) => {
         const r = await fetch("/api/unlock", {
@@ -5227,8 +5227,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       stocks={stocks} headlines={headlines}
       history={history} date={date}
       yearLabel={rollConfig.yearLabel ?? "Year"} cycleLabel={rollConfig.cycleLabel ?? "Cycle"}
-      onSwitchGame={() => { window.location.href = "/"; }}
-      jobs={jobs}
+      onWardenAccess={() => setView("pin")}      jobs={jobs}
       debt={debt}
       crew={crew}
       portfolio={portfolio}
