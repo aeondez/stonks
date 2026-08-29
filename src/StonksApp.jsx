@@ -2077,6 +2077,25 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks, houseRules }) {
 
   return (
     <div ref={scrollRef} style={{ color:GREEN_MID, overflowAnchor:"none" }}>
+      {houseRules && houseRules.length > 0 && (
+        <Section id="houserules" title="HOUSE RULES">
+          {houseRules.map((rule, i) => (
+            <div key={rule.id} style={{ padding: "10px 0",
+              borderBottom: i < houseRules.length - 1 ? `1px solid rgba(68,100,68,0.15)` : "none" }}>
+              <div style={{ color: HEADER_GREEN, fontSize: "13px", letterSpacing: "0.08em",
+                marginBottom: rule.description ? "6px" : 0 }}>
+                {rule.title}
+              </div>
+              {rule.description && (
+                <div style={{ color: GREEN_DIM, fontSize: "12px", lineHeight: 1.7,
+                  whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {rule.description}
+                </div>
+              )}
+            </div>
+          ))}
+        </Section>
+      )}
       <Section id="payout" title="PAYOUT CALCULATOR">
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
           {[["MONTHS",months,setMonths,1],["JUMPS (×1kcr)",jumps,setJumps,0]].map(([label,val,set,min]) => (
@@ -2333,26 +2352,6 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks, houseRules }) {
           </div>
         )}
       </Section>
-
-      {houseRules && houseRules.length > 0 && (
-        <Section id="houserules" title="HOUSE RULES">
-          {houseRules.map((rule, i) => (
-            <div key={rule.id} style={{ padding: "10px 0",
-              borderBottom: i < houseRules.length - 1 ? `1px solid rgba(68,100,68,0.15)` : "none" }}>
-              <div style={{ color: HEADER_GREEN, fontSize: "13px", letterSpacing: "0.08em",
-                marginBottom: rule.description ? "6px" : 0 }}>
-                {rule.title}
-              </div>
-              {rule.description && (
-                <div style={{ color: GREEN_DIM, fontSize: "12px", lineHeight: 1.7,
-                  whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                  {rule.description}
-                </div>
-              )}
-            </div>
-          ))}
-        </Section>
-      )}
     </div>
   );
 }
