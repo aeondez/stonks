@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { randomBytes } from "crypto";
+import { takeSnapshot } from "./_backup.js";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -69,6 +70,7 @@ export default async function handler(req, res) {
   // Success — clear failures, generate session token
   await redis.del(`failures:${room}`);
   await redis.del(`lockout:${room}`);
+  await takeSnapshot(redis, room);
 
   const token = randomBytes(32).toString("hex");
   await redis.set(`session:${room}:${token}`, "1", { ex: SESSION_TTL });

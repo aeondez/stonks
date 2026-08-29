@@ -17,7 +17,7 @@ const IP_WINDOW = 60;
 // calculator) must be public-read; only writes are Warden-gated (see POST below).
 const PUBLIC_SUBKEYS = new Set([
   "stocks", "headlines", "history", "date", "jobs", "catalogs", "_active", "blackmarket", "houseRules",
-  "settings", "crew", "debt", "portfolio",
+  "settings", "crew", "debt", "portfolio", "codex",
 ]);
 
 // Warden-only — valid session token required to read or write.

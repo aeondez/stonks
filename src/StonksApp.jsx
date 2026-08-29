@@ -340,6 +340,7 @@ const makeKeys = (prefix) => ({
   catalogs:    `${prefix}:catalogs`,
   blackmarket: `${prefix}:blackmarket`,
   houseRules:  `${prefix}:houseRules`,
+  codex:       `${prefix}:codex`,
 });
 
 const safeGet = async (key, fallback, token = null) => {
@@ -1912,6 +1913,190 @@ function HouseRulesPanel({ houseRules, setHouseRules, wardenSet, KEYS }) {
   );
 }
 
+function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
+  const [editingId, setEditingId] = useState(null); // null | "new" | entry id
+  const [draftCategory, setDraftCategory] = useState("");
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [filterCategory, setFilterCategory] = useState("ALL");
+
+  const categories = [...new Set(codex.map(e => e.category).filter(Boolean))].sort();
+  const shown = filterCategory === "ALL" ? codex : codex.filter(e => e.category === filterCategory);
+
+  const sI = {
+    background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+    fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%",
+    boxSizing: "border-box", outline: "none",
+  };
+
+  const openNew = () => { setDraftCategory(filterCategory === "ALL" ? "" : filterCategory); setDraftTitle(""); setDraftBody(""); setEditingId("new"); };
+  const openEdit = (entry) => { setDraftCategory(entry.category || ""); setDraftTitle(entry.title); setDraftBody(entry.body); setEditingId(entry.id); };
+  const cancel = () => { setEditingId(null); setDraftCategory(""); setDraftTitle(""); setDraftBody(""); };
+
+  const save = () => {
+    const title = draftTitle.trim();
+    if (!title) return;
+    const category = draftCategory.trim() || "MISC";
+    let next;
+    if (editingId === "new") {
+      next = [...codex, { id: `cx_${Date.now()}`, category, title, body: draftBody.trim(), status: "hidden" }];
+    } else {
+      next = codex.map(e => e.id === editingId ? { ...e, category, title, body: draftBody.trim() } : e);
+    }
+    setCodex(next);
+    wardenSet(KEYS.codex, next);
+    cancel();
+  };
+
+  const remove = (id) => {
+    const next = codex.filter(e => e.id !== id);
+    setCodex(next);
+    wardenSet(KEYS.codex, next);
+  };
+
+  const setStatus = (id, status) => {
+    const next = codex.map(e => e.id === id ? { ...e, status } : e);
+    setCodex(next);
+    wardenSet(KEYS.codex, next);
+  };
+
+  const jBtnStyle = (borderColor) => ({
+    background: "none", border: `1px solid ${borderColor}`, color: borderColor,
+    fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
+    padding: "3px 9px", cursor: "pointer",
+  });
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "14px" }}>
+        {["ALL", ...categories].map(c => (
+          <button key={c} onClick={() => setFilterCategory(c)}
+            style={{ background: filterCategory === c ? "rgba(68,136,255,0.12)" : "none",
+              border: `1px solid ${filterCategory === c ? "#334488" : "#1a2a3a"}`,
+              color: filterCategory === c ? "#88aadd" : GREEN_DARK,
+              fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+              padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>
+            {c.toUpperCase()}
+          </button>
+        ))}
+      </div>
+      <datalist id="codex-categories">
+        {categories.map(c => <option key={c} value={c} />)}
+      </datalist>
+
+      {shown.length === 0 && !editingId && (
+        <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "10px 0", marginBottom: "8px" }}>
+          No entries {filterCategory === "ALL" ? "yet" : `in ${filterCategory}`}. New entries start HIDDEN — reveal them to players when you're ready.
+        </div>
+      )}
+
+      {shown.map(entry => (
+        <div key={entry.id} style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}`, padding: "12px 14px" }}>
+          {editingId === entry.id ? (
+            <div>
+              <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>CATEGORY</div>
+              <input value={draftCategory} onChange={e => setDraftCategory(e.target.value)}
+                placeholder="e.g. Locations, NPCs, Factions" list="codex-categories"
+                style={{ ...sI, marginBottom: "8px" }} />
+              <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>TITLE</div>
+              <input value={draftTitle} onChange={e => setDraftTitle(e.target.value)}
+                placeholder="Title" style={{ ...sI, marginBottom: "8px" }} />
+              <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>ENTRY TEXT</div>
+              <textarea value={draftBody} onChange={e => setDraftBody(e.target.value)}
+                placeholder="Description..." rows={5}
+                style={{ ...sI, resize: "vertical", lineHeight: 1.6, marginBottom: "10px" }} />
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button onClick={save} disabled={!draftTitle.trim()}
+                  style={{ background: "none", border: `1px solid ${draftTitle.trim() ? GREEN_DARK : "#1a2a1a"}`,
+                    color: draftTitle.trim() ? GREEN_MID : GREEN_DARK,
+                    fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                    padding: "5px 14px", cursor: draftTitle.trim() ? "pointer" : "not-allowed" }}>
+                  SAVE
+                </button>
+                <button onClick={cancel}
+                  style={{ background: "none", border: `1px solid #1a2a1a`, color: GREEN_DARK,
+                    fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                    padding: "5px 14px", cursor: "pointer" }}>
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: entry.body ? "6px" : 0 }}>
+                <div>
+                  <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "3px" }}>{(entry.category || "MISC").toUpperCase()}</div>
+                  <div style={{ color: HEADER_GREEN, fontSize: "12px", letterSpacing: "0.08em" }}>{entry.title}</div>
+                </div>
+                <span style={{ color: entry.status === "visible" ? GREEN_MID : "#cc5555", fontSize: "9px", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>
+                  {entry.status === "visible" ? "VISIBLE" : "HIDDEN"}
+                </span>
+              </div>
+              {entry.body && (
+                <div style={{ color: GREEN_DIM, fontSize: "11px", lineHeight: 1.7, marginBottom: "8px",
+                  whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {entry.body}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                <button onClick={() => openEdit(entry)} style={jBtnStyle(GREEN_DARK)}>EDIT</button>
+                {entry.status === "visible" ? (
+                  <button onClick={() => setStatus(entry.id, "hidden")} style={jBtnStyle("#cc5555")}>HIDE</button>
+                ) : (
+                  <button onClick={() => setStatus(entry.id, "visible")} style={jBtnStyle(GREEN_MID)}>REVEAL</button>
+                )}
+                <button onClick={() => remove(entry.id)} style={jBtnStyle("#aa6666")}>DELETE</button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {editingId === "new" && (
+        <div style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}`, padding: "12px 14px",
+          background: "rgba(0,0,0,0.3)" }}>
+          <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "10px" }}>NEW CODEX ENTRY</div>
+          <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>CATEGORY</div>
+          <input value={draftCategory} onChange={e => setDraftCategory(e.target.value)}
+            placeholder="e.g. Locations, NPCs, Factions" list="codex-categories" autoFocus
+            style={{ ...sI, marginBottom: "8px" }} />
+          <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>TITLE</div>
+          <input value={draftTitle} onChange={e => setDraftTitle(e.target.value)}
+            placeholder="Title" style={{ ...sI, marginBottom: "8px" }} />
+          <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>ENTRY TEXT</div>
+          <textarea value={draftBody} onChange={e => setDraftBody(e.target.value)}
+            placeholder="Description..." rows={5}
+            style={{ ...sI, resize: "vertical", lineHeight: 1.6, marginBottom: "10px" }} />
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button onClick={save} disabled={!draftTitle.trim()}
+              style={{ background: "none", border: `1px solid ${draftTitle.trim() ? GREEN_DARK : "#1a2a1a"}`,
+                color: draftTitle.trim() ? GREEN_MID : GREEN_DARK,
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                padding: "5px 14px", cursor: draftTitle.trim() ? "pointer" : "not-allowed" }}>
+              SAVE
+            </button>
+            <button onClick={cancel}
+              style={{ background: "none", border: `1px solid #1a2a1a`, color: GREEN_DARK,
+                fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+                padding: "5px 14px", cursor: "pointer" }}>
+              CANCEL
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!editingId && (
+        <button onClick={openNew}
+          style={{ background: "none", border: `1px solid #2a3a2a`, color: GREEN_MID,
+            fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+            padding: "5px 14px", cursor: "pointer", marginTop: "4px" }}>
+          + ADD ENTRY
+        </button>
+      )}
+    </div>
+  );
+}
+
 function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
   const [selCo, setSelCo] = useState(stocks.find(s=>!s.is_collapsed)?.name || "");
   const cat = catalogs[selCo] || { status:"hidden", ineligibleReason:"", benefits:"", items:[] };
@@ -2376,7 +2561,7 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks, houseRules }) {
 
 // ─── Player View ──────────────────────────────────────────────────────────────
 
-function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, houseRules, theme, setTheme, onWardenAccess, onHoneypot, onRefresh }) {
+function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, jobs, debt, crew, portfolio, catalogs, rollConfig, houseRules, codex, theme, setTheme, onWardenAccess, onHoneypot, onRefresh }) {
   const [tab, setTab] = useState("ticker"); // "ticker" | "jobs" | "downtime"
   const [showHistory, setShowHistory] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
@@ -2452,11 +2637,12 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         )}
 
         {/* Tab bar */}
-        <div style={{ display: "flex", gap: "4px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", gap: "4px", marginBottom: "16px", flexWrap: "wrap" }}>
           {[
             ["ticker","MARKET"],
             ["jobs", jobs.filter(j=>j.status==="active").length > 0 ? `JOBS (${jobs.filter(j=>j.status==="active").length})` : "JOBS"],
             ["downtime", "DOWNTIME"],
+            ["codex", "CODEX"],
           ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ background: tab === id ? "var(--c-active-bg, rgba(68,255,136,0.06))" : "none",
@@ -2613,6 +2799,10 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
           <PlayerSessionTab debt={debt} crew={crew} rollConfig={rollConfig} stocks={stocks} houseRules={houseRules} />
         )}
 
+        {tab === "codex" && (
+          <PlayerCodexTab codex={codex} />
+        )}
+
         {/* Theme switcher */}
         <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "6px" }}>
           {Object.entries(THEMES).map(([key, t]) => (
@@ -2637,6 +2827,63 @@ function PlayerView({ stocks, headlines, history, date, yearLabel, cycleLabel, j
         </div>
       </div>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
+    </div>
+  );
+}
+
+// ─── Player Codex Tab ──────────────────────────────────────────────────────────
+
+function PlayerCodexTab({ codex }) {
+  const [activeCategory, setActiveCategory] = useState("ALL");
+  const [expandedId, setExpandedId] = useState(null);
+  const entries = (codex || []).filter(e => e.status === "visible");
+  const categories = [...new Set(entries.map(e => e.category).filter(Boolean))].sort();
+  const shown = activeCategory === "ALL" ? entries : entries.filter(e => e.category === activeCategory);
+
+  if (entries.length === 0) {
+    return (
+      <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "24px 0", textAlign: "center", letterSpacing: "0.1em" }}>
+        NO ENTRIES ON RECORD
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px" }}>
+        {["ALL", ...categories].map(c => (
+          <button key={c} onClick={() => setActiveCategory(c)}
+            style={{ background: activeCategory === c ? "rgba(68,136,255,0.12)" : "none",
+              border: `1px solid ${activeCategory === c ? "#334488" : "#1a2a3a"}`,
+              color: activeCategory === c ? "#88aadd" : GREEN_DARK,
+              fontFamily: MONO, fontSize: "10px", letterSpacing: "0.1em",
+              padding: "5px 12px", cursor: "pointer", whiteSpace: "nowrap" }}>
+            {c.toUpperCase()}
+          </button>
+        ))}
+      </div>
+      {shown.length === 0 && (
+        <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "20px 0", textAlign: "center" }}>
+          NO ENTRIES IN THIS CATEGORY
+        </div>
+      )}
+      {shown.map(entry => (
+        <div key={entry.id} style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}` }}>
+          <button onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%",
+              background: "none", border: "none", padding: "12px 14px", cursor: "pointer",
+              fontFamily: MONO, textAlign: "left" }}>
+            <span style={{ color: HEADER_GREEN, fontSize: "13px", letterSpacing: "0.06em" }}>{entry.title}</span>
+            <span style={{ color: GREEN_DARK, fontSize: "13px" }}>{expandedId === entry.id ? "▲" : "▼"}</span>
+          </button>
+          {expandedId === entry.id && entry.body && (
+            <div style={{ padding: "0 14px 14px", color: GREEN_DIM, fontSize: "12px", lineHeight: 1.7,
+              whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {entry.body}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -3788,13 +4035,106 @@ function CustomMergerForm({ stocks, date, headlines, onConfirm }) {
   );
 }
 
+// ─── Cloud Backups ────────────────────────────────────────────────────────────
+
+function timeAgo(ts) {
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function CloudBackupSection({ roomCode, storedPin, restoreFromBackupData, showToast }) {
+  const [backups, setBackups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [snapshotting, setSnapshotting] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/backup?room=${encodeURIComponent(roomCode)}`, {
+        headers: { "x-session-token": storedPin },
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setBackups(Array.isArray(data.backups) ? data.backups : []);
+      }
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const snapshotNow = async () => {
+    setSnapshotting(true);
+    try {
+      const r = await fetch(`/api/backup?room=${encodeURIComponent(roomCode)}`, {
+        method: "POST",
+        headers: { "x-session-token": storedPin },
+      });
+      if (r.ok) {
+        showToast("SNAPSHOT SAVED");
+        await load();
+      } else {
+        showToast("SNAPSHOT FAILED", "#cc5555");
+      }
+    } catch {
+      showToast("SNAPSHOT FAILED", "#cc5555");
+    }
+    setSnapshotting(false);
+  };
+
+  const restore = async (backup) => {
+    const confirmed = window.confirm(
+      `RESTORE CLOUD BACKUP FROM ${timeAgo(backup.timestamp)}?\n\nThis will overwrite all current data. This cannot be undone.`
+    );
+    if (!confirmed) return;
+    await restoreFromBackupData(backup.data);
+    showToast("BACKUP RESTORED");
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px", flexWrap: "wrap" }}>
+        <button onClick={snapshotNow} disabled={snapshotting}
+          style={{ ...actionBtn, borderColor: GREEN, color: GREEN, opacity: snapshotting ? 0.5 : 1 }}>
+          {snapshotting ? "SNAPSHOTTING..." : "📸 SNAPSHOT NOW"}
+        </button>
+        <span style={{ color: GREEN_DARK, fontSize: "10px" }}>
+          Auto-snapshots on every Warden login. Keeps the last 3.
+        </span>
+      </div>
+      {loading && <div style={{ color: GREEN_DARK, fontSize: "11px" }}>Loading backups...</div>}
+      {!loading && backups.length === 0 && (
+        <div style={{ color: GREEN_DARK, fontSize: "11px" }}>No cloud backups yet — one will be taken automatically next time you log in.</div>
+      )}
+      {!loading && backups.map((b, i) => (
+        <div key={b.timestamp} style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: "10px", padding: "8px 0", borderBottom: i < backups.length - 1 ? "1px solid rgba(68,100,68,0.15)" : "none" }}>
+          <span style={{ color: GREEN_DIM, fontSize: "11px" }}>{timeAgo(b.timestamp)}</span>
+          <button onClick={() => restore(b)}
+            style={{ background: "none", border: `1px solid #334488`, color: "#88aadd",
+              fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em", padding: "3px 10px", cursor: "pointer" }}>
+            RESTORE
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Warden View ──────────────────────────────────────────────────────────────
 
 function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHistory, date, setDate,
   storedPin, setStoredPin, mergers, setMergers, alwaysMerge, setAlwaysMerge, rollConfig, setRollConfig,
   jobs, setJobs, crew, setCrew, debt, setDebt, portfolio, setPortfolio, catalogs, setCatalogs,
-  blackmarket, setBlackmarket, houseRules, setHouseRules,
-  theme, setTheme, onLogout, KEYS }) {
+  blackmarket, setBlackmarket, houseRules, setHouseRules, codex, setCodex,
+  theme, setTheme, onLogout, KEYS, roomCode }) {
 
   const [panel, setPanel] = useState("corps"); // "headline" | "jobs" | "economy" | "corps" | "session" | "settings"
   const [sessionTab, setSessionTab] = useState("debt"); // "debt"|"portfolio"|"ship"|"contractors"
@@ -3821,6 +4161,59 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
     wardenSet(KEYS.settings, next);
     return next;
   }, [alwaysMerge, rollConfig, wardenSet, KEYS]);
+
+  // Shared by the local file-upload import and the cloud-backup restore path
+  const restoreFromBackupData = async (data) => {
+    if (!data || !Array.isArray(data.stocks)) {
+      alert("Invalid backup data.");
+      return false;
+    }
+    const s = data.stocks;
+    const h = data.headlines || [];
+    const hist = data.history || [];
+    const d = data.date || { year: 2122, cycle: 1 };
+    const m = data.mergers || INITIAL_MERGERS;
+    const am = data.alwaysMerge ?? true;
+    const rc = { ...DEFAULT_ROLL_CONFIG, ...(data.rollConfig || {}) };
+    const j = Array.isArray(data.jobs) ? data.jobs : [];
+    const cr = data.crew && typeof data.crew === "object" && data.crew.profiles != null ? data.crew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] };
+    const db = Array.isArray(data.debt) ? data.debt : [];
+    const pf = Array.isArray(data.portfolio) ? data.portfolio : [];
+    const cat = data.catalogs && typeof data.catalogs === "object" ? data.catalogs : {};
+    const bm  = data.blackmarket && typeof data.blackmarket === "object" ? data.blackmarket : INITIAL_BLACKMARKET;
+    const hr = Array.isArray(data.houseRules) ? data.houseRules : [];
+    const cx = Array.isArray(data.codex) ? data.codex : [];
+    setStocks(sortByPrice(s));
+    setHeadlines(h);
+    setHistory(hist);
+    setDate(d);
+    setMergers(m);
+    setAlwaysMerge(am);
+    setRollConfig(rc);
+    setJobs(j);
+    setCrew(cr);
+    setDebt(db);
+    setPortfolio(pf);
+    setCatalogs(cat);
+    setBlackmarket(bm);
+    setHouseRules(hr);
+    setCodex(cx);
+    await wardenSet(KEYS.stocks, s);
+    await wardenSet(KEYS.headlines, h);
+    await wardenSet(KEYS.history, hist);
+    await wardenSet(KEYS.date, d);
+    await wardenSet(KEYS.mergers, m);
+    await wardenSet(KEYS.jobs, j);
+    await wardenSet(KEYS.crew, cr);
+    await wardenSet(KEYS.debt, db);
+    await wardenSet(KEYS.portfolio, pf);
+    await wardenSet(KEYS.catalogs, cat);
+    await wardenSet(KEYS.blackmarket, bm);
+    await wardenSet(KEYS.houseRules, hr);
+    await wardenSet(KEYS.codex, cx);
+    await wardenSet(KEYS.settings, { alwaysMerge: am, rollConfig: rc });
+    return true;
+  };
 
   const [toast, setToast] = useState(null);
   const showToast = (msg, color = GREEN) => {
@@ -4090,7 +4483,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
         {/* Toolbar — scrollable on mobile */}
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px",
           overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["session","SESSION"],["blackmkt","BLACK MKT"],["settings","SETTINGS"]].map(([p, label]) => (
+          {[["headline","HEADLINE"],["jobs","JOBS"],["economy","ECONOMY"],["corps","CORPS"],["session","SESSION"],["codex","CODEX"],["blackmkt","BLACK MKT"],["settings","SETTINGS"]].map(([p, label]) => (
             <button key={p} onClick={() => setPanel(panel === p ? null : p)}
               style={{ background: panel === p ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
                 border: `1px solid ${panel === p ? GREEN_MID : GREEN_DARK}`,
@@ -4921,6 +5314,14 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
           </div>
         )}
 
+        {/* Panel: Codex */}
+        {panel === "codex" && (
+          <div style={{ background: "rgba(0,10,20,0.6)", border: `1px solid ${GREEN_DARK}`, padding: "20px", marginBottom: "20px" }}>
+            <div style={{ color: GREEN_MID, fontSize: "11px", letterSpacing: "0.2em", marginBottom: "16px" }}>CODEX</div>
+            <CodexPanel codex={codex} setCodex={setCodex} wardenSet={wardenSet} KEYS={KEYS} />
+          </div>
+        )}
+
         {/* Panel: Black Market */}
         {panel === "blackmkt" && (
           <WardenBlackMarketPanel
@@ -5097,7 +5498,7 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 style={{ ...inputStyle, width: "140px" }} />
               <button onClick={handleSavePin} style={{ ...actionBtn }}>SAVE PIN</button>
               <button onClick={() => {
-                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, jobs, crew, debt, portfolio, catalogs, blackmarket, exportedAt: new Date().toISOString() };
+                const backup = { stocks, headlines, history, date, mergers, alwaysMerge, rollConfig, jobs, crew, debt, portfolio, catalogs, blackmarket, houseRules, codex, exportedAt: new Date().toISOString() };
                 const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -5120,45 +5521,10 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                           return;
                         }
                         const confirmed = window.confirm(
-                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, catalogs, and black market board. This cannot be undone."
+                          "IMPORT BACKUP?\n\nThis will overwrite all current data including stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, catalogs, black market board, house rules, and codex. This cannot be undone."
                         );
                         if (!confirmed) return;
-                        const s = data.stocks;
-                        const h = data.headlines || [];
-                        const hist = data.history || [];
-                        const d = data.date || { year: 2122, cycle: 1 };
-                        const m = data.mergers || INITIAL_MERGERS;
-                        const am = data.alwaysMerge ?? true;
-                        const j = Array.isArray(data.jobs) ? data.jobs : [];
-                        const cr = data.crew && typeof data.crew === "object" && data.crew.profiles != null ? data.crew : { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] };
-                        const db = Array.isArray(data.debt) ? data.debt : [];
-                        const pf = Array.isArray(data.portfolio) ? data.portfolio : [];
-                        const cat = data.catalogs && typeof data.catalogs === "object" ? data.catalogs : {};
-                        const bm  = data.blackmarket && typeof data.blackmarket === "object" ? data.blackmarket : INITIAL_BLACKMARKET;
-                        setStocks(sortByPrice(s));
-                        setHeadlines(h);
-                        setHistory(hist);
-                        setDate(d);
-                        setMergers(m);
-                        setAlwaysMerge(am);
-                        setJobs(j);
-                        setCrew(cr);
-                        setDebt(db);
-                        setPortfolio(pf);
-                        setCatalogs(cat);
-                        setBlackmarket(bm);
-                        await wardenSet(KEYS.stocks, s);
-                        await wardenSet(KEYS.headlines, h);
-                        await wardenSet(KEYS.history, hist);
-                        await wardenSet(KEYS.date, d);
-                        await wardenSet(KEYS.mergers, m);
-                        await wardenSet(KEYS.jobs, j);
-                        await wardenSet(KEYS.crew, cr);
-                        await wardenSet(KEYS.debt, db);
-                        await wardenSet(KEYS.portfolio, pf);
-                        await wardenSet(KEYS.catalogs, cat);
-                        await wardenSet(KEYS.blackmarket, bm);
-                        await wardenSet(KEYS.settings, { alwaysMerge: am, rollConfig: data.rollConfig || DEFAULT_ROLL_CONFIG });
+                        await restoreFromBackupData(data);
                         e.target.value = "";
                         alert("Backup restored successfully.");
                       } catch {
@@ -5171,6 +5537,13 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
             </div>
             {pinMsg && <div style={{ color: pinMsg.includes("updated") ? GREEN : RED, fontSize: "11px", marginTop: "8px" }}>{pinMsg}</div>}
 
+            </div>
+
+            {/* ── Cloud Backups ── */}
+            <div style={{ borderTop: `1px solid ${GREEN_DARK}`, marginTop: "24px", paddingTop: "20px" }}>
+              <div style={{ color: GREEN_MID, fontSize: "11px", marginBottom: "12px" }}>CLOUD BACKUPS</div>
+              <CloudBackupSection roomCode={roomCode} storedPin={storedPin}
+                restoreFromBackupData={restoreFromBackupData} showToast={showToast} />
             </div>
 
             {/* ── Dice Settings ── */}
@@ -5350,6 +5723,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
   const [catalogs, setCatalogs] = useState({});
   const [blackmarket, setBlackmarket] = useState(INITIAL_BLACKMARKET);
   const [houseRules, setHouseRules] = useState([]);
+  const [codex, setCodex] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -5366,6 +5740,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       const cat = await safeGet(KEYS.catalogs, {});
       const bm  = await safeGet(KEYS.blackmarket, null);
       const hr  = await safeGet(KEYS.houseRules, []);
+      const cx  = await safeGet(KEYS.codex, []);
       setStocks(sortByPrice(s));
       setHeadlines(h);
       setHistory(hist);
@@ -5388,6 +5763,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
         setBlackmarket(INITIAL_BLACKMARKET);
       }
       setHouseRules(Array.isArray(hr) ? hr : []);
+      setCodex(Array.isArray(cx) ? cx : []);
       setLoaded(true);
     })();
   }, []);
@@ -5457,6 +5833,8 @@ export default function StonksApp({ roomCode = "stonks" }) {
         catalogs={catalogs} setCatalogs={setCatalogs}
         blackmarket={blackmarket} setBlackmarket={setBlackmarket}
         houseRules={houseRules} setHouseRules={setHouseRules}
+        codex={codex} setCodex={setCodex}
+        roomCode={roomCode}
         theme={theme} setTheme={setTheme}
         onLogout={async () => {
           if (sessionToken) {
@@ -5486,6 +5864,7 @@ export default function StonksApp({ roomCode = "stonks" }) {
       catalogs={catalogs}
       rollConfig={rollConfig}
       houseRules={houseRules}
+      codex={codex}
       theme={theme} setTheme={setTheme}
       onRefresh={async () => {
         const [s, h, hist, d] = await Promise.all([

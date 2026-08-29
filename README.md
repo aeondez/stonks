@@ -32,10 +32,13 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 - 🚢 **Session → Ship** — named balance ledger (e.g. "Diamond Club, LLC") with deposit/withdraw history, owner-operator mode, crew payment mode, and bankruptcy save reference table
 - 📜 **Session → House Rules** — create, edit, and delete house rules with an all-caps title and freeform description; published rules appear at the top of the player Downtime tab
 - 🏖️ **Settings → Shore Leave** — scale the Shore Leave cost table to any % of standard (e.g. 10% turns 10kcr into 1kcr) and toggle waiving the Sanity Save requirement on paid Shore Leave; both are house rules that default to standard/off
+- 📚 **Codex** — campaign lore editor: locations, NPCs, factions, or anything else, grouped by a freeform category tag. Each entry toggles independently between HIDDEN and VISIBLE — new entries start hidden so you can write ahead and reveal on your own schedule.
+- ☁️ **Settings → Cloud Backups** — automatic snapshot of the full room state on every Warden login (last 3 kept), plus a manual "Snapshot Now" button; any snapshot can be restored with a confirmation prompt
 
 **Session Tools (Player)**
 - 🗓️ **Downtime tab** — collapsible sections: house rules, payout calculator, post-session checklist, debt obligations, contractors, medical treatments, shore leave, skill training, ship repairs and maintenance
 - 💰 **Portfolio** — equity holdings with live value and lock status; ship/group account balance if set; accessible from the Market tab
+- 📚 **Codex tab** — browse revealed lore by category; tap an entry to expand it
 
 **Shadow Exchange (Player)**
 - 🔴 **Hidden access** — the total market cap is displayed in the player header; entering it into the honeypot terminal grants access to the Shadow Exchange
@@ -154,11 +157,13 @@ On the player view, scroll to the very bottom and tap **WARDEN ACCESS**. Default
 
 ## Backups
 
-Use **⬇ EXPORT BACKUP** in Warden Settings before every session. The JSON file includes all room data: stocks, headlines, history, date, mergers, job board, crew profiles, debt, portfolio, catalogs, and house rules.
+**Cloud backups (automatic):** Every time you log in as Warden, the server snapshots the full room state to Redis and keeps the last 3. You can also trigger one on demand with **📸 SNAPSHOT NOW** in Warden → Settings → Cloud Backups. Each snapshot lists how long ago it was taken, with a **RESTORE** button that overwrites current data after a confirmation prompt. This is the safety net for "I just made a bad edit" — no local file needed.
 
-To restore, use **⬆ IMPORT BACKUP** and select the file — it will overwrite all current data and save to Redis automatically.
+**Local export (manual):** Use **⬇ EXPORT BACKUP** in Warden Settings before every session for an offline copy. The JSON file includes all room data: stocks, headlines, history, date, mergers, roll config, job board, crew profiles, debt, portfolio, catalogs, house rules, and codex.
 
-Room data expires after **90 days of inactivity**. Keep a local backup if your campaign has long gaps between sessions.
+To restore a local file, use **⬆ IMPORT BACKUP** and select it — it overwrites all current data and saves to Redis automatically.
+
+Room data (including cloud backups) expires after **90 days of inactivity**. Keep a local export if your campaign has long gaps between sessions.
 
 ---
 
@@ -201,6 +206,12 @@ After deploying an update, verify the following:
 - [ ] Shore Leave cost table reflects the Warden's configured % (e.g. 10% shows 1kcr instead of 10kcr)
 - [ ] Shore Leave duration line drops "Make a Sanity Save" and shows "waived" note when the Warden has enabled the toggle
 
+**Player view — Codex tab**
+- [ ] Shows "NO ENTRIES ON RECORD" when nothing is VISIBLE yet
+- [ ] Category pills reflect only categories with at least one VISIBLE entry
+- [ ] HIDDEN entries never appear, even under "ALL"
+- [ ] Tapping a title expands/collapses its body text
+
 **Warden view — general**
 - [ ] All five themes (GREEN, AMBER, BLUE, MONO, HI-VIS) are readable; no green-tinted boxes in non-green themes
 - [ ] Warden nav tabs, sub-tabs all use theme colors for active/inactive states
@@ -222,6 +233,13 @@ After deploying an update, verify the following:
 - [ ] Rule count badge appears on HOUSE RULES tab when rules exist
 - [ ] Rules persist across page reload
 
+**Warden — Codex**
+- [ ] + ADD ENTRY opens inline form; new entries default to HIDDEN
+- [ ] Category field accepts freeform text; datalist offers existing categories
+- [ ] SAVE/EDIT/DELETE work; category filter pills update immediately
+- [ ] HIDE/REVEAL toggle flips status without needing to re-open the edit form
+- [ ] VISIBLE entries appear in the Player Codex tab; HIDDEN ones don't
+
 **Warden — Jobs → Payout**
 - [ ] Crew cards show TRAINED / EXPERT / MASTER tier grid without overflow
 - [ ] Salary calculates correctly
@@ -231,7 +249,10 @@ After deploying an update, verify the following:
 - [ ] Theme switcher works
 - [ ] Shore Leave cost % input persists and RESET TO 100% button appears/works when non-default
 - [ ] Waive Sanity Save toggle persists and reflects in player Downtime tab
-- [ ] Export/Import backup round-trips correctly (including house rules)
+- [ ] Export/Import backup round-trips correctly (including house rules, roll config, and codex)
+- [ ] SNAPSHOT NOW creates a new cloud backup and the list refreshes with a fresh timestamp
+- [ ] A 4th snapshot rotates out the oldest of the 3
+- [ ] RESTORE on a cloud backup overwrites current data after confirmation and matches the snapshot's contents
 
 **Room gate**
 - [ ] Direct navigation to unknown room code `/room/XXXXXX` shows "Game not found" error at gate
@@ -267,7 +288,9 @@ After deploying an update, verify the following:
 ```
 stonks/
 ├── api/                    # Vercel serverless functions
-│   ├── auth.js             # PIN verification
+│   ├── auth.js             # PIN verification, session tokens, triggers a login snapshot
+│   ├── backup.js           # Cloud backup list (GET) / manual snapshot (POST)
+│   ├── _backup.js          # Shared snapshot-taking helper (not a route)
 │   ├── blackmarket-auth.js # Shadow Exchange access
 │   ├── honeypot.js         # Decoy terminal handler
 │   ├── kv.js               # Upstash Redis client
