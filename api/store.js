@@ -14,12 +14,12 @@ const IP_WINDOW = 60;
 
 // Player-readable — no auth required
 const PUBLIC_SUBKEYS = new Set([
-  "stocks", "headlines", "history", "date", "jobs", "catalogs", "_active", "blackmarket",
+  "stocks", "headlines", "history", "date", "jobs", "catalogs", "_active", "blackmarket", "houseRules",
 ]);
 
 // Warden-only — valid session token required to read or write
 const WARDEN_SUBKEYS = new Set([
-  "pin", "mergers", "settings", "crew", "debt", "portfolio", "houseRules",
+  "pin", "mergers", "settings", "crew", "debt", "portfolio",
 ]);
 
 const VALID_SUBKEYS = new Set([...PUBLIC_SUBKEYS, ...WARDEN_SUBKEYS]);

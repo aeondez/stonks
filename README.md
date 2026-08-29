@@ -270,19 +270,14 @@ stonks/
 ├── public/
 │   └── sw.js               # Service worker (PWA)
 ├── src/
-│   ├── constants.js        # Game data, themes, style vars, storage helpers
-│   ├── logic.js            # Economy engine, dice, merger helpers
-│   ├── components/
-│   │   ├── BlackMarket.jsx # Honeypot terminal, BM player/warden views
-│   │   ├── JobBoard.jsx    # Job cards, editor, warden board, player board
-│   │   ├── SessionPanels.jsx # All session sub-panels + player downtime tab
-│   │   ├── Shared.jsx      # Scanlines, FictionDate, StockRows, HistoryLog, PinGate
-│   │   └── WardenPanels.jsx # Headlines, corp editor, custom merger form
-│   ├── PlayerView.jsx      # Player view shell
-│   ├── WardenView.jsx      # Warden dashboard shell
-│   ├── StonksApp.jsx       # Root app: state, data loading, view routing
+│   ├── StonksApp.jsx       # The entire live app — state, data loading, view routing, Warden dashboard, Player view, all panels, all inline
 │   ├── RoomGate.jsx        # Room entry / creation screen
-│   └── main.jsx            # Entry point with room validation
+│   ├── main.jsx            # Entry point with room validation
+│   ├── constants.js        # Game data, themes, style vars, storage helpers (used by StonksApp.jsx)
+│   ├── logic.js            # Economy engine, dice, merger helpers (used by StonksApp.jsx)
+│   └── (legacy, unused) PlayerView.jsx, WardenView.jsx, components/*.jsx
+│       # Leftovers from a one-time modularization attempt. Never imported by main.jsx —
+│       # StonksApp.jsx is self-contained. Don't edit these expecting it to affect the app.
 ├── index.html
 ├── package.json
 ├── server.js               # Local Express server
