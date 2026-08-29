@@ -1955,7 +1955,8 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
   const [filterCategory, setFilterCategory] = useState("ALL");
 
   const categories = [...new Set(codex.map(e => e.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-  const shown = filterCategory === "ALL" ? codex : codex.filter(e => e.category === filterCategory);
+  const shown = (filterCategory === "ALL" ? codex : codex.filter(e => e.category === filterCategory))
+    .slice().sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
   const sI = {
     background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
@@ -2873,7 +2874,8 @@ function PlayerCodexTab({ codex }) {
   const [expandedId, setExpandedId] = useState(null);
   const entries = (codex || []).filter(e => e.status === "visible");
   const categories = [...new Set(entries.map(e => e.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-  const shown = activeCategory === "ALL" ? entries : entries.filter(e => e.category === activeCategory);
+  const shown = (activeCategory === "ALL" ? entries : entries.filter(e => e.category === activeCategory))
+    .slice().sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
   if (entries.length === 0) {
     return (
