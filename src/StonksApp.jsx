@@ -1923,7 +1923,7 @@ function CodexCategoryField({ categories, draftCategory, setDraftCategory, useNe
             if (e.target.value === "__new__") { setUseNewCategory(true); setDraftCategory(""); }
             else { setDraftCategory(e.target.value); }
           }}
-          style={{ ...sI, marginBottom: "8px", WebkitAppearance: "none", appearance: "none" }}>
+          style={{ ...sI, marginBottom: "8px", WebkitAppearance: "none", appearance: "none", colorScheme: "dark" }}>
           {categories.map(c => <option key={c} value={c}>{c}</option>)}
           <option value="__new__">+ NEW CATEGORY…</option>
         </select>
@@ -1954,7 +1954,7 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
   const [draftBody, setDraftBody] = useState("");
   const [filterCategory, setFilterCategory] = useState("ALL");
 
-  const categories = [...new Set(codex.map(e => e.category).filter(Boolean))].sort();
+  const categories = [...new Set(codex.map(e => e.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
   const shown = filterCategory === "ALL" ? codex : codex.filter(e => e.category === filterCategory);
 
   const sI = {
@@ -2872,7 +2872,7 @@ function PlayerCodexTab({ codex }) {
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [expandedId, setExpandedId] = useState(null);
   const entries = (codex || []).filter(e => e.status === "visible");
-  const categories = [...new Set(entries.map(e => e.category).filter(Boolean))].sort();
+  const categories = [...new Set(entries.map(e => e.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
   const shown = activeCategory === "ALL" ? entries : entries.filter(e => e.category === activeCategory);
 
   if (entries.length === 0) {
