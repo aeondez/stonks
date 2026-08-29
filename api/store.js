@@ -12,14 +12,18 @@ const LOCKOUT_TTL = 60 * 30;
 const IP_LIMIT = 20;
 const IP_WINDOW = 60;
 
-// Player-readable — no auth required
+// Player-readable — no auth required. Shared campaign data the Player view
+// displays directly (debt/crew/settings drive the Downtime tab and payout
+// calculator) must be public-read; only writes are Warden-gated (see POST below).
 const PUBLIC_SUBKEYS = new Set([
   "stocks", "headlines", "history", "date", "jobs", "catalogs", "_active", "blackmarket", "houseRules",
+  "settings", "crew", "debt", "portfolio",
 ]);
 
-// Warden-only — valid session token required to read or write
+// Warden-only — valid session token required to read or write.
+// Kept minimal: "mergers" is GM-facing pending-merger data players shouldn't see early.
 const WARDEN_SUBKEYS = new Set([
-  "pin", "mergers", "settings", "crew", "debt", "portfolio",
+  "pin", "mergers",
 ]);
 
 const VALID_SUBKEYS = new Set([...PUBLIC_SUBKEYS, ...WARDEN_SUBKEYS]);

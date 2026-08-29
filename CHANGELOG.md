@@ -9,6 +9,7 @@ All notable changes to Stonks will be documented here.
 ### Fixed
 - **House Rules not persisting** — The session-token security rewrite reverted `StonksApp.jsx` to an older, pre-modularization version that never had House Rules ported in, so rules only ever lived in React state and vanished on refresh. Re-added the `houseRules` key, load-on-mount, and Warden/Player UI to the live app.
 - **House Rules unreadable by players** — `houseRules` was classified as a warden-only read in `api/store.js`, so even once persisted, players could never fetch it for the Downtime tab. Moved to the public-read key list (writes remain Warden-only, same as `blackmarket`).
+- **Every page load self-locked the room** — `StonksApp.jsx` fetched `mergers`, `settings`, `crew`, `debt`, and `portfolio` unconditionally on mount, before any PIN was entered. Those 5 keys were classified warden-only reads in `api/store.js`, and `MAX_FAILURES` is 5 — so a single page load maxed the failure counter and locked the room for 30 minutes, every time, for everyone. `settings`, `crew`, `debt`, and `portfolio` are genuinely player-facing (Downtime tab, payout calculator, stress badge) so they're now public-read like `houseRules`/`blackmarket`. `mergers` is GM-facing only and stays warden-gated, but is now fetched after PIN verification instead of on mount.
 
 ---
 

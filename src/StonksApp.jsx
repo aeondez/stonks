@@ -5293,7 +5293,6 @@ export default function StonksApp({ roomCode = "stonks" }) {
       const h = await safeGet(KEYS.headlines, []);
       const hist = await safeGet(KEYS.history, []);
       const d = await safeGet(KEYS.date, { year: 2122, cycle: 1 });
-      const m = await safeGet(KEYS.mergers, INITIAL_MERGERS);
       const sett = await safeGet(KEYS.settings, { alwaysMerge: true });
       const j = await safeGet(KEYS.jobs, []);
       const cr = await safeGet(KEYS.crew, { profiles: [], contractors: [], shipBalance: 0, shipExpenses: [] });
@@ -5306,7 +5305,6 @@ export default function StonksApp({ roomCode = "stonks" }) {
       setHeadlines(h);
       setHistory(hist);
       setDate(d);
-      setMergers(m);
       setAlwaysMerge(sett.alwaysMerge ?? true);
       setRollConfig({ ...DEFAULT_ROLL_CONFIG, ...(sett.rollConfig || {}) });
       setJobs(Array.isArray(j) ? j : []);
@@ -5356,7 +5354,12 @@ export default function StonksApp({ roomCode = "stonks" }) {
   if (view === "pin") {
     return <PinGate
       roomCode={roomCode}
-      onSuccess={(token) => { setSessionToken(token); setView("warden"); }}
+      onSuccess={async (token) => {
+        setSessionToken(token);
+        const m = await safeGet(KEYS.mergers, INITIAL_MERGERS, token);
+        setMergers(m);
+        setView("warden");
+      }}
       onCancel={() => setView("player")}
       onSwitchGame={() => { window.location.href = "/"; }}
       onHoneypot={() => { setView("honeypot"); }}
