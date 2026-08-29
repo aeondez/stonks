@@ -1916,6 +1916,7 @@ function HouseRulesPanel({ houseRules, setHouseRules, wardenSet, KEYS }) {
 function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
   const [editingId, setEditingId] = useState(null); // null | "new" | entry id
   const [draftCategory, setDraftCategory] = useState("");
+  const [useNewCategory, setUseNewCategory] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState("");
   const [filterCategory, setFilterCategory] = useState("ALL");
@@ -1929,9 +1930,49 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
     boxSizing: "border-box", outline: "none",
   };
 
-  const openNew = () => { setDraftCategory(filterCategory === "ALL" ? "" : filterCategory); setDraftTitle(""); setDraftBody(""); setEditingId("new"); };
-  const openEdit = (entry) => { setDraftCategory(entry.category || ""); setDraftTitle(entry.title); setDraftBody(entry.body); setEditingId(entry.id); };
-  const cancel = () => { setEditingId(null); setDraftCategory(""); setDraftTitle(""); setDraftBody(""); };
+  const openNew = () => {
+    const preset = filterCategory !== "ALL" ? filterCategory : (categories[0] || "");
+    setDraftCategory(preset);
+    setUseNewCategory(categories.length === 0);
+    setDraftTitle(""); setDraftBody(""); setEditingId("new");
+  };
+  const openEdit = (entry) => {
+    setDraftCategory(entry.category || "");
+    setUseNewCategory(false);
+    setDraftTitle(entry.title); setDraftBody(entry.body); setEditingId(entry.id);
+  };
+  const cancel = () => { setEditingId(null); setDraftCategory(""); setUseNewCategory(false); setDraftTitle(""); setDraftBody(""); };
+
+  const CategoryField = () => (
+    <>
+      <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>CATEGORY</div>
+      {categories.length > 0 && !useNewCategory && (
+        <select value={draftCategory}
+          onChange={e => {
+            if (e.target.value === "__new__") { setUseNewCategory(true); setDraftCategory(""); }
+            else { setDraftCategory(e.target.value); }
+          }}
+          style={{ ...sI, marginBottom: "8px", WebkitAppearance: "none", appearance: "none" }}>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          <option value="__new__">+ NEW CATEGORY…</option>
+        </select>
+      )}
+      {(categories.length === 0 || useNewCategory) && (
+        <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+          <input value={draftCategory} onChange={e => setDraftCategory(e.target.value)}
+            placeholder="e.g. Locations, NPCs, Factions" autoFocus={categories.length === 0}
+            style={{ ...sI, marginBottom: 0 }} />
+          {categories.length > 0 && (
+            <button type="button" onClick={() => { setUseNewCategory(false); setDraftCategory(categories[0]); }}
+              style={{ background: "none", border: `1px solid #1a2a1a`, color: GREEN_DARK,
+                fontFamily: MONO, fontSize: "9px", padding: "0 10px", cursor: "pointer", whiteSpace: "nowrap" }}>
+              CANCEL
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
 
   const save = () => {
     const title = draftTitle.trim();
@@ -1980,10 +2021,6 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
           </button>
         ))}
       </div>
-      <datalist id="codex-categories">
-        {categories.map(c => <option key={c} value={c} />)}
-      </datalist>
-
       {shown.length === 0 && !editingId && (
         <div style={{ color: GREEN_DARK, fontSize: "11px", padding: "10px 0", marginBottom: "8px" }}>
           No entries {filterCategory === "ALL" ? "yet" : `in ${filterCategory}`}. New entries start HIDDEN — reveal them to players when you're ready.
@@ -1994,10 +2031,7 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
         <div key={entry.id} style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}`, padding: "12px 14px" }}>
           {editingId === entry.id ? (
             <div>
-              <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>CATEGORY</div>
-              <input value={draftCategory} onChange={e => setDraftCategory(e.target.value)}
-                placeholder="e.g. Locations, NPCs, Factions" list="codex-categories"
-                style={{ ...sI, marginBottom: "8px" }} />
+              <CategoryField />
               <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>TITLE</div>
               <input value={draftTitle} onChange={e => setDraftTitle(e.target.value)}
                 placeholder="Title" style={{ ...sI, marginBottom: "8px" }} />
@@ -2056,10 +2090,7 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
         <div style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}`, padding: "12px 14px",
           background: "rgba(0,0,0,0.3)" }}>
           <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "10px" }}>NEW CODEX ENTRY</div>
-          <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>CATEGORY</div>
-          <input value={draftCategory} onChange={e => setDraftCategory(e.target.value)}
-            placeholder="e.g. Locations, NPCs, Factions" list="codex-categories" autoFocus
-            style={{ ...sI, marginBottom: "8px" }} />
+          <CategoryField />
           <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>TITLE</div>
           <input value={draftTitle} onChange={e => setDraftTitle(e.target.value)}
             placeholder="Title" style={{ ...sI, marginBottom: "8px" }} />
