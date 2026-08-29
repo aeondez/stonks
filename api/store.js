@@ -83,7 +83,9 @@ async function pushHoneypotHeadline(roomCode) {
 async function verifySession(roomCode, token) {
   if (!token) return false;
   const val = await redis.get(`session:${roomCode}:${token}`);
-  return val === "1";
+  // Upstash's client auto-deserializes "1" to the number 1 on read, so a
+  // strict string comparison here always fails even for a valid session.
+  return String(val) === "1";
 }
 
 export default async function handler(req, res) {
