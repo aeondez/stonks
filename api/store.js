@@ -154,6 +154,11 @@ export default async function handler(req, res) {
     const { value } = body;
     await redis.set(key, value, { ex: TTL });
     await redis.set(`${roomCode}:_active`, Date.now(), { ex: TTL });
+    // Keep the PIN's own TTL alive on any authenticated write too — a Warden
+    // can stay logged in via a long-lived session token without re-entering
+    // the PIN, so login alone (see api/auth.js) isn't enough to prevent it
+    // from silently expiring during an actively-played game.
+    await redis.expire(`${roomCode}:pin`, TTL);
     return res.json({ ok: true });
   }
 

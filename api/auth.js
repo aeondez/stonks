@@ -70,6 +70,11 @@ export default async function handler(req, res) {
   // Success — clear failures, generate session token
   await redis.del(`failures:${room}`);
   await redis.del(`lockout:${room}`);
+  // Refresh the PIN's own TTL. Every other room key gets refreshed by ongoing
+  // activity (see api/store.js's _active bump), but the PIN is only ever
+  // written once (creation or an explicit change), so without this it can
+  // silently expire out from under an actively-played game.
+  await redis.expire(`${room}:pin`, TTL);
   await takeSnapshot(redis, room);
 
   const token = randomBytes(32).toString("hex");
