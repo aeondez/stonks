@@ -30,10 +30,11 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 - 💳 **Session → Debt** — per-creditor entries with monthly payment and term; reflected as minimum Stress increase in the player Downtime tab
 - 📦 **Session → Portfolio** — equity holdings with grant price, live value, and scenario-based lock/unlock
 - 🚢 **Session → Ship** — named balance ledger (e.g. "Diamond Club, LLC") with deposit/withdraw history, owner-operator mode, crew payment mode, and bankruptcy save reference table
-- 📜 **Session → House Rules** — create, edit, and delete house rules with an all-caps title and freeform description; published rules appear in the player Downtime tab
+- 📜 **Session → House Rules** — create, edit, and delete house rules with an all-caps title and freeform description; published rules appear at the top of the player Downtime tab
+- 🏖️ **Settings → Shore Leave** — scale the Shore Leave cost table to any % of standard (e.g. 10% turns 10kcr into 1kcr) and toggle waiving the Sanity Save requirement on paid Shore Leave; both are house rules that default to standard/off
 
 **Session Tools (Player)**
-- 🗓️ **Downtime tab** — collapsible sections: payout calculator, post-session checklist, debt obligations, contractors, medical treatments, shore leave, skill training, ship repairs and maintenance, house rules
+- 🗓️ **Downtime tab** — collapsible sections: house rules, payout calculator, post-session checklist, debt obligations, contractors, medical treatments, shore leave, skill training, ship repairs and maintenance
 - 💰 **Portfolio** — equity holdings with live value and lock status; ship/group account balance if set; accessible from the Market tab
 
 **Shadow Exchange (Player)**
@@ -170,6 +171,8 @@ Room data expires after **90 days of inactivity**. Keep a local backup if your c
 | Crew payment mode | Session → Ship | All Same / Per Crew | Cash/equity toggle global vs per-crew in Payout tab |
 | Account name | Session → Ship | Free text | Names the account (e.g. "Diamond Club, LLC"); shown to players in Portfolio |
 | Bump on complete | Settings | On / Off | Auto-bumps corporation health when a job is marked complete |
+| Shore Leave cost % | Settings | 0–any %, default 100 | Scales the credit costs in the player Downtime → Shore Leave table |
+| Waive Sanity Save (Shore Leave) | Settings | On / Off | Drops the Sanity Save requirement from paid Shore Leave in the player Downtime tab |
 
 ---
 
@@ -194,7 +197,9 @@ After deploying an update, verify the following:
 - [ ] Hazard and Corp dropdowns don't cause page jump on change
 - [ ] Training table shows no PREREQ column; prerequisite note appears above table
 - [ ] Debt obligations section appears if Warden has added debts
-- [ ] HOUSE RULES section appears at the bottom of Downtime if Warden has added rules; hidden if none
+- [ ] HOUSE RULES section appears at the top of Downtime if Warden has added rules; hidden if none
+- [ ] Shore Leave cost table reflects the Warden's configured % (e.g. 10% shows 1kcr instead of 10kcr)
+- [ ] Shore Leave duration line drops "Make a Sanity Save" and shows "waived" note when the Warden has enabled the toggle
 
 **Warden view — general**
 - [ ] All five themes (GREEN, AMBER, BLUE, MONO, HI-VIS) are readable; no green-tinted boxes in non-green themes
@@ -224,6 +229,8 @@ After deploying an update, verify the following:
 **Warden — Settings**
 - [ ] Training time unit toggle works
 - [ ] Theme switcher works
+- [ ] Shore Leave cost % input persists and RESET TO 100% button appears/works when non-default
+- [ ] Waive Sanity Save toggle persists and reflects in player Downtime tab
 - [ ] Export/Import backup round-trips correctly (including house rules)
 
 **Room gate**

@@ -6,6 +6,12 @@ All notable changes to Stonks will be documented here.
 
 ## [Unreleased] — 2026-08-29
 
+### Added
+- **Configurable Shore Leave house rules** — Warden → Settings → Shore Leave now has a cost % slider (default 100, e.g. 10 turns 10kcr into 1kcr) and a toggle to waive the Sanity Save requirement on paid Shore Leave. Both default to standard rules and are visible to players immediately in the Downtime tab.
+
+### Changed
+- **House Rules moved to the top of the player Downtime tab.**
+
 ### Fixed
 - **House Rules not persisting** — The session-token security rewrite reverted `StonksApp.jsx` to an older, pre-modularization version that never had House Rules ported in, so rules only ever lived in React state and vanished on refresh. Re-added the `houseRules` key, load-on-mount, and Warden/Player UI to the live app.
 - **House Rules unreadable by players** — `houseRules` was classified as a warden-only read in `api/store.js`, so even once persisted, players could never fetch it for the Downtime tab. Moved to the public-read key list (writes remain Warden-only, same as `blackmarket`).

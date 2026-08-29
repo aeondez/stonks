@@ -188,6 +188,8 @@ const DEFAULT_ROLL_CONFIG = {
   trainingTimeUnit: "months",  // "months" | "years"
   ownershipType: "company",    // "company" | "owner" | "freelancer"
   crewPaymentMode: "all",      // "all" | "per"
+  shoreLeaveCostPct: 100,      // % of base Shore Leave cost table to actually charge
+  shoreLeaveWaiveSanity: false, // skip the Sanity Save requirement on paid Shore Leave
 };
 
 // ─── Dice & Economy Logic ─────────────────────────────────────────────────────
@@ -1969,9 +1971,15 @@ function CatalogPanel({ catalogs, setCatalogs, stocks, wardenSet, KEYS }) {
 
 // ─── Player Session Tab ────────────────────────────────────────────────────────
 
+// Port class, cost dice, base cr per die-point (at 100%), stress converted
 const SHORE_LEAVE_TABLE = [
-  ["X","1d100×10kcr","2d10[+]"],["C","2d10×100cr","1d5"],["B","2d10×1kcr","1d10"],["A","2d10×10kcr","2d10"],["S","2d10×100kcr","All"],
+  ["X","1d100",10000,"2d10[+]"],["C","2d10",100,"1d5"],["B","2d10",1000,"1d10"],["A","2d10",10000,"2d10"],["S","2d10",100000,"All"],
 ];
+const formatShoreCost = (cr) => {
+  if (cr >= 1000000) return `${+(cr/1000000).toFixed(2)}mcr`;
+  if (cr >= 1000) return `${+(cr/1000).toFixed(2)}kcr`;
+  return `${Math.round(cr)}cr`;
+};
 const SHORE_LEAVE_RESULTS = [
   ["Critical Success","Convert maximum stress for port class. Relieve all remainder."],
   ["Success","Convert stress into permanent Save improvements (1 Stress = +1 to any Save). Relieve remainder to Minimum Stress."],
@@ -2249,14 +2257,24 @@ function PlayerSessionTab({ debt, crew, rollConfig, stocks, houseRules }) {
       </Section>
 
       <Section id="shore" title="SHORE LEAVE">
-        <div style={{ color:GREEN_DARK, fontSize:"12px", marginBottom:"10px" }}>Duration: 2d10 days. Make a Sanity Save.</div>
+        <div style={{ color:GREEN_DARK, fontSize:"12px", marginBottom:"10px" }}>
+          Duration: 2d10 days.{!(rollConfig.shoreLeaveWaiveSanity) && " Make a Sanity Save."}
+          {rollConfig.shoreLeaveWaiveSanity && <span style={{ color:GREEN_MID }}> Sanity Save waived (house rule).</span>}
+        </div>
         <div style={{ overflowX:"auto", marginBottom:"12px" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead><tr>{["PORT","COST","STRESS CONVERTED"].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-            <tbody>{SHORE_LEAVE_TABLE.map(([p,c,s])=>(
-              <tr key={p}><td style={{ ...TD, color:AMBER }}>{p}</td><td style={{ ...TD, color:"#88aacc" }}>{c}</td><td style={{ ...TD, color:HEADER_GREEN }}>{s}</td></tr>
+            <tbody>{SHORE_LEAVE_TABLE.map(([p,dice,perPoint,s])=>(
+              <tr key={p}><td style={{ ...TD, color:AMBER }}>{p}</td>
+                <td style={{ ...TD, color:"#88aacc" }}>{dice}×{formatShoreCost(perPoint * ((rollConfig.shoreLeaveCostPct ?? 100) / 100))}</td>
+                <td style={{ ...TD, color:HEADER_GREEN }}>{s}</td></tr>
             ))}</tbody>
           </table>
+          {(rollConfig.shoreLeaveCostPct ?? 100) !== 100 && (
+            <div style={{ color:GREEN_DARK, fontSize:"10px", marginTop:"6px" }}>
+              Costs at {rollConfig.shoreLeaveCostPct ?? 100}% of standard (house rule).
+            </div>
+          )}
         </div>
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
@@ -5003,6 +5021,54 @@ function WardenView({ stocks, setStocks, headlines, setHeadlines, history, setHi
                 </div>
               </div>
               <div style={{ color: GREEN_DARK, fontSize: "10px" }}>Ship ownership and crew payment mode are in Session → Ship.</div>
+            </div>
+
+            {/* ── Shore Leave ── */}
+            <div style={{ borderTop: `1px solid ${GREEN_DARK}`, marginTop: "24px", paddingTop: "20px" }}>
+              <div style={{ color: GREEN_MID, fontSize: "11px", marginBottom: "14px" }}>SHORE LEAVE</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+                <button onClick={() => {
+                  const next = { ...rollConfig, shoreLeaveWaiveSanity: !rollConfig.shoreLeaveWaiveSanity };
+                  setRollConfig(next); saveSettings({ rollConfig: next });
+                }}
+                  style={{ background: rollConfig.shoreLeaveWaiveSanity ? "var(--c-active-bg, rgba(68,200,68,0.08))" : "none",
+                    border: `1px solid ${rollConfig.shoreLeaveWaiveSanity ? GREEN_DARK : "#1a2a3a"}`,
+                    color: rollConfig.shoreLeaveWaiveSanity ? GREEN_MID : "#6688aa",
+                    fontFamily: MONO, fontSize: "10px", letterSpacing: "0.12em",
+                    padding: "5px 12px", cursor: "pointer" }}>
+                  {rollConfig.shoreLeaveWaiveSanity ? "ON" : "OFF"}
+                </button>
+                <span style={{ color: GREEN_MID, fontSize: "11px" }}>
+                  Waive Sanity Save on paid Shore Leave {rollConfig.shoreLeaveWaiveSanity ? "(house rule active)" : "(standard rule)"}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px", flexWrap: "wrap" }}>
+                <span style={{ color: GREEN_MID, fontSize: "11px", width: "160px", flexShrink: 0 }}>Cost (% of standard)</span>
+                <input
+                  type="number" min="0" step="5"
+                  value={rollConfig.shoreLeaveCostPct ?? 100}
+                  onChange={(e) => {
+                    const val = Math.max(0, parseInt(e.target.value) || 0);
+                    const next = { ...rollConfig, shoreLeaveCostPct: val };
+                    setRollConfig(next); saveSettings({ rollConfig: next });
+                  }}
+                  style={{ ...inputStyle, width: "70px", textAlign: "center" }}
+                />
+                <span style={{ color: GREEN_DARK, fontSize: "10px" }}>%</span>
+                {(rollConfig.shoreLeaveCostPct ?? 100) !== 100 && (
+                  <button onClick={() => {
+                    const next = { ...rollConfig, shoreLeaveCostPct: 100 };
+                    setRollConfig(next); saveSettings({ rollConfig: next });
+                  }} style={{ background: "none", border: `1px solid #1a2a3a`, color: GREEN_DARK,
+                    fontFamily: MONO, fontSize: "9px", letterSpacing: "0.1em",
+                    padding: "4px 8px", cursor: "pointer" }}>
+                    RESET TO 100%
+                  </button>
+                )}
+              </div>
+              <div style={{ color: GREEN_DARK, fontSize: "10px" }}>
+                Scales the credit costs in the player Downtime → Shore Leave table (e.g. 10% turns 10kcr into 1kcr). Dice and stress conversion are unaffected.
+              </div>
             </div>
 
             <div style={{ borderTop: `1px solid ${GREEN_DARK}`, marginTop: "24px", paddingTop: "20px" }}>
