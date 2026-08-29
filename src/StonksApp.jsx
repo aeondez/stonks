@@ -1913,37 +1913,8 @@ function HouseRulesPanel({ houseRules, setHouseRules, wardenSet, KEYS }) {
   );
 }
 
-function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
-  const [editingId, setEditingId] = useState(null); // null | "new" | entry id
-  const [draftCategory, setDraftCategory] = useState("");
-  const [useNewCategory, setUseNewCategory] = useState(false);
-  const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState("");
-  const [filterCategory, setFilterCategory] = useState("ALL");
-
-  const categories = [...new Set(codex.map(e => e.category).filter(Boolean))].sort();
-  const shown = filterCategory === "ALL" ? codex : codex.filter(e => e.category === filterCategory);
-
-  const sI = {
-    background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
-    fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%",
-    boxSizing: "border-box", outline: "none",
-  };
-
-  const openNew = () => {
-    const preset = filterCategory !== "ALL" ? filterCategory : (categories[0] || "");
-    setDraftCategory(preset);
-    setUseNewCategory(categories.length === 0);
-    setDraftTitle(""); setDraftBody(""); setEditingId("new");
-  };
-  const openEdit = (entry) => {
-    setDraftCategory(entry.category || "");
-    setUseNewCategory(false);
-    setDraftTitle(entry.title); setDraftBody(entry.body); setEditingId(entry.id);
-  };
-  const cancel = () => { setEditingId(null); setDraftCategory(""); setUseNewCategory(false); setDraftTitle(""); setDraftBody(""); };
-
-  const CategoryField = () => (
+function CodexCategoryField({ categories, draftCategory, setDraftCategory, useNewCategory, setUseNewCategory, sI }) {
+  return (
     <>
       <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>CATEGORY</div>
       {categories.length > 0 && !useNewCategory && (
@@ -1973,6 +1944,37 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
       )}
     </>
   );
+}
+
+function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
+  const [editingId, setEditingId] = useState(null); // null | "new" | entry id
+  const [draftCategory, setDraftCategory] = useState("");
+  const [useNewCategory, setUseNewCategory] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [filterCategory, setFilterCategory] = useState("ALL");
+
+  const categories = [...new Set(codex.map(e => e.category).filter(Boolean))].sort();
+  const shown = filterCategory === "ALL" ? codex : codex.filter(e => e.category === filterCategory);
+
+  const sI = {
+    background: "transparent", border: `1px solid ${GREEN_DARK}`, color: HEADER_GREEN,
+    fontFamily: MONO, fontSize: "11px", padding: "5px 8px", width: "100%",
+    boxSizing: "border-box", outline: "none",
+  };
+
+  const openNew = () => {
+    const preset = filterCategory !== "ALL" ? filterCategory : (categories[0] || "");
+    setDraftCategory(preset);
+    setUseNewCategory(categories.length === 0);
+    setDraftTitle(""); setDraftBody(""); setEditingId("new");
+  };
+  const openEdit = (entry) => {
+    setDraftCategory(entry.category || "");
+    setUseNewCategory(false);
+    setDraftTitle(entry.title); setDraftBody(entry.body); setEditingId(entry.id);
+  };
+  const cancel = () => { setEditingId(null); setDraftCategory(""); setUseNewCategory(false); setDraftTitle(""); setDraftBody(""); };
 
   const save = () => {
     const title = draftTitle.trim();
@@ -2031,7 +2033,8 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
         <div key={entry.id} style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}`, padding: "12px 14px" }}>
           {editingId === entry.id ? (
             <div>
-              <CategoryField />
+              <CodexCategoryField categories={categories} draftCategory={draftCategory} setDraftCategory={setDraftCategory}
+                useNewCategory={useNewCategory} setUseNewCategory={setUseNewCategory} sI={sI} />
               <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>TITLE</div>
               <input value={draftTitle} onChange={e => setDraftTitle(e.target.value)}
                 placeholder="Title" style={{ ...sI, marginBottom: "8px" }} />
@@ -2090,7 +2093,8 @@ function CodexPanel({ codex, setCodex, wardenSet, KEYS }) {
         <div style={{ marginBottom: "10px", border: `1px solid ${GREEN_DARK}`, padding: "12px 14px",
           background: "rgba(0,0,0,0.3)" }}>
           <div style={{ color: GREEN_MID, fontSize: "10px", letterSpacing: "0.15em", marginBottom: "10px" }}>NEW CODEX ENTRY</div>
-          <CategoryField />
+          <CodexCategoryField categories={categories} draftCategory={draftCategory} setDraftCategory={setDraftCategory}
+                useNewCategory={useNewCategory} setUseNewCategory={setUseNewCategory} sI={sI} />
           <div style={{ color: GREEN_DARK, fontSize: "9px", letterSpacing: "0.15em", marginBottom: "4px" }}>TITLE</div>
           <input value={draftTitle} onChange={e => setDraftTitle(e.target.value)}
             placeholder="Title" style={{ ...sI, marginBottom: "8px" }} />
