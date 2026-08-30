@@ -3351,6 +3351,15 @@ function WardenBlackMarketPanel({ blackmarket, setBlackmarket, date, wardenSet, 
         </div>
       </div>
 
+      <div style={{ border:`1px solid ${RDark}`, background:"rgba(0,0,0,0.3)", color:"#aa6666",
+        fontSize:"10px", lineHeight:1.7, padding:"8px 10px", marginBottom:"12px" }}>
+        <span style={{ color:RD }}>PLAYER ACCESS —</span> there is no fixed passcode. Players reach the
+        Shadow Exchange by entering the current <span style={{ color:RD }}>total market cap</span> (the
+        number shown in the player header) into the honeypot terminal at the foot of the player view.
+        The value is verified server-side; every attempt fires a honeypot headline whether it succeeds
+        or not.
+      </div>
+
       <div style={{ display:"flex", gap:"4px", marginBottom:"12px", flexWrap:"wrap" }}>
         {tabBtn("active","ACTIVE",active.length)}
         {tabBtn("pool","POOL",pool.length)}

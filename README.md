@@ -41,9 +41,9 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 - 📚 **Codex tab** — browse revealed lore by category; tap an entry to expand it
 
 **Shadow Exchange (Player)**
-- 🔴 **Hidden access** — the total market cap is displayed in the player header; entering it into the honeypot terminal grants access to the Shadow Exchange
+- 🔴 **Hidden access** — no menu entry; the way in is meant to be discovered in play and entered through the honeypot terminal at the foot of the player view. The Warden sees exactly how it works in the Shadow Exchange panel header.
 - 📋 **Red terminal aesthetic** — 3 active contracts displayed as raw preformatted text; collapsible archive of completed/expired contracts
-- 🔒 **Secure** — access code verified server-side only; never exposed in the client or console; honeypot headline fires on every attempt regardless of outcome
+- 🔒 **Secure** — the unlock value is checked server-side only, never in the client or console; a honeypot headline fires on every attempt regardless of outcome
 
 **Display**
 - 🎨 **Five themes** — GREEN, AMBER, BLUE, MONO, HI-VIS; all UI elements adapt to the selected theme
